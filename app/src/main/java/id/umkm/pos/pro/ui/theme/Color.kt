@@ -21,6 +21,7 @@ object PosColors {
     val TextPrimary = Color(0xFF172923)
     val TextSecondary = Color(0xFF5C6361)
     val TextMuted = Color(0xFF858B87)
+    val TextInk = Color(0xFF24252A)
 
     val Gold = Color(0xFFE0BC68)
     val GoldContainer = Color(0xFFFBF0D8)

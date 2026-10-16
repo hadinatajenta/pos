@@ -59,11 +59,12 @@ import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.ui.welcome.WelcomeScreen
 
 const val COMPACT_NAVIGATION_TEST_TAG = "compact-navigation-bar"
 const val EXPANDED_NAVIGATION_TEST_TAG = "expanded-navigation-rail"
 
-private const val FLOATING_NAVIGATION_ELEVATION = 10
+private const val FLOATING_NAVIGATION_ELEVATION = 4
 
 private val FloatingNavigationShape = RoundedCornerShape(28.dp)
 private val FloatingNavigationMinHeight = 56.dp
@@ -72,6 +73,20 @@ private val FloatingNavigationIndicatorHeight = 3.dp
 
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
+    val onboardingStore = LocalAppContainer.current.onboardingStore
+    var hasCompletedOnboarding by rememberSaveable {
+        mutableStateOf(onboardingStore.hasCompletedOnboarding())
+    }
+    if (!hasCompletedOnboarding) {
+        WelcomeScreen(
+            onStart = {
+                onboardingStore.markOnboardingCompleted()
+                hasCompletedOnboarding = true
+            },
+            modifier = modifier,
+        )
+        return
+    }
     var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.BERANDA) }
     val connectivityMonitor = rememberAndroidConnectivityMonitor()
     val shareReceipt = rememberReceiptSharer()

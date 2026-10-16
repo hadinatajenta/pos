@@ -16,5 +16,6 @@ interface AppContainer {
     val receiptRenderer: ReceiptRenderer
     val scannerInput: ScannerInput
     val adController: AdController
+    val onboardingStore: OnboardingStore
     val clock: Clock
 }

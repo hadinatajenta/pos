@@ -7,6 +7,7 @@ import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
+import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
@@ -21,6 +22,7 @@ import id.umkm.pos.pro.core.contract.ShiftRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.data.image.ProductImageStore
 import id.umkm.pos.pro.data.local.UmkmDatabase
+import id.umkm.pos.pro.data.local.OnboardingPreferences
 import id.umkm.pos.pro.data.local.repository.CustomerRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ProductRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ReportRepositoryImpl
@@ -95,6 +97,8 @@ class DefaultAppContainer(
     override val scannerInput: ScannerInput = HardwareScannerInput()
 
     override val adController: AdController = NoAdsController()
+
+    override val onboardingStore: OnboardingStore = OnboardingPreferences(applicationContext)
 
     val demoDataSeeder: DemoDataSeeder? =
         if (BuildConfig.DEBUG) {

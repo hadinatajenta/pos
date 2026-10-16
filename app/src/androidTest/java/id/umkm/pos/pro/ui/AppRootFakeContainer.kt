@@ -6,6 +6,7 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
+import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
@@ -192,6 +193,16 @@ internal object AppRootFakeContainer : AppContainer {
     }
 
     override val adController: AdController = NoAdsController()
+
+    var isOnboardingCompleted = true
+
+    override val onboardingStore: OnboardingStore = object : OnboardingStore {
+        override fun hasCompletedOnboarding(): Boolean = isOnboardingCompleted
+
+        override fun markOnboardingCompleted() {
+            isOnboardingCompleted = true
+        }
+    }
 
     override val clock: Clock = object : Clock {
         override fun nowMillis(): Long = 1_000L
