@@ -71,7 +71,11 @@ internal fun ProductRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            ProductThumbnail(category = product.category, size = PRODUCT_ROW_THUMBNAIL_SIZE)
+            ProductThumbnail(
+                category = product.category,
+                size = PRODUCT_ROW_THUMBNAIL_SIZE,
+                imagePath = product.imagePath,
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),

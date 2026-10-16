@@ -88,4 +88,19 @@ class ProductFormValidationTest {
 
         assertThat(errors).containsKey(ProductFormField.WHOLESALE_PRICE)
     }
+
+    @Test
+    fun summarisesHowManyFieldsBlockSaving() {
+        val errors = validateProductForm(validForm().copy(name = " ", basePrice = ""))
+
+        assertThat(errors.keys).containsExactly(ProductFormField.NAME, ProductFormField.BASE_PRICE)
+        assertThat(productFormErrorSummary(errors)).isEqualTo("Lengkapi 2 kolom wajib sebelum menyimpan.")
+    }
+
+    @Test
+    fun summarisesASingleBlockingField() {
+        val errors = validateProductForm(validForm().copy(name = ""))
+
+        assertThat(productFormErrorSummary(errors)).isEqualTo("Lengkapi 1 kolom wajib sebelum menyimpan.")
+    }
 }

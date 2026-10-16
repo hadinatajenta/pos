@@ -25,4 +25,5 @@ data class ProductEntity(
     @ColumnInfo(name = "stock_base_qty") val stockBaseQty: Double,
     @ColumnInfo(name = "min_stock_alert") val minStockAlert: Double,
     @ColumnInfo(name = "is_active") val isActive: Boolean,
+    @ColumnInfo(name = "image_path") val imagePath: String? = null,
 )

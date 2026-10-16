@@ -46,7 +46,7 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -86,10 +86,16 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE products ADD COLUMN image_path TEXT")
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(SingletonRowsCallback)
                 .build()
 

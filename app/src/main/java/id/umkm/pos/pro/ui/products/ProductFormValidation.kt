@@ -1,5 +1,8 @@
 package id.umkm.pos.pro.ui.products
 
+fun productFormErrorSummary(errors: Map<ProductFormField, String>): String =
+    "Lengkapi ${errors.size} kolom wajib sebelum menyimpan."
+
 fun validateProductForm(form: ProductFormState): Map<ProductFormField, String> {
     val errors = mutableMapOf<ProductFormField, String>()
     if (form.name.isBlank()) {

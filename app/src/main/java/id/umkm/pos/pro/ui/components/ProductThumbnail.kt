@@ -1,7 +1,9 @@
 package id.umkm.pos.pro.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BakeryDining
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
@@ -27,7 +30,9 @@ fun ProductThumbnail(
     category: String?,
     modifier: Modifier = Modifier,
     size: Dp = 48.dp,
+    imagePath: String? = null,
 ) {
+    val imageBitmap = rememberFileImageBitmap(imagePath)
     Box(
         modifier = modifier
             .size(size)
@@ -35,12 +40,21 @@ fun ProductThumbnail(
             .background(LocalPosSemanticPalette.current.neutralContainer),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = iconForCategory(category),
-            contentDescription = null,
-            modifier = Modifier.size(size / 2),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (imageBitmap != null) {
+            Image(
+                bitmap = imageBitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Icon(
+                imageVector = iconForCategory(category),
+                contentDescription = null,
+                modifier = Modifier.size(size / 2),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

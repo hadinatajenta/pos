@@ -19,9 +19,11 @@ class ProductsViewModelTest {
 
     private val clock = FakeClock(currentMillis = 10_000L)
     private val products = FakeCatalogRepository()
+    private val images = FakeProductImageRepository()
 
     private fun createViewModel(): ProductsViewModel = ProductsViewModel(
         productRepository = products,
+        productImageRepository = images,
         clock = clock,
     )
 
@@ -186,6 +188,20 @@ class ProductsViewModelTest {
         assertThat(errors).containsKey(ProductFormField.BASE_PRICE)
         assertThat(errors).containsKey(ProductFormField.BASE_HPP)
         assertThat(products.currentProducts()).isEmpty()
+    }
+
+    @Test
+    fun correctingAFieldClearsOnlyItsError() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onOpenCreateForm()
+        viewModel.onSubmitForm()
+        val reportedCount = viewModel.state.value.form?.errors.orEmpty().size
+
+        viewModel.onFormFieldChange(ProductFormField.NAME, "Kopi Susu")
+
+        val errors = viewModel.state.value.form?.errors.orEmpty()
+        assertThat(errors).doesNotContainKey(ProductFormField.NAME)
+        assertThat(errors).hasSize(reportedCount - 1)
     }
 
     @Test

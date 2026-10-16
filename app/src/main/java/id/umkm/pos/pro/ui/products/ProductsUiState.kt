@@ -65,9 +65,17 @@ data class ProductFormState(
     val variantPrice: String = "",
     val wholesaleMinQty: String = "",
     val wholesalePrice: String = "",
+    val imagePath: String? = null,
+    val persistedImagePath: String? = null,
+    val isImageRemoved: Boolean = false,
+    val isImageImporting: Boolean = false,
     val errors: Map<ProductFormField, String> = emptyMap(),
 ) {
     val isEditing: Boolean get() = productId != null
+
+    val unsavedImagePath: String? get() = imagePath?.takeIf { path -> path != persistedImagePath }
+
+    val storedImagePathToDiscard: String? get() = persistedImagePath?.takeIf { path -> path != imagePath }
 
     fun errorFor(field: ProductFormField): String? = errors[field]
 }

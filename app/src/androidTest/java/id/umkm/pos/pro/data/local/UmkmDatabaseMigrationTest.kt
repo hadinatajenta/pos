@@ -28,6 +28,7 @@ class UmkmDatabaseMigrationTest {
     fun removeStaleTestDatabase() {
         context = ApplicationProvider.getApplicationContext()
         context.deleteDatabase(TEST_DATABASE_NAME)
+        context.deleteDatabase(TEST_DATABASE_NAME_2_3)
     }
 
     @Test
@@ -56,6 +57,32 @@ class UmkmDatabaseMigrationTest {
         versionTwo.close()
     }
 
+    @Test
+    fun migration2To3KeepsProductsAndAddsNullableImagePath() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_2_3, 2).use { versionTwo ->
+            versionTwo.execSQL(INSERT_VERSION_TWO_PRODUCT)
+        }
+
+        val versionThree = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_2_3,
+            3,
+            true,
+            UmkmDatabase.MIGRATION_2_3,
+        )
+
+        assertTableRowCount(versionThree, "products", 1)
+
+        versionThree.query("SELECT sku, name, base_price, image_path FROM products").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.count)
+            assertEquals("SKU-LEGACY-1", cursor.getString(0))
+            assertEquals("Kopi Susu", cursor.getString(1))
+            assertEquals(15_000L, cursor.getLong(2))
+            assertTrue(cursor.isNull(3))
+        }
+        versionThree.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -70,6 +97,8 @@ class UmkmDatabaseMigrationTest {
     private companion object {
         const val TEST_DATABASE_NAME = "umkm-migration-1-2.db"
 
+        const val TEST_DATABASE_NAME_2_3 = "umkm-migration-2-3.db"
+
         const val INSERT_LEGACY_TRANSACTION =
             "INSERT INTO transactions " +
                 "(invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
@@ -83,5 +112,12 @@ class UmkmDatabaseMigrationTest {
                 "(transaction_id, product_id, variant_name, qty, unit_hpp, applied_unit_price, " +
                 "is_nego_price, is_wholesale_applied, item_discount, subtotal) " +
                 "VALUES (1, 7, NULL, 3.0, 1000, 2000, 0, 0, 0, 6000)"
+
+        const val INSERT_VERSION_TWO_PRODUCT =
+            "INSERT INTO products " +
+                "(sku, barcode, name, category, base_unit, base_hpp, base_price, " +
+                "stock_base_qty, min_stock_alert, is_active) " +
+                "VALUES ('SKU-LEGACY-1', NULL, 'Kopi Susu', NULL, 'pcs', 5000, 15000, " +
+                "100.0, 5.0, 1)"
     }
 }

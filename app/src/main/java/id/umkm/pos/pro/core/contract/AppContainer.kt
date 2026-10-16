@@ -2,6 +2,7 @@ package id.umkm.pos.pro.core.contract
 
 interface AppContainer {
     val productRepository: ProductRepository
+    val productImageRepository: ProductImageRepository
     val customerRepository: CustomerRepository
     val transactionRepository: TransactionRepository
     val returnRepository: ReturnRepository

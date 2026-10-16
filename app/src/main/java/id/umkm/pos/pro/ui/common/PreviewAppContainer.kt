@@ -8,6 +8,7 @@ import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.PriceEngine
+import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
@@ -26,6 +27,7 @@ internal object PreviewAppContainer : AppContainer {
     override val adController: AdController = NoAdsController()
 
     override val productRepository: ProductRepository get() = previewUnavailable("productRepository")
+    override val productImageRepository: ProductImageRepository get() = previewUnavailable("productImageRepository")
     override val customerRepository: CustomerRepository get() = previewUnavailable("customerRepository")
     override val transactionRepository: TransactionRepository get() = previewUnavailable("transactionRepository")
     override val returnRepository: ReturnRepository get() = previewUnavailable("returnRepository")

@@ -2,7 +2,9 @@ package id.umkm.pos.pro.ui.products
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.Product
@@ -27,6 +29,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProductsViewModel(
     private val productRepository: ProductRepository,
+    private val productImageRepository: ProductImageRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -79,7 +82,10 @@ class ProductsViewModel(
     }
 
     fun onDismissForm() {
+        val unsavedImagePath = _state.value.form?.unsavedImagePath
         _state.update { it.copy(form = null) }
+        if (unsavedImagePath == null) return
+        viewModelScope.launch { productImageRepository.deleteImage(unsavedImagePath) }
     }
 
     fun onFormFieldChange(field: ProductFormField, value: String) {
@@ -103,6 +109,68 @@ class ProductsViewModel(
         }
     }
 
+    fun onProductImagePicked(sourceUri: String) {
+        val form = _state.value.form ?: return
+        if (form.isImageImporting) return
+        _state.update { current ->
+            val currentForm = current.form ?: return@update current
+            current.copy(form = currentForm.copy(isImageImporting = true))
+        }
+        viewModelScope.launch {
+            when (val importResult = productImageRepository.importImage(sourceUri)) {
+                is AppResult.Success -> applyImportedImage(
+                    targetProductId = form.productId,
+                    importedImagePath = importResult.value,
+                )
+
+                is AppResult.Failure -> _state.update { current ->
+                    val currentForm = current.form ?: return@update current
+                    current.copy(
+                        form = currentForm.copy(isImageImporting = false),
+                        message = "Gambar gagal dimuat. Coba pilih gambar lain.",
+                    )
+                }
+            }
+        }
+    }
+
+    fun onProductImageRemove() {
+        val form = _state.value.form ?: return
+        if (form.isImageImporting) return
+        val unsavedImagePath = form.unsavedImagePath
+        _state.update { current ->
+            val currentForm = current.form ?: return@update current
+            current.copy(
+                form = currentForm.copy(
+                    imagePath = null,
+                    isImageRemoved = currentForm.persistedImagePath != null,
+                ),
+            )
+        }
+        if (unsavedImagePath == null) return
+        viewModelScope.launch { productImageRepository.deleteImage(unsavedImagePath) }
+    }
+
+    private suspend fun applyImportedImage(targetProductId: Long?, importedImagePath: String) {
+        val form = _state.value.form
+        if (form == null || form.productId != targetProductId) {
+            productImageRepository.deleteImage(importedImagePath)
+            return
+        }
+        val unsavedImagePath = form.unsavedImagePath
+        _state.update { current ->
+            val currentForm = current.form ?: return@update current
+            current.copy(
+                form = currentForm.copy(
+                    imagePath = importedImagePath,
+                    isImageRemoved = false,
+                    isImageImporting = false,
+                ),
+            )
+        }
+        productImageRepository.deleteImage(unsavedImagePath)
+    }
+
     fun onSubmitForm() {
         val form = _state.value.form ?: return
         if (_state.value.isSaving) return
@@ -119,6 +187,7 @@ class ProductsViewModel(
                 return@launch
             }
             saveVariantUnit(form = form, productId = productId)
+            productImageRepository.deleteImage(form.storedImagePathToDiscard)
             _state.update { it.copy(isSaving = false, form = null, message = "Produk disimpan") }
         }
     }
@@ -134,7 +203,12 @@ class ProductsViewModel(
     fun onConfirmDelete() {
         val productId = _state.value.pendingDeleteProductId ?: return
         viewModelScope.launch {
+            val productImagePath = productRepository.getProductById(productId)?.imagePath
+            val openFormImagePath = _state.value.form?.takeIf { form -> form.productId == productId }
+                ?.unsavedImagePath
             productRepository.deleteProduct(productId)
+            productImageRepository.deleteImage(productImagePath)
+            productImageRepository.deleteImage(openFormImagePath)
             _state.update { current ->
                 current.copy(
                     pendingDeleteProductId = null,
@@ -184,6 +258,7 @@ class ProductsViewModel(
             stockBaseQty = form.stockQuantity.trim().toDouble(),
             minStockAlert = form.minStockAlert.trim().toDouble(),
             isActive = form.isActive,
+            imagePath = form.imagePath,
         )
         return productRepository.upsertProduct(product)
     }
@@ -244,6 +319,8 @@ private fun Product.toForm(unit: ProductUnit?): ProductFormState = ProductFormSt
     variantPrice = unit?.unitPrice?.toString().orEmpty(),
     wholesaleMinQty = unit?.wholesaleMinQty?.toString().orEmpty(),
     wholesalePrice = unit?.wholesalePrice?.toString().orEmpty(),
+    imagePath = imagePath,
+    persistedImagePath = imagePath,
 )
 
 private fun ProductFormState.withField(field: ProductFormField, value: String): ProductFormState {

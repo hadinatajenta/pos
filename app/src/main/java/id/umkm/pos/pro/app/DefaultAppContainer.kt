@@ -8,6 +8,7 @@ import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.PriceEngine
+import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
@@ -18,6 +19,7 @@ import id.umkm.pos.pro.core.contract.SecurityRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
+import id.umkm.pos.pro.data.image.ProductImageStore
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import id.umkm.pos.pro.data.local.repository.CustomerRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ProductRepositoryImpl
@@ -50,6 +52,8 @@ class DefaultAppContainer(
     override val clock: Clock = SystemClock
 
     override val productRepository: ProductRepository = ProductRepositoryImpl(database.productDao())
+
+    override val productImageRepository: ProductImageRepository = ProductImageStore(applicationContext)
 
     override val customerRepository: CustomerRepository =
         CustomerRepositoryImpl(database.customerDao(), database.debtPaymentDao())

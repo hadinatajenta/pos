@@ -9,6 +9,7 @@ import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
+import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReceiptDocument
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
@@ -79,6 +80,12 @@ internal object AppRootFakeContainer : AppContainer {
         override suspend fun upsertUnit(unit: ProductUnit): Long = unit.id
 
         override suspend fun deleteUnit(unitId: Long) = Unit
+    }
+
+    override val productImageRepository: ProductImageRepository = object : ProductImageRepository {
+        override suspend fun importImage(sourceUri: String): AppResult<String> = AppResult.Success(sourceUri)
+
+        override suspend fun deleteImage(imagePath: String?) = Unit
     }
 
     override val customerRepository: CustomerRepository = object : CustomerRepository {

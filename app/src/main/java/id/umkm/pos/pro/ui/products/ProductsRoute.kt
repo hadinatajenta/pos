@@ -59,6 +59,7 @@ fun ProductsRoute(modifier: Modifier = Modifier) {
             initializer {
                 ProductsViewModel(
                     productRepository = container.productRepository,
+                    productImageRepository = container.productImageRepository,
                     clock = container.clock,
                 )
             }

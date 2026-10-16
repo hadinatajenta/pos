@@ -181,7 +181,11 @@ private fun CashierProductRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            ProductThumbnail(category = item.product.category, size = CATALOG_THUMBNAIL_SIZE)
+            ProductThumbnail(
+                category = item.product.category,
+                size = CATALOG_THUMBNAIL_SIZE,
+                imagePath = item.product.imagePath,
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
@@ -231,7 +235,11 @@ private fun CashierProductTile(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            ProductThumbnail(category = item.product.category, size = CATALOG_TILE_THUMBNAIL_SIZE)
+            ProductThumbnail(
+                category = item.product.category,
+                size = CATALOG_TILE_THUMBNAIL_SIZE,
+                imagePath = item.product.imagePath,
+            )
             Text(
                 text = item.product.name,
                 style = LocalAppTextStyles.current.body,

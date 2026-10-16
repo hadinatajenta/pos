@@ -12,6 +12,7 @@ data class Product(
     val stockBaseQty: Double,
     val minStockAlert: Double,
     val isActive: Boolean,
+    val imagePath: String? = null,
 )
 
 data class ProductUnit(
