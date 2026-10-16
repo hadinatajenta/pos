@@ -1,5 +1,6 @@
 package id.umkm.pos.pro.core.contract
 
+import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.DailySales
@@ -45,9 +46,20 @@ interface ShiftRepository {
     suspend fun openShift(shift: CashierShift): Long
     suspend fun closeShift(shiftId: Long, actualEndingCash: Long)
     suspend fun getActiveShift(): CashierShift?
-    suspend fun setPin(cashierName: String, pinHash: String, recoveryAnswerHash: String)
+}
+
+interface SecurityRepository {
+    suspend fun isPinEnabled(): Boolean
+    suspend fun setPin(pinHash: String, recoveryAnswerHash: String)
+    suspend fun clearPin()
     suspend fun verifyPin(pinHash: String): Boolean
     suspend fun verifyRecoveryAnswer(recoveryAnswerHash: String): Boolean
+}
+
+interface SettingsRepository {
+    fun observeSettings(): Flow<AppSettings>
+    suspend fun getSettings(): AppSettings
+    suspend fun updateSettings(settings: AppSettings)
 }
 
 interface ReportRepository {

@@ -12,6 +12,8 @@ import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.contract.ScannerInput
+import id.umkm.pos.pro.core.contract.SecurityRepository
+import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 
@@ -20,6 +22,8 @@ interface AppContainer {
     val customerRepository: CustomerRepository
     val transactionRepository: TransactionRepository
     val shiftRepository: ShiftRepository
+    val securityRepository: SecurityRepository
+    val settingsRepository: SettingsRepository
     val reportRepository: ReportRepository
     val priceEngine: PriceEngine
     val accountingService: AccountingService

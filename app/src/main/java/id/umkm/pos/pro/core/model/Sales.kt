@@ -16,6 +16,7 @@ data class Transaction(
     val customerId: Long?,
     val subtotal: Long,
     val discountTotal: Long,
+    val invoiceDiscount: Long,
     val taxTotal: Long,
     val rounding: Long,
     val grandTotal: Long,
@@ -57,8 +58,6 @@ data class DebtPayment(
 data class CashierShift(
     val id: Long,
     val cashierName: String,
-    val pinHash: String?,
-    val recoveryAnswerHash: String?,
     val openedAt: Long,
     val closedAt: Long?,
     val startingCash: Long,
