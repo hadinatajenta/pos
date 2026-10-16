@@ -63,6 +63,7 @@ class DefaultPriceEngine : PriceEngine {
             isWholesale = isWholesale,
             itemSubtotal = itemSubtotal,
             unitHpp = unitHpp,
+            conversionFactor = conversionFactor,
         )
     }
 

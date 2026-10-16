@@ -384,6 +384,7 @@ private fun previewProductsState(): ProductsUiState {
     val coffee = previewProduct(id = 1L, name = "Kopi Susu Gula Aren", price = 18_000L, stock = 24.0, unit = "pcs")
     val water = previewProduct(id = 2L, name = "Air Mineral 600ml", price = 4_000L, stock = 2.0, unit = "pcs")
     val soap = previewProduct(id = 3L, name = "Sabun Cuci Piring 1L", price = 12_500L, stock = 0.0, unit = "botol")
+    val sugar = previewProduct(id = 4L, name = "Gula Pasir 1kg", price = 15_000L, stock = -3.0, unit = "pack")
     return ProductsUiState(
         searchQuery = "",
         products = UiState.Success(
@@ -391,6 +392,7 @@ private fun previewProductsState(): ProductsUiState {
                 ProductListItem(product = coffee, stockStatus = StockStatus.IN_STOCK),
                 ProductListItem(product = water, stockStatus = StockStatus.LOW_STOCK),
                 ProductListItem(product = soap, stockStatus = StockStatus.OUT_OF_STOCK),
+                ProductListItem(product = sugar, stockStatus = StockStatus.OVERSOLD),
             ),
         ),
         form = null,

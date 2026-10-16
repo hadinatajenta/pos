@@ -26,8 +26,20 @@ class StockStatusTest {
     }
 
     @Test
-    fun negativeStockIsOutOfStock() {
-        assertThat(resolveStockStatus(product(stock = -1.0, minAlert = 0.0))).isEqualTo(StockStatus.OUT_OF_STOCK)
+    fun negativeStockIsOversold() {
+        assertThat(resolveStockStatus(product(stock = -1.0, minAlert = 0.0))).isEqualTo(StockStatus.OVERSOLD)
+    }
+
+    @Test
+    fun anyNegativeQuantityIsOversold() {
+        assertThat(resolveStockStatus(product(stock = -0.001, minAlert = 5.0))).isEqualTo(StockStatus.OVERSOLD)
+        assertThat(resolveStockStatus(product(stock = -40.0, minAlert = 5.0))).isEqualTo(StockStatus.OVERSOLD)
+    }
+
+    @Test
+    fun oversoldIsDistinctFromOutOfStock() {
+        assertThat(resolveStockStatus(product(stock = -1.0, minAlert = 5.0)))
+            .isNotEqualTo(resolveStockStatus(product(stock = 0.0, minAlert = 5.0)))
     }
 
     @Test
@@ -45,6 +57,7 @@ class StockStatusTest {
         val labels = StockStatus.entries.map { stockStatusLabel(it) }
 
         assertThat(labels.toSet()).hasSize(StockStatus.entries.size)
+        assertThat(labels).contains("Oversold")
         assertThat(labels).contains("Out of stock")
         assertThat(labels).contains("Low stock")
         assertThat(labels).contains("In stock")

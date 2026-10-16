@@ -62,7 +62,7 @@ class CheckoutUseCaseTest {
         assertThat(saved.changeAmount).isEqualTo(4_000L)
         assertThat(saved.remainingDebt).isEqualTo(0L)
         assertThat(saved.status).isEqualTo(TransactionStatus.COMPLETED)
-        assertThat(saved.invoiceNo).isEqualTo("INV-5000")
+        assertThat(saved.invoiceNo).startsWith("INV-TEST-")
         assertThat(transactions.itemsFor(checkout.transactionId).single().unitHpp).isEqualTo(1_000L)
     }
 

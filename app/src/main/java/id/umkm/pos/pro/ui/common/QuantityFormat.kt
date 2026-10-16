@@ -16,3 +16,10 @@ fun formatQuantity(quantity: Double): String {
 
 fun formatQuantityWithUnit(quantity: Double, unit: String): String =
     "${formatQuantity(quantity)} $unit"
+
+fun sanitizeQuantityInput(value: String): String {
+    val filtered = value.filter { character -> character.isDigit() || character == '.' }
+    val firstSeparator = filtered.indexOf('.')
+    if (firstSeparator < 0) return filtered
+    return filtered.take(firstSeparator + 1) + filtered.drop(firstSeparator + 1).filterNot { it == '.' }
+}

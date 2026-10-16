@@ -179,6 +179,8 @@ class FakeTransactionStore : TransactionRepository {
         return AppResult.Success(transactionId)
     }
 
+    override suspend fun nextInvoiceNumber(createdAtMillis: Long): String = "INV-$createdAtMillis"
+
     override suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long> {
         val existing = transactions.value.firstOrNull { it.id == payment.transactionId }
             ?: return AppResult.Failure(AppError.NotFound("transaction ${payment.transactionId} was not found"))

@@ -66,6 +66,7 @@ internal fun ReportsScreen(
     onSummaryDrillDown: () -> Unit,
     onDayDrillDown: (Long) -> Unit,
     onCloseDrillDown: () -> Unit,
+    onTransactionReturn: (Long) -> Unit,
     onExportCsv: () -> Unit,
     onDismissExport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -98,6 +99,7 @@ internal fun ReportsScreen(
                     drillDown = drillDown,
                     timeZone = timeZone,
                     onCloseDrillDown = onCloseDrillDown,
+                    onTransactionReturn = onTransactionReturn,
                 )
 
                 else -> MainReportContent(
@@ -441,6 +443,7 @@ private fun DrillDownSection(
     drillDown: ReportsDrillDown,
     timeZone: TimeZone,
     onCloseDrillDown: () -> Unit,
+    onTransactionReturn: (Long) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -473,7 +476,11 @@ private fun DrillDownSection(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 items(items = drillDown.transactions, key = { transaction -> transaction.id }) { transaction ->
-                    TransactionRow(transaction = transaction, timeZone = timeZone)
+                    TransactionRow(
+                        transaction = transaction,
+                        timeZone = timeZone,
+                        onReturn = { onTransactionReturn(transaction.id) },
+                    )
                     HorizontalDivider()
                 }
             }
@@ -485,26 +492,36 @@ private fun DrillDownSection(
 private fun TransactionRow(
     transaction: Transaction,
     timeZone: TimeZone,
+    onReturn: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = transaction.invoiceNo, style = MaterialTheme.typography.titleSmall)
-            Text(text = Rupiah.format(transaction.grandTotal), style = MaterialTheme.typography.titleSmall)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = transaction.invoiceNo, style = MaterialTheme.typography.titleSmall)
+                Text(text = Rupiah.format(transaction.grandTotal), style = MaterialTheme.typography.titleSmall)
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = ReportDates.formatTimestamp(transaction.createdAt, timeZone),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "${paymentMethodLabel(transaction.paymentMethod)} · ${statusLabel(transaction.status)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = ReportDates.formatTimestamp(transaction.createdAt, timeZone),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = "${paymentMethodLabel(transaction.paymentMethod)} · ${statusLabel(transaction.status)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Spacer(modifier = Modifier.width(8.dp))
+        TextButton(onClick = onReturn) {
+            Text(text = "Return")
         }
     }
 }

@@ -121,4 +121,50 @@ class TransactionMapperTest {
         assertThat(entity.isWholesaleApplied).isFalse()
         assertThat(entity.appliedUnitPrice).isEqualTo(3_000L)
     }
+
+    @Test
+    fun transactionItemCarriesConversionFactorThroughEntity() {
+        val item = TransactionItem(
+            id = 0L,
+            transactionId = 0L,
+            productId = 9L,
+            variantName = "Dus",
+            qty = 5.0,
+            unitHpp = 40_000L,
+            appliedUnitPrice = 75_000L,
+            isNegoPrice = false,
+            isWholesaleApplied = true,
+            itemDiscount = 0L,
+            subtotal = 375_000L,
+            conversionFactor = 40.0,
+        )
+
+        val entity = TransactionMapper.toEntity(item)
+
+        assertThat(entity.conversionFactor).isEqualTo(40.0)
+        assertThat(TransactionMapper.toModel(entity)).isEqualTo(item)
+    }
+
+    @Test
+    fun transactionItemWithoutKnownFactorMapsToNullColumn() {
+        val item = TransactionItem(
+            id = 0L,
+            transactionId = 0L,
+            productId = 10L,
+            variantName = null,
+            qty = 1.0,
+            unitHpp = 1_000L,
+            appliedUnitPrice = 2_000L,
+            isNegoPrice = false,
+            isWholesaleApplied = false,
+            itemDiscount = 0L,
+            subtotal = 2_000L,
+            conversionFactor = null,
+        )
+
+        val entity = TransactionMapper.toEntity(item)
+
+        assertThat(entity.conversionFactor).isNull()
+        assertThat(TransactionMapper.toModel(entity)).isEqualTo(item)
+    }
 }

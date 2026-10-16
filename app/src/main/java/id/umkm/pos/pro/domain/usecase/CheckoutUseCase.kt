@@ -92,7 +92,7 @@ class CheckoutUseCase(
 
         val allocation = allocatePayment(request.paymentMethod, request.paidAmount, pricedCart.grandTotal)
         val createdAt = clock.nowMillis()
-        val invoiceNo = buildInvoiceNo(createdAt)
+        val invoiceNo = transactionRepository.nextInvoiceNumber(createdAt)
         val itemDiscountTotal = pricedCart.lines.sumOf { it.line.itemDiscount }
 
         val transaction = Transaction(
@@ -118,8 +118,15 @@ class CheckoutUseCase(
             notes = request.notes,
         )
 
-        val items = pricedCart.lines.map { pricedLine ->
-            TransactionItem(
+        val items = ArrayList<TransactionItem>(pricedCart.lines.size)
+        for (pricedLine in pricedCart.lines) {
+            val conversionFactor = pricedLine.conversionFactor
+            if (!conversionFactor.isFinite() || conversionFactor <= 0.0) {
+                return AppResult.Failure(
+                    AppError.Validation("invalid unit conversion factor for ${pricedLine.product.name}"),
+                )
+            }
+            items += TransactionItem(
                 id = 0L,
                 transactionId = 0L,
                 productId = pricedLine.product.id,
@@ -131,6 +138,7 @@ class CheckoutUseCase(
                 isWholesaleApplied = pricedLine.isWholesale,
                 itemDiscount = pricedLine.line.itemDiscount,
                 subtotal = pricedLine.itemSubtotal,
+                conversionFactor = conversionFactor,
             )
         }
 
@@ -153,6 +161,4 @@ class CheckoutUseCase(
     ): String? = line.unitId?.let { unitId ->
         unitsByProduct[line.productId]?.firstOrNull { it.id == unitId }?.variantName
     }
-
-    private fun buildInvoiceNo(createdAtMillis: Long): String = "INV-$createdAtMillis"
 }

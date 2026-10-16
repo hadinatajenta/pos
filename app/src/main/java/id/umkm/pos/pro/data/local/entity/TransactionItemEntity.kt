@@ -33,4 +33,5 @@ data class TransactionItemEntity(
     @ColumnInfo(name = "is_wholesale_applied") val isWholesaleApplied: Boolean,
     @ColumnInfo(name = "item_discount") val itemDiscount: Long,
     @ColumnInfo(name = "subtotal") val subtotal: Long,
+    @ColumnInfo(name = "conversion_factor") val conversionFactor: Double?,
 )

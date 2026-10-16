@@ -1,31 +1,33 @@
 package id.umkm.pos.pro.ui
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.navigation.PosDestination
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 
 class AppRootTest {
 
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun showAppRoot(windowWidth: Dp) {
+    private fun showConstrainedAppRoot(windowWidth: Dp) {
         composeRule.setContent {
             UmkmPosTheme {
                 CompositionLocalProvider(LocalAppContainer provides AppRootFakeContainer) {
-                    Box(modifier = Modifier.width(windowWidth).fillMaxHeight()) {
+                    Box(modifier = Modifier.requiredWidth(windowWidth).fillMaxHeight()) {
                         AppRoot()
                     }
                 }
@@ -33,9 +35,19 @@ class AppRootTest {
         }
     }
 
+    private fun showAppRoot() {
+        composeRule.setContent {
+            UmkmPosTheme {
+                CompositionLocalProvider(LocalAppContainer provides AppRootFakeContainer) {
+                    AppRoot()
+                }
+            }
+        }
+    }
+
     @Test
     fun compactWindowShowsBottomNavigationOnly() {
-        showAppRoot(windowWidth = 360.dp)
+        showConstrainedAppRoot(windowWidth = 360.dp)
 
         composeRule.onNodeWithTag(COMPACT_NAVIGATION_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(EXPANDED_NAVIGATION_TEST_TAG).assertDoesNotExist()
@@ -45,8 +57,18 @@ class AppRootTest {
     }
 
     @Test
-    fun expandedWindowShowsTheRailOnly() {
-        showAppRoot(windowWidth = 800.dp)
+    fun wideConstraintsSelectTheRailOnly() {
+        showConstrainedAppRoot(windowWidth = 800.dp)
+
+        composeRule.onNodeWithTag(EXPANDED_NAVIGATION_TEST_TAG).assertExists()
+        composeRule.onNodeWithTag(COMPACT_NAVIGATION_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun expandedDeviceShowsTheRailOnly() {
+        assumeTrue(composeRule.activity.resources.configuration.screenWidthDp >= 600)
+
+        showAppRoot()
 
         composeRule.onNodeWithTag(EXPANDED_NAVIGATION_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(COMPACT_NAVIGATION_TEST_TAG).assertDoesNotExist()
@@ -57,7 +79,7 @@ class AppRootTest {
 
     @Test
     fun cashierIsTheDefaultDestination() {
-        showAppRoot(windowWidth = 360.dp)
+        showConstrainedAppRoot(windowWidth = 360.dp)
 
         composeRule.onNodeWithText("Cart is empty").assertIsDisplayed()
         composeRule.onNodeWithText("No products yet").assertIsDisplayed()

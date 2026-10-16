@@ -37,6 +37,7 @@ interface CustomerRepository {
 
 interface TransactionRepository {
     suspend fun saveTransaction(transaction: Transaction, items: List<TransactionItem>): AppResult<Long>
+    suspend fun nextInvoiceNumber(createdAtMillis: Long): String
     suspend fun getTransaction(transactionId: Long): Transaction?
     fun observeTransactions(range: ReportRange): Flow<List<Transaction>>
     suspend fun getItems(transactionId: Long): List<TransactionItem>

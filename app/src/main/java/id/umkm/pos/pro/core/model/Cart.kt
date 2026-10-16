@@ -24,6 +24,7 @@ data class PricedCartLine(
     val isWholesale: Boolean,
     val itemSubtotal: Long,
     val unitHpp: Long,
+    val conversionFactor: Double = 1.0,
 )
 
 data class PricedCart(

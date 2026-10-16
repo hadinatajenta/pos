@@ -11,6 +11,7 @@ import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import id.umkm.pos.pro.data.local.dao.CustomerDao
 import id.umkm.pos.pro.data.local.dao.DebtPaymentDao
+import id.umkm.pos.pro.data.local.dao.InvoiceCounterDao
 import id.umkm.pos.pro.data.local.dao.ProductDao
 import id.umkm.pos.pro.data.local.dao.ReportDao
 import id.umkm.pos.pro.data.local.dao.ReturnDao
@@ -83,6 +84,8 @@ private class FakeUmkmDatabase : UmkmDatabase() {
     override fun reportDao(): ReportDao = error("fake database must not expose daos")
 
     override fun returnDao(): ReturnDao = error("fake database must not expose daos")
+
+    override fun invoiceCounterDao(): InvoiceCounterDao = error("fake database must not expose daos")
 }
 
 private class FakeReturnDao : ReturnDao() {

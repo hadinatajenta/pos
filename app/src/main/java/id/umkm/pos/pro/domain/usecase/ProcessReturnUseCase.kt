@@ -52,7 +52,7 @@ class ProcessReturnUseCase(
                         productId = line.productId,
                         variantName = line.variantName,
                         qty = line.returnedQty,
-                        conversionFactor = requests[index].conversionFactor,
+                        conversionFactor = line.conversionFactor,
                         refundAmount = line.refundAmount,
                         hppReversed = line.hppReversed,
                         baseQtyRestocked = line.baseQtyRestocked,

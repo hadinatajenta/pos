@@ -8,7 +8,7 @@ import id.umkm.pos.pro.core.model.TransactionItem
 data class ReturnLineRequest(
     val transactionItemId: Long,
     val returnedQty: Double,
-    val conversionFactor: Double = 1.0,
+    val conversionFactor: Double? = null,
 )
 
 data class ReturnLineCorrection(
@@ -19,6 +19,7 @@ data class ReturnLineCorrection(
     val baseQtyRestocked: Double,
     val hppReversed: Long,
     val refundAmount: Long,
+    val conversionFactor: Double = 1.0,
 )
 
 data class ReturnCorrection(
@@ -57,13 +58,23 @@ fun correctReturn(
                 AppError.Validation("returned quantity exceeds purchased quantity for item ${originalItem.id}"),
             )
         }
-        if (request.conversionFactor <= 0.0) {
+        if (request.conversionFactor != null && request.conversionFactor <= 0.0) {
             return AppResult.Failure(
                 AppError.Validation("conversion factor must be positive for item ${originalItem.id}"),
             )
         }
 
-        val baseQtyRestocked = request.returnedQty * request.conversionFactor
+        val effectiveConversionFactor = request.conversionFactor ?: originalItem.conversionFactor
+            ?: return AppResult.Failure(
+                AppError.Validation("conversion factor is unknown for item ${originalItem.id}"),
+            )
+        if (!effectiveConversionFactor.isFinite() || effectiveConversionFactor <= 0.0) {
+            return AppResult.Failure(
+                AppError.Validation("conversion factor must be positive for item ${originalItem.id}"),
+            )
+        }
+
+        val baseQtyRestocked = request.returnedQty * effectiveConversionFactor
         val hppReversed = floorToWhole(baseQtyRestocked * product.baseHpp)
         val refundAmount = if (originalItem.qty > 0.0) {
             roundHalfUp(request.returnedQty / originalItem.qty * originalItem.subtotal)
@@ -79,6 +90,7 @@ fun correctReturn(
             baseQtyRestocked = baseQtyRestocked,
             hppReversed = hppReversed,
             refundAmount = refundAmount,
+            conversionFactor = effectiveConversionFactor,
         )
     }
 

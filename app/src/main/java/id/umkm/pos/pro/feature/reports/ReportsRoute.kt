@@ -1,5 +1,7 @@
 package id.umkm.pos.pro.feature.reports
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -8,7 +10,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import id.umkm.pos.pro.ui.LocalAppContainer
+import id.umkm.pos.pro.ui.returns.ReturnRoute
 
 @Composable
 fun ReportsRoute(modifier: Modifier = Modifier) {
@@ -42,8 +47,24 @@ fun ReportsRoute(modifier: Modifier = Modifier) {
         onSummaryDrillDown = presenter::openSummaryDrillDown,
         onDayDrillDown = presenter::openDayDrillDown,
         onCloseDrillDown = presenter::closeDrillDown,
+        onTransactionReturn = presenter::requestReturn,
         onExportCsv = presenter::exportCsv,
         onDismissExport = presenter::dismissExportState,
         modifier = modifier,
     )
+
+    val pendingReturnTransactionId = uiState.pendingReturnTransactionId
+    if (pendingReturnTransactionId != null) {
+        Dialog(
+            onDismissRequest = presenter::dismissReturn,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(modifier = Modifier.fillMaxSize()) {
+                ReturnRoute(
+                    transactionId = pendingReturnTransactionId,
+                    onReturnProcessed = presenter::onReturnProcessed,
+                )
+            }
+        }
+    }
 }

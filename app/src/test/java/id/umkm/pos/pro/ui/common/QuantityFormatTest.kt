@@ -33,4 +33,16 @@ class QuantityFormatTest {
     fun quantityWithUnitAppendsTheUnit() {
         assertThat(formatQuantityWithUnit(2.5, "kg")).isEqualTo("2.5 kg")
     }
+
+    @Test
+    fun quantityInputKeepsDigitsAndASingleSeparator() {
+        assertThat(sanitizeQuantityInput("12abc.3")).isEqualTo("12.3")
+        assertThat(sanitizeQuantityInput("1.2.3")).isEqualTo("1.23")
+    }
+
+    @Test
+    fun quantityInputDropsNonNumericCharacters() {
+        assertThat(sanitizeQuantityInput("-4")).isEqualTo("4")
+        assertThat(sanitizeQuantityInput("pcs")).isEqualTo("")
+    }
 }

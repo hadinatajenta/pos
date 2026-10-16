@@ -43,6 +43,7 @@ data class TransactionItem(
     val isWholesaleApplied: Boolean,
     val itemDiscount: Long,
     val subtotal: Long,
+    val conversionFactor: Double? = null,
 )
 
 data class DebtPayment(

@@ -100,6 +100,8 @@ internal object AppRootFakeContainer : AppContainer {
             items: List<TransactionItem>,
         ): AppResult<Long> = AppResult.Success(0L)
 
+        override suspend fun nextInvoiceNumber(createdAtMillis: Long): String = "INV-$createdAtMillis"
+
         override suspend fun getTransaction(transactionId: Long): Transaction? = null
 
         override fun observeTransactions(range: ReportRange): Flow<List<Transaction>> = transactions

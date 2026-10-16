@@ -45,5 +45,6 @@ data class ReportsUiState(
     val isLoading: Boolean = true,
     val error: AppError? = null,
     val drillDown: ReportsDrillDown? = null,
+    val pendingReturnTransactionId: Long? = null,
     val exportState: ReportsExportState = ReportsExportState.Idle,
 )

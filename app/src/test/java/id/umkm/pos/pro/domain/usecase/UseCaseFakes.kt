@@ -73,6 +73,7 @@ class FakeTransactionRepository : TransactionRepository {
     private var nextTransactionId = 1L
     private var nextItemId = 1_000L
     private var nextPaymentId = 1L
+    private var nextInvoiceSequence = 1L
 
     val savedTransactions: List<Transaction> get() = transactions.values.toList()
 
@@ -91,6 +92,8 @@ class FakeTransactionRepository : TransactionRepository {
             items.map { item -> item.copy(id = nextItemId++, transactionId = transactionId) }
         return AppResult.Success(transactionId)
     }
+
+    override suspend fun nextInvoiceNumber(createdAtMillis: Long): String = "INV-TEST-${nextInvoiceSequence++}"
 
     override suspend fun getTransaction(transactionId: Long): Transaction? = transactions[transactionId]
 

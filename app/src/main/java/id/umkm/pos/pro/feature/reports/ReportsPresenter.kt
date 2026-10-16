@@ -77,6 +77,19 @@ class ReportsPresenter(
         mutableState.update { current -> current.copy(drillDown = null) }
     }
 
+    fun requestReturn(transactionId: Long) {
+        mutableState.update { current -> current.copy(pendingReturnTransactionId = transactionId) }
+    }
+
+    fun dismissReturn() {
+        mutableState.update { current -> current.copy(pendingReturnTransactionId = null) }
+    }
+
+    fun onReturnProcessed() {
+        mutableState.update { current -> current.copy(pendingReturnTransactionId = null) }
+        refresh()
+    }
+
     fun exportCsv() {
         exportJob?.cancel()
         exportJob = coroutineScope.launch {

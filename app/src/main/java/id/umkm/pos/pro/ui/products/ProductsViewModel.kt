@@ -10,6 +10,7 @@ import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.mapList
 import id.umkm.pos.pro.ui.common.resolveStockStatus
+import id.umkm.pos.pro.ui.common.sanitizeQuantityInput
 import id.umkm.pos.pro.ui.common.toAppError
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -223,10 +224,10 @@ private fun ProductFormState.withField(field: ProductFormField, value: String): 
         ProductFormField.BASE_UNIT -> copy(baseUnit = value)
         ProductFormField.BASE_PRICE -> copy(basePrice = value.digitsOnly())
         ProductFormField.BASE_HPP -> copy(baseHpp = value.digitsOnly())
-        ProductFormField.STOCK_QUANTITY -> copy(stockQuantity = value.decimalOnly())
-        ProductFormField.MIN_STOCK_ALERT -> copy(minStockAlert = value.decimalOnly())
+        ProductFormField.STOCK_QUANTITY -> copy(stockQuantity = sanitizeQuantityInput(value))
+        ProductFormField.MIN_STOCK_ALERT -> copy(minStockAlert = sanitizeQuantityInput(value))
         ProductFormField.VARIANT_NAME -> copy(variantName = value)
-        ProductFormField.CONVERSION_FACTOR -> copy(conversionFactor = value.decimalOnly())
+        ProductFormField.CONVERSION_FACTOR -> copy(conversionFactor = sanitizeQuantityInput(value))
         ProductFormField.VARIANT_PRICE -> copy(variantPrice = value.digitsOnly())
         ProductFormField.WHOLESALE_MIN_QTY -> copy(wholesaleMinQty = value.digitsOnly())
         ProductFormField.WHOLESALE_PRICE -> copy(wholesalePrice = value.digitsOnly())
@@ -235,10 +236,3 @@ private fun ProductFormState.withField(field: ProductFormField, value: String): 
 }
 
 private fun String.digitsOnly(): String = filter { character -> character.isDigit() }
-
-private fun String.decimalOnly(): String {
-    val filtered = filter { character -> character.isDigit() || character == '.' }
-    val firstSeparator = filtered.indexOf('.')
-    if (firstSeparator < 0) return filtered
-    return filtered.take(firstSeparator + 1) + filtered.drop(firstSeparator + 1).filterNot { it == '.' }
-}

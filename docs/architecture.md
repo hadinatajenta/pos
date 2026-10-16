@@ -50,6 +50,20 @@ Android and Room types.
   subtract refunds and reversed HPP; the original transaction is left intact.
   `ReturnRepository.recordReturn` restocks products, records the ledger, and
   marks the transaction `RETURNED` in one atomic database transaction.
+- **D10** — `TransactionItem.conversionFactor` (and the `transaction_items.conversion_factor`
+  column) records the unit conversion factor applied at checkout. **Migration
+  policy:** the column is nullable; rows created before schema v2 keep `NULL`,
+  which means "unknown". Historical factors are never invented. Returns on such
+  rows must supply the factor explicitly.
+- **D11** — A completed sale decrements `stock_base_qty` by
+  `qty × conversionFactor`, atomically with the sale insert. Overselling is
+  permitted: stock may go negative and is never clamped. The Products UI shows
+  an explicit oversold status (icon + label, not color alone).
+- **D12** — Invoice numbers are `INV-yyyyMMdd-NNNN`, produced by an atomic
+  database counter, so two sales in the same millisecond cannot collide. The
+  unique index on `transactions.invoice_no` is retained as a second guard.
+- **D13** — Core library desugaring is enabled so `java.time` works on minSdk 23
+  (Android 6). `desugar_jdk_libs` is pinned in the version catalog.
 
 ## Application layer
 
