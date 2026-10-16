@@ -4,8 +4,11 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 
 class CashierActions(
     val onSearchQueryChange: (String) -> Unit,
+    val onCatalogCategoryChange: (String?) -> Unit,
+    val onCatalogAvailableOnlyChange: (Boolean) -> Unit,
     val onRetryCatalog: () -> Unit,
     val onAddProduct: (Long) -> Unit,
+    val onDecreaseProductQuantity: (Long) -> Unit,
     val onIncreaseQuantity: (String) -> Unit,
     val onDecreaseQuantity: (String) -> Unit,
     val onRemoveLine: (String) -> Unit,
@@ -35,8 +38,11 @@ class CashierActions(
     companion object {
         fun from(viewModel: CashierViewModel): CashierActions = CashierActions(
             onSearchQueryChange = viewModel::onSearchQueryChange,
+            onCatalogCategoryChange = viewModel::onCatalogCategoryChange,
+            onCatalogAvailableOnlyChange = viewModel::onCatalogAvailableOnlyChange,
             onRetryCatalog = viewModel::onRetryCatalog,
             onAddProduct = viewModel::onAddProduct,
+            onDecreaseProductQuantity = viewModel::onDecreaseProductQuantity,
             onIncreaseQuantity = viewModel::onIncreaseQuantity,
             onDecreaseQuantity = viewModel::onDecreaseQuantity,
             onRemoveLine = viewModel::onRemoveLine,

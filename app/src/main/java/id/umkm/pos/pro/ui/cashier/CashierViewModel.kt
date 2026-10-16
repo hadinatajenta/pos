@@ -64,6 +64,9 @@ class CashierViewModel(
 
     private val searchQuery = MutableStateFlow("")
     private val reloadTrigger = MutableStateFlow(0)
+    private val catalogFilter = MutableStateFlow(CatalogFilter())
+    private var catalogSource: UiState<List<Product>> = UiState.Loading
+    private var catalogCategories: List<String> = emptyList()
     private val cartDrafts = MutableStateFlow<List<CartLineDraft>>(emptyList())
     private val productCache = mutableMapOf<Long, Product>()
     private val unitsCache = mutableMapOf<Long, List<ProductUnit>>()
@@ -85,12 +88,29 @@ class CashierViewModel(
         _state.update { it.copy(searchQuery = query) }
     }
 
+    fun onCatalogCategoryChange(category: String?) {
+        catalogFilter.update { filter -> filter.copy(category = category) }
+        publishCatalog()
+    }
+
+    fun onCatalogAvailableOnlyChange(isAvailableOnly: Boolean) {
+        catalogFilter.update { filter -> filter.copy(isAvailableOnly = isAvailableOnly) }
+        publishCatalog()
+    }
+
     fun onRetryCatalog() {
         reloadTrigger.update { it + 1 }
     }
 
     fun onAddProduct(productId: Long) {
         viewModelScope.launch { addProductToCart(productId, null) }
+    }
+
+    fun onDecreaseProductQuantity(productId: Long) {
+        val draft = cartDrafts.value.firstOrNull { line ->
+            line.productId == productId && line.unitId == null
+        } ?: return
+        onDecreaseQuantity(draft.lineId)
     }
 
     fun onIncreaseQuantity(lineId: String) {
@@ -378,13 +398,12 @@ class CashierViewModel(
                 }
                 .collect { catalogState ->
                     catalogState.successDataOrNull()?.forEach { product -> productCache[product.id] = product }
-                    _state.update { current ->
-                        current.copy(
-                            catalog = catalogState.mapList { product ->
-                                CashierProductItem(product = product, stockStatus = resolveStockStatus(product))
-                            },
-                        )
-                    }
+                    catalogSource = catalogState
+                    catalogCategories = catalogState.successDataOrNull().orEmpty()
+                        .mapNotNull { product -> product.category }
+                        .distinct()
+                        .sorted()
+                    publishCatalog()
                     refreshCart()
                 }
         }
@@ -453,7 +472,43 @@ class CashierViewModel(
         refreshCart()
     }
 
+    private fun publishCatalog() {
+        val filter = catalogFilter.value
+        val filteredItems = catalogSource.successDataOrNull().orEmpty()
+            .map { product ->
+                CashierProductItem(
+                    product = product,
+                    stockStatus = resolveStockStatus(product),
+                    quantityInCart = quantityInCart(product.id),
+                )
+            }
+            .filter { item -> filter.matches(item) }
+        val publishedCatalog: UiState<List<CashierProductItem>> = when (val source = catalogSource) {
+            is UiState.Success -> if (filteredItems.isEmpty()) UiState.Empty else UiState.Success(filteredItems)
+            is UiState.Empty -> UiState.Empty
+            is UiState.Error -> source
+            is UiState.Loading -> UiState.Loading
+        }
+        _state.update { current ->
+            current.copy(
+                catalog = publishedCatalog,
+                catalogFilter = filter,
+                catalogCategories = catalogCategories,
+            )
+        }
+    }
+
+    private fun quantityInCart(productId: Long): Double =
+        cartDrafts.value
+            .filter { draft -> draft.productId == productId && draft.unitId == null }
+            .sumOf { draft -> draft.quantity }
+
     private fun refreshCart() {
+        updateCartState()
+        publishCatalog()
+    }
+
+    private fun updateCartState() {
         val drafts = cartDrafts.value
         if (drafts.isEmpty()) {
             _state.update { it.copy(cartLines = emptyList(), pricedCart = null) }

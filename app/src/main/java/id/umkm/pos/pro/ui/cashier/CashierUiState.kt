@@ -11,7 +11,21 @@ import id.umkm.pos.pro.ui.common.StockStatus
 data class CashierProductItem(
     val product: Product,
     val stockStatus: StockStatus,
+    val quantityInCart: Double = 0.0,
 )
+
+data class CatalogFilter(
+    val category: String? = null,
+    val isAvailableOnly: Boolean = false,
+) {
+    val isActive: Boolean get() = category != null || isAvailableOnly
+
+    fun matches(item: CashierProductItem): Boolean {
+        if (category != null && item.product.category != category) return false
+        if (!isAvailableOnly) return true
+        return item.stockStatus == StockStatus.IN_STOCK || item.stockStatus == StockStatus.LOW_STOCK
+    }
+}
 
 data class CashierCartLine(
     val lineId: String,
@@ -66,6 +80,8 @@ data class CashierReceipt(
 data class CashierUiState(
     val searchQuery: String = "",
     val catalog: UiState<List<CashierProductItem>> = UiState.Loading,
+    val catalogFilter: CatalogFilter = CatalogFilter(),
+    val catalogCategories: List<String> = emptyList(),
     val cartLines: List<CashierCartLine> = emptyList(),
     val pricedCart: PricedCart? = null,
     val isCartSheetVisible: Boolean = false,

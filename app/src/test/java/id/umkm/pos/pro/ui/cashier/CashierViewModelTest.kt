@@ -117,6 +117,59 @@ class CashierViewModelTest {
     }
 
     @Test
+    fun addingAProductExposesItsCartQuantityOnTheCatalogItem() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.onAddProduct(1L)
+
+        val items = viewModel.state.value.catalog.successDataOrNull().orEmpty()
+        assertThat(items.single { item -> item.product.id == 1L }.quantityInCart).isEqualTo(1.0)
+        assertThat(items.single { item -> item.product.id == 2L }.quantityInCart).isEqualTo(0.0)
+    }
+
+    @Test
+    fun decreasingTheCatalogQuantityRemovesTheProductFromTheCart() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = createViewModel()
+            viewModel.onAddProduct(1L)
+
+            viewModel.onDecreaseProductQuantity(1L)
+
+            assertThat(viewModel.state.value.cartLines).isEmpty()
+            val quantityAfterDecrease = viewModel.state.value.catalog.successDataOrNull().orEmpty()
+                .single { item -> item.product.id == 1L }
+                .quantityInCart
+            assertThat(quantityAfterDecrease).isEqualTo(0.0)
+        }
+
+    @Test
+    fun catalogCategoryFilterNarrowsTheVisibleProducts() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.onCatalogCategoryChange("Makanan")
+        assertThat(viewModel.state.value.catalog).isEqualTo(UiState.Empty)
+
+        viewModel.onCatalogCategoryChange(null)
+        assertThat(viewModel.state.value.catalog.successDataOrNull().orEmpty()).hasSize(2)
+    }
+
+    @Test
+    fun availabilityFilterHidesOutOfStockProducts() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu", basePrice = 2_000L),
+                uiSampleProduct(id = 2L, name = "Teh Manis", basePrice = 3_000L, stockBaseQty = 0.0),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onCatalogAvailableOnlyChange(true)
+
+        val names = viewModel.state.value.catalog.successDataOrNull().orEmpty().map { item -> item.product.name }
+        assertThat(names).containsExactly("Kopi Susu")
+    }
+
+    @Test
     fun scanEventAddsTheMatchingUnit() = runTest(mainDispatcherRule.testDispatcher) {
         products.setUnits(
             1L,

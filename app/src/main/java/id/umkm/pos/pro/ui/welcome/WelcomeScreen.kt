@@ -46,23 +46,23 @@ fun WelcomeScreen(
             .testTag(WELCOME_SCREEN_TEST_TAG),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(modifier = Modifier.height(PosSpacing.xl))
+        Spacer(modifier = Modifier.height(PosSpacing.xxl))
         Column(
             modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
         ) {
             Text(
                 text = "Kelola bisnis jadi lebih mudah",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 color = PosColors.TextInk,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Start,
             )
-            Spacer(modifier = Modifier.height(PosSpacing.sm))
+            Spacer(modifier = Modifier.height(PosSpacing.md))
             Text(
                 text = "Catat transaksi, pantau stok, dan lihat laporan penjualan dalam satu aplikasi. Semua tetap jalan tanpa internet.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = PosColors.TextInk,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Start,
             )
         }
         Box(

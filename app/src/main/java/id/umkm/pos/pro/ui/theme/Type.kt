@@ -18,6 +18,12 @@ val PosFontFamily = FontFamily(
 )
 
 val PosTypography = Typography(
+    headlineLarge = TextStyle(
+        fontFamily = PosFontFamily,
+        fontSize = 30.sp,
+        lineHeight = 38.sp,
+        fontWeight = FontWeight.SemiBold,
+    ),
     headlineMedium = TextStyle(
         fontFamily = PosFontFamily,
         fontSize = 26.sp,
@@ -96,6 +102,7 @@ data class AppTextStyles(
     val financialValueLarge: TextStyle,
     val tableHeader: TextStyle,
     val buttonLabel: TextStyle,
+    val catalogItemPrice: TextStyle,
 )
 
 private const val TABULAR_NUMERALS = "tnum"
@@ -150,6 +157,13 @@ val PosTextStyles = AppTextStyles(
         fontSize = 15.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.SemiBold,
+    ),
+    catalogItemPrice = TextStyle(
+        fontFamily = PosFontFamily,
+        fontSize = 14.sp,
+        lineHeight = 18.sp,
+        fontWeight = FontWeight.Medium,
+        fontFeatureSettings = TABULAR_NUMERALS,
     ),
 )
 

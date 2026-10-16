@@ -205,8 +205,11 @@ private fun previewCashierState(): CashierUiState {
 
 private fun previewCashierActions(): CashierActions = CashierActions(
     onSearchQueryChange = {},
+    onCatalogCategoryChange = {},
+    onCatalogAvailableOnlyChange = {},
     onRetryCatalog = {},
     onAddProduct = {},
+    onDecreaseProductQuantity = {},
     onIncreaseQuantity = {},
     onDecreaseQuantity = {},
     onRemoveLine = {},

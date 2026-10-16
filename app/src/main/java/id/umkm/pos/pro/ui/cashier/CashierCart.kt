@@ -1,5 +1,6 @@
 package id.umkm.pos.pro.ui.cashier
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.PointOfSale
@@ -41,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,10 +58,13 @@ import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.PosColors
+import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
 private const val SHEET_HEIGHT_FRACTION = 0.9f
+private const val FLOATING_CART_BAR_ELEVATION = 6
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 private val TOTAL_VALUE_MAX_WIDTH = 208.dp
 
@@ -83,45 +90,44 @@ internal fun CashierCartBar(
     actions: CashierActions,
     modifier: Modifier = Modifier,
 ) {
+    if (state.lineCount == 0) return
     Surface(
-        tonalElevation = 3.dp,
-        shadowElevation = 3.dp,
-        modifier = modifier.fillMaxWidth(),
+        color = PosColors.ForestGreen,
+        contentColor = Color.White,
+        shape = PosShapes.large,
+        shadowElevation = FLOATING_CART_BAR_ELEVATION.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm)
+            .clickable(onClickLabel = "Buka keranjang", onClick = actions.onOpenCartSheet),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = PosSizes.touchTarget)
                 .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = cartItemSummary(state),
-                        style = LocalAppTextStyles.current.supportingLabel,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    AutoSizeNumberText(
-                        text = Rupiah.format(state.grandTotal),
-                        style = LocalAppTextStyles.current.financialValue,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                SecondaryTextAction(
-                    text = "Lihat item",
-                    onClick = actions.onOpenCartSheet,
-                    enabled = state.lineCount > 0,
-                )
-            }
-            PrimaryActionButton(
-                text = "Bayar",
-                onClick = actions.onOpenPaymentSheet,
-                enabled = state.lineCount > 0,
-                loading = state.isSubmitting,
-                icon = Icons.Filled.PointOfSale,
+            Text(
+                text = "Proses ${state.lineCount} barang",
+                style = LocalAppTextStyles.current.body,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = Rupiah.format(state.grandTotal),
+                style = LocalAppTextStyles.current.buttonLabel,
+                color = Color.White,
+                maxLines = 1,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(PosSizes.iconSmall),
             )
         }
     }

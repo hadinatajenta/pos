@@ -32,13 +32,14 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 fun PosCard(
     modifier: Modifier = Modifier,
     contentPadding: androidx.compose.ui.unit.Dp = PosSpacing.md,
+    border: BorderStroke = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = border,
         shadowElevation = 1.dp,
         modifier = modifier,
     ) {
