@@ -9,7 +9,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 import java.util.TimeZone
 
 class ReportsPresenterChartTest {
@@ -116,7 +115,6 @@ class ReportsPresenterChartTest {
         csvExporter = SalesCsvExporter(repository, RecordingCsvSink(), utc),
         xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),
         adController = RecordingAdController(),
-        exportDirectory = File("/tmp/umkm-pos-reports-chart-tests"),
         coroutineScope = coroutineScope,
         clock = clock,
         timeZone = utc,

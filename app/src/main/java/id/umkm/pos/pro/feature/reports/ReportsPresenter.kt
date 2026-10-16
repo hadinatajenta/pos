@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 import java.time.ZoneId
 import java.util.TimeZone
 
@@ -34,10 +33,9 @@ class ReportsPresenter(
     private val csvExporter: SalesCsvExporter,
     private val xlsxExporter: XlsxReportExporter,
     private val adController: AdController,
-    private val exportDirectory: File,
     private val coroutineScope: CoroutineScope,
     clock: Clock,
-    timeZone: TimeZone = TimeZone.getDefault(),
+    private val timeZone: TimeZone = TimeZone.getDefault(),
 ) {
 
     private val rangeFactory = ReportRangeFactory(clock, timeZone)
@@ -114,13 +112,10 @@ class ReportsPresenter(
             try {
                 requestRewardedAd()
                 val content = loadReportContent(currentRange)
-                val targetPath = File(
-                    exportDirectory,
-                    "laporan-${currentRange.startMillis}-${currentRange.endMillis}.${format.fileExtension}",
-                ).absolutePath
+                val fileName = ReportExportFileName.forRange(currentRange, format, timeZone)
                 val result = when (format) {
-                    ReportExportFormat.CSV -> csvExporter.exportReport(content, targetPath)
-                    ReportExportFormat.XLSX -> xlsxExporter.exportReport(content, targetPath)
+                    ReportExportFormat.CSV -> csvExporter.exportReport(content, fileName)
+                    ReportExportFormat.XLSX -> xlsxExporter.exportReport(content, fileName)
                 }
                 mutableState.update { current -> current.withExportResult(result) }
             } catch (cancellation: CancellationException) {
@@ -139,6 +134,10 @@ class ReportsPresenter(
 
     fun dismissExportState() {
         mutableState.update { current -> current.copy(exportState = ReportsExportState.Idle) }
+    }
+
+    fun onExportPermissionDenied() {
+        mutableState.update { current -> current.copy(exportState = ReportsExportState.PermissionDenied) }
     }
 
     private suspend fun requestRewardedAd(): AppResult<Unit> =

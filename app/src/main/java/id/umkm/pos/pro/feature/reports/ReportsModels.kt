@@ -55,6 +55,8 @@ sealed interface ReportsExportState {
     data class Succeeded(val artifactPath: String, val byteCount: Long) : ReportsExportState
 
     data class Failed(val error: AppError) : ReportsExportState
+
+    data object PermissionDenied : ReportsExportState
 }
 
 data class ReportsUiState(

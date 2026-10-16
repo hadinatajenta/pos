@@ -298,6 +298,11 @@ private fun ExportDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
+                    text = "File akan disimpan di folder ${DownloadsReportSink.DESTINATION_LABEL}.",
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
                     text = "Format",
                     style = LocalAppTextStyles.current.tableHeader,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -425,7 +430,7 @@ private fun ExportStatus(
 
         is ReportsExportState.Succeeded -> ExportStatusRow {
             Text(
-                text = "Tersimpan: ${exportState.artifactPath}",
+                text = "Tersimpan di ${DownloadsReportSink.DESTINATION_LABEL}/${exportState.artifactPath}",
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
@@ -438,6 +443,17 @@ private fun ExportStatus(
         is ReportsExportState.Failed -> ExportStatusRow {
             Text(
                 text = exportErrorMessage(exportState.error),
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
+        }
+
+        ReportsExportState.PermissionDenied -> ExportStatusRow {
+            Text(
+                text = "Izin penyimpanan diperlukan untuk menyimpan laporan ke folder " +
+                    "${DownloadsReportSink.DESTINATION_LABEL}. Aktifkan izin lalu coba lagi.",
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),

@@ -12,7 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 import java.util.TimeZone
 
 class ReportsPresenterReturnTest {
@@ -22,7 +21,6 @@ class ReportsPresenterReturnTest {
 
     private val utc = TimeZone.getTimeZone("UTC")
     private val clock = FixedClock(1_705_320_000_000L)
-    private val exportDirectory = File("/tmp/umkm-pos-reports-tests")
 
     @Test
     fun drillDownExposesTransactionIdForReturn() = runTest(mainDispatcherRule.testDispatcher) {
@@ -147,7 +145,6 @@ class ReportsPresenterReturnTest {
         csvExporter = SalesCsvExporter(repository, RecordingCsvSink(), utc),
         xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),
         adController = RecordingAdController(),
-        exportDirectory = exportDirectory,
         coroutineScope = coroutineScope,
         clock = clock,
         timeZone = utc,

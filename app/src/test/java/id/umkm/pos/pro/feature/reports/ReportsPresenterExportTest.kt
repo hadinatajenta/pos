@@ -10,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
 import java.util.TimeZone
 
 class ReportsPresenterExportTest {
@@ -20,7 +19,6 @@ class ReportsPresenterExportTest {
 
     private val utc = TimeZone.getTimeZone("UTC")
     private val clock = FixedClock(1_705_320_000_000L)
-    private val exportDirectory = File("/tmp/umkm-pos-reports-export-tests")
 
     @Test
     fun csvExportWritesTransactionsAndProductSummary() = runTest(mainDispatcherRule.testDispatcher) {
@@ -40,7 +38,9 @@ class ReportsPresenterExportTest {
 
         val state = presenter.uiState.value.exportState
         assertThat(state).isInstanceOf(ReportsExportState.Succeeded::class.java)
-        assertThat((state as ReportsExportState.Succeeded).artifactPath).endsWith(".csv")
+        assertThat((state as ReportsExportState.Succeeded).artifactPath)
+            .isEqualTo("laporan-2024-01-15_2024-01-15.csv")
+        assertThat(csvSink.writtenPath).isEqualTo("laporan-2024-01-15_2024-01-15.csv")
         assertThat(csvSink.writtenContent).contains("Kopi Susu")
         assertThat(csvSink.writtenContent).contains("INV-1")
     }
@@ -63,9 +63,36 @@ class ReportsPresenterExportTest {
 
         val state = presenter.uiState.value.exportState
         assertThat(state).isInstanceOf(ReportsExportState.Succeeded::class.java)
-        assertThat((state as ReportsExportState.Succeeded).artifactPath).endsWith(".xlsx")
+        assertThat((state as ReportsExportState.Succeeded).artifactPath)
+            .isEqualTo("laporan-2024-01-15_2024-01-15.xlsx")
+        assertThat(binarySink.writtenPath).isEqualTo("laporan-2024-01-15_2024-01-15.xlsx")
         assertThat(binarySink.writtenBytes).isNotNull()
         assertThat(binarySink.writtenBytes!!.size).isGreaterThan(0)
+    }
+
+    @Test
+    fun exportUsesFriendlyFileNameForTheSelectedRange() = runTest(mainDispatcherRule.testDispatcher) {
+        val csvSink = RecordingCsvSink()
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(transactions = listOf(sampleTransaction(id = 1L))),
+            transactionRepository = FakeTransactionRepository(mapOf(1L to listOf(sampleTransactionItem()))),
+            productRepository = FakeProductRepository(mapOf(10L to sampleProduct())),
+            csvSink = csvSink,
+            scope = this,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.selectCustomDays(startEpochDay = 19_723L, endEpochDay = 19_737L)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.exportReport(ReportExportFormat.CSV)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = presenter.uiState.value.exportState
+        assertThat(state).isInstanceOf(ReportsExportState.Succeeded::class.java)
+        assertThat((state as ReportsExportState.Succeeded).artifactPath)
+            .isEqualTo("laporan-2024-01-01_2024-01-15.csv")
+        assertThat(csvSink.writtenPath).isEqualTo("laporan-2024-01-01_2024-01-15.csv")
     }
 
     @Test
@@ -149,6 +176,44 @@ class ReportsPresenterExportTest {
         assertThat((state as ReportsExportState.Failed).error).isInstanceOf(AppError.Storage::class.java)
     }
 
+    @Test
+    fun sinkWriteFailureIsReportedAsStorageError() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(transactions = listOf(sampleTransaction(id = 1L))),
+            transactionRepository = FakeTransactionRepository(mapOf(1L to listOf(sampleTransactionItem()))),
+            productRepository = FakeProductRepository(mapOf(10L to sampleProduct())),
+            csvSink = RecordingCsvSink(failWrite = true),
+            scope = this,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.exportReport(ReportExportFormat.CSV)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = presenter.uiState.value.exportState
+        assertThat(state).isInstanceOf(ReportsExportState.Failed::class.java)
+        assertThat((state as ReportsExportState.Failed).error).isInstanceOf(AppError.Storage::class.java)
+    }
+
+    @Test
+    fun permissionDenialIsExposedUntilDismissed() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(),
+            scope = this,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.onExportPermissionDenied()
+
+        assertThat(presenter.uiState.value.exportState).isEqualTo(ReportsExportState.PermissionDenied)
+
+        presenter.dismissExportState()
+
+        assertThat(presenter.uiState.value.exportState).isEqualTo(ReportsExportState.Idle)
+    }
+
     private fun createPresenter(
         reportRepository: ReportRepository,
         transactionRepository: FakeTransactionRepository = FakeTransactionRepository(),
@@ -164,7 +229,6 @@ class ReportsPresenterExportTest {
         csvExporter = SalesCsvExporter(reportRepository, csvSink, utc),
         xlsxExporter = XlsxReportExporter(binarySink, utc),
         adController = adController,
-        exportDirectory = exportDirectory,
         coroutineScope = scope,
         clock = clock,
         timeZone = utc,
