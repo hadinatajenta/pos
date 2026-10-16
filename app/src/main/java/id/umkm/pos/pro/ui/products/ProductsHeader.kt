@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -67,12 +66,6 @@ internal fun ProductsHeader(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = PosSpacing.sm),
-            )
-            Icon(
-                imageVector = Icons.Filled.Notifications,
-                contentDescription = "Notifikasi",
-                tint = Color.White,
-                modifier = Modifier.size(22.dp),
             )
         }
         Row(

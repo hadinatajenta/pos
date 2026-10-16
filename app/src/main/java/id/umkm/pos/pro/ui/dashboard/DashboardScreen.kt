@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.TrendingDown
@@ -112,12 +111,6 @@ private fun DashboardHeader(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = PosSpacing.sm),
-            )
-            Icon(
-                imageVector = Icons.Filled.Notifications,
-                contentDescription = "Notifikasi",
-                tint = Color.White,
-                modifier = Modifier.size(22.dp),
             )
         }
         Text(

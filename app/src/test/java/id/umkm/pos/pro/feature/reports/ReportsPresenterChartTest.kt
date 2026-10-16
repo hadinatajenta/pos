@@ -111,7 +111,11 @@ class ReportsPresenterChartTest {
         coroutineScope: CoroutineScope,
     ): ReportsPresenter = ReportsPresenter(
         reportRepository = repository,
+        transactionRepository = FakeTransactionRepository(),
+        productRepository = FakeProductRepository(),
         csvExporter = SalesCsvExporter(repository, RecordingCsvSink(), utc),
+        xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),
+        adController = RecordingAdController(),
         exportDirectory = File("/tmp/umkm-pos-reports-chart-tests"),
         coroutineScope = coroutineScope,
         clock = clock,

@@ -3,22 +3,18 @@ package id.umkm.pos.pro.feature.reports
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,7 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
@@ -34,6 +30,7 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -43,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,9 +54,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
@@ -111,20 +111,21 @@ internal fun ReportsScreen(
     onDayDrillDown: (Long) -> Unit,
     onCloseDrillDown: () -> Unit,
     onTransactionReturn: (Long) -> Unit,
-    onExportCsv: () -> Unit,
+    onExport: (ReportExportFormat) -> Unit,
     onDismissExport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val timeZone = remember { TimeZone.getDefault() }
+    var isExportDialogVisible by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= PosBreakpoints.twoPane
         Column(modifier = Modifier.fillMaxSize()) {
-            ReportsHeader(
+            ReportsHeader(onExport = { isExportDialogVisible = true })
+            RangeControlsCard(
                 uiState = uiState,
                 timeZone = timeZone,
                 onPresetSelected = onPresetSelected,
                 onCustomRangeSelected = onCustomRangeSelected,
-                onExportCsv = onExportCsv,
             )
             ExportStatus(exportState = uiState.exportState, onDismissExport = onDismissExport)
             if (uiState.isLoading && uiState.summary != null) {
@@ -153,27 +154,24 @@ internal fun ReportsScreen(
             }
         }
     }
+    if (isExportDialogVisible) {
+        ExportDialog(
+            onConfirm = { format ->
+                isExportDialogVisible = false
+                onExport(format)
+            },
+            onDismiss = { isExportDialogVisible = false },
+        )
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun ReportsHeader(
-    uiState: ReportsUiState,
-    timeZone: TimeZone,
-    onPresetSelected: (ReportsRangePreset) -> Unit,
-    onCustomRangeSelected: (Long, Long) -> Unit,
-    onExportCsv: () -> Unit,
-) {
-    var activePicker by remember { mutableStateOf<DatePickerTarget?>(null) }
-    val startEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.startMillis, timeZone)
-    val endEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.endMillis, timeZone)
-
+private fun ReportsHeader(onExport: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(PosColors.ForestGreen)
             .padding(PosSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
@@ -192,19 +190,40 @@ private fun ReportsHeader(
             HeaderAction(
                 label = "Ekspor",
                 icon = Icons.Filled.FileDownload,
-                onClick = onExportCsv,
+                onClick = onExport,
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun RangeControlsCard(
+    uiState: ReportsUiState,
+    timeZone: TimeZone,
+    onPresetSelected: (ReportsRangePreset) -> Unit,
+    onCustomRangeSelected: (Long, Long) -> Unit,
+) {
+    var activePicker by remember { mutableStateOf<DatePickerTarget?>(null) }
+    val startEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.startMillis, timeZone)
+    val endEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.endMillis, timeZone)
+
+    PosCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+    ) {
+        PosSectionHeader(title = "Rentang Tanggal")
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
             VISIBLE_RANGE_PRESETS.forEach { preset ->
-                HeaderChip(
+                RangeChip(
                     label = preset.label,
                     selected = preset == uiState.preset,
                     onClick = { onPresetSelected(preset) },
-                    maxLines = 1,
                 )
             }
         }
@@ -213,17 +232,15 @@ private fun ReportsHeader(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
-            HeaderChip(
+            RangeChip(
                 label = "Dari ${ReportDates.formatLocalDateShort(uiState.range.startMillis, timeZone)}",
                 selected = uiState.preset == ReportsRangePreset.CUSTOM,
                 onClick = { activePicker = DatePickerTarget.START },
-                maxLines = 2,
             )
-            HeaderChip(
+            RangeChip(
                 label = "Sampai ${ReportDates.formatLocalDateShort(uiState.range.endMillis, timeZone)}",
                 selected = uiState.preset == ReportsRangePreset.CUSTOM,
                 onClick = { activePicker = DatePickerTarget.END },
-                maxLines = 2,
             )
         }
     }
@@ -265,6 +282,65 @@ private fun ReportsHeader(
 }
 
 @Composable
+private fun ExportDialog(
+    onConfirm: (ReportExportFormat) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedFormat by remember { mutableStateOf(ReportExportFormat.CSV) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Ekspor Laporan") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+                Text(
+                    text = "Tonton iklan singkat untuk mengekspor laporan.",
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Format",
+                    style = LocalAppTextStyles.current.tableHeader,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ReportExportFormat.entries.forEach { format ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = PosSizes.touchTarget)
+                            .selectable(
+                                selected = format == selectedFormat,
+                                role = Role.RadioButton,
+                                onClick = { selectedFormat = format },
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = format == selectedFormat, onClick = null)
+                        Spacer(modifier = Modifier.width(PosSpacing.sm))
+                        Text(text = format.label, style = LocalAppTextStyles.current.body)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(selectedFormat) },
+                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            ) {
+                Text(text = "Tonton & Ekspor")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            ) {
+                Text(text = "Batal")
+            }
+        },
+    )
+}
+
+@Composable
 private fun HeaderAction(
     label: String,
     icon: ImageVector,
@@ -294,17 +370,31 @@ private fun HeaderAction(
 }
 
 @Composable
-private fun HeaderChip(
+private fun RangeChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    maxLines: Int,
 ) {
     Surface(
-        color = if (selected) Color.White.copy(alpha = 0.18f) else Color.Transparent,
-        contentColor = Color.White,
+        color = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        contentColor = if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        },
         shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = if (selected) 0.9f else 0.35f)),
+        border = BorderStroke(
+            1.dp,
+            if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
         modifier = Modifier.clickable(onClick = onClick),
     ) {
         Box(
@@ -314,9 +404,7 @@ private fun HeaderChip(
             Text(
                 text = label,
                 style = LocalAppTextStyles.current.supportingLabel,
-                color = Color.White,
-                maxLines = maxLines,
-                modifier = Modifier.padding(horizontal = PosSpacing.md),
+                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
             )
         }
     }
@@ -332,15 +420,15 @@ private fun ExportStatus(
         ReportsExportState.Running -> ExportStatusRow {
             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(PosSpacing.sm))
-            Text(text = "Mengekspor CSV…", style = LocalAppTextStyles.current.supportingLabel)
+            Text(text = "Mengekspor laporan…", style = LocalAppTextStyles.current.supportingLabel)
         }
 
         is ReportsExportState.Succeeded -> ExportStatusRow {
             Text(
-                text = "Tersimpan: ${exportState.artifactPath.substringAfterLast('/')}",
+                text = "Tersimpan: ${exportState.artifactPath}",
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
@@ -349,7 +437,7 @@ private fun ExportStatus(
 
         is ReportsExportState.Failed -> ExportStatusRow {
             Text(
-                text = "Ekspor gagal: ${exportState.error.message}",
+                text = exportErrorMessage(exportState.error),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
@@ -357,6 +445,15 @@ private fun ExportStatus(
             SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
         }
     }
+}
+
+private fun exportErrorMessage(error: AppError): String = when (error) {
+    is AppError.Validation -> "Rentang tanggal tidak valid untuk diekspor."
+    is AppError.Storage -> "Ekspor gagal menyimpan berkas. Periksa ruang penyimpanan lalu coba lagi."
+    is AppError.NotFound -> "Data laporan tidak ditemukan."
+    is AppError.Hardware -> "Perangkat tidak mendukung ekspor saat ini."
+    is AppError.Network -> "Ekspor gagal. Coba lagi."
+    is AppError.Unexpected -> "Ekspor gagal. Coba lagi."
 }
 
 @Composable
@@ -403,18 +500,17 @@ private fun MainReportContent(
         if (isExpanded && uiState.paymentShares.isNotEmpty()) {
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
+                    verticalAlignment = Alignment.Top,
                 ) {
                     SalesChartCard(
                         points = uiState.salesChartPoints,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = Modifier.weight(1f),
                     )
                     PaymentMethodsCard(
                         shares = uiState.paymentShares,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
@@ -480,29 +576,28 @@ private fun ReportTotals(
 ) {
     if (isExpanded) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
+            verticalAlignment = Alignment.Top,
         ) {
             ReportMetricCard(
                 label = "Total Penjualan",
                 value = Rupiah.format(summary.totalSales),
                 icon = Icons.Filled.PointOfSale,
                 emphasized = true,
-                modifier = Modifier.weight(TOTAL_METRIC_WEIGHT).fillMaxHeight(),
+                modifier = Modifier.weight(TOTAL_METRIC_WEIGHT),
             )
             ReportMetricCard(
                 label = "Jumlah Transaksi",
                 value = summary.transactionCount.toString(),
                 icon = Icons.Filled.Receipt,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
                 label = "Rata-rata Transaksi",
                 value = Rupiah.format(averageTransaction),
                 icon = Icons.Filled.Payments,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                modifier = Modifier.weight(1f),
             )
         }
         return
@@ -819,7 +914,7 @@ private fun ReportsCompactPreview() {
             onDayDrillDown = {},
             onCloseDrillDown = {},
             onTransactionReturn = {},
-            onExportCsv = {},
+            onExport = {},
             onDismissExport = {},
         )
     }
@@ -838,7 +933,7 @@ private fun ReportsExpandedPreview() {
             onDayDrillDown = {},
             onCloseDrillDown = {},
             onTransactionReturn = {},
-            onExportCsv = {},
+            onExport = {},
             onDismissExport = {},
         )
     }

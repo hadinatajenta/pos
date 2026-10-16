@@ -74,4 +74,48 @@ class ReportCsvTest {
     fun formatsEpochDayAsCalendarDate() {
         assertThat(ReportDates.formatEpochDay(19_737L)).isEqualTo("2024-01-15")
     }
+
+    @Test
+    fun reportCsvWritesTransactionTableThenProductSummaryTable() {
+        val content = ReportContent(
+            transactions = listOf(sampleTransaction(invoiceNo = "INV-1")),
+            productSummaries = listOf(
+                ReportProductSummary(productId = 10L, name = "Kopi Susu", quantitySold = 3.0, salesValue = 45_000L),
+            ),
+        )
+
+        val csv = ReportCsv.buildReportCsv(content, utc)
+        val lines = csv.split("\r\n")
+
+        assertThat(lines[0]).isEqualTo(ReportCsv.REPORT_TRANSACTION_COLUMNS.joinToString(","))
+        assertThat(lines[1]).isEqualTo("2024-01-15 00:00:00,INV-1,20000,Tunai,10000,5000")
+        assertThat(lines[2]).isEmpty()
+        assertThat(lines[3]).isEqualTo(ReportCsv.PRODUCT_SUMMARY_COLUMNS.joinToString(","))
+        assertThat(lines[4]).isEqualTo("Kopi Susu,3,45000")
+    }
+
+    @Test
+    fun reportCsvQuotesProductNamesThatContainSeparators() {
+        val content = ReportContent(
+            transactions = emptyList(),
+            productSummaries = listOf(
+                ReportProductSummary(productId = 10L, name = "Kopi, Susu", quantitySold = 2.5, salesValue = 30_000L),
+            ),
+        )
+
+        val csv = ReportCsv.buildReportCsv(content, utc)
+
+        assertThat(csv).contains("\"Kopi, Susu\",2.5,30000")
+    }
+
+    @Test
+    fun reportCsvWithNoRowsStillWritesBothHeaders() {
+        val csv = ReportCsv.buildReportCsv(ReportContent(emptyList(), emptyList()), utc)
+
+        assertThat(csv).isEqualTo(
+            ReportCsv.REPORT_TRANSACTION_COLUMNS.joinToString(",") + "\r\n" +
+                "\r\n" +
+                ReportCsv.PRODUCT_SUMMARY_COLUMNS.joinToString(",") + "\r\n",
+        )
+    }
 }

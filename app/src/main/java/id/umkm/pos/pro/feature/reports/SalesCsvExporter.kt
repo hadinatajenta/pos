@@ -45,4 +45,25 @@ class SalesCsvExporter(
 
         return AppResult.Success(BackupArtifact(path = targetPath, byteCount = byteCount))
     }
+
+    suspend fun exportReport(
+        content: ReportContent,
+        targetPath: String,
+    ): AppResult<BackupArtifact> {
+        if (targetPath.isBlank()) {
+            return AppResult.Failure(AppError.Validation("export path must not be blank"))
+        }
+
+        val csv = ReportCsv.buildReportCsv(content, timeZone)
+
+        val byteCount = try {
+            csvSink.write(targetPath, csv)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            return AppResult.Failure(AppError.Storage(error.message ?: "failed to write export file"))
+        }
+
+        return AppResult.Success(BackupArtifact(path = targetPath, byteCount = byteCount))
+    }
 }

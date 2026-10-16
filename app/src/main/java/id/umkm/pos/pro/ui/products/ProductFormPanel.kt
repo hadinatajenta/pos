@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,7 +42,7 @@ internal fun ProductFormPanel(
     actions: ProductsActions,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth().imePadding()) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -75,12 +75,26 @@ internal fun ProductFormPanel(
             StockSection(form = form, actions = actions)
         }
         HorizontalDivider()
-        PrimaryActionButton(
-            text = if (form.isEditing) "Simpan perubahan" else "Simpan produk",
-            onClick = actions.onSubmitForm,
-            loading = isSaving,
-            modifier = Modifier.padding(PosSpacing.md),
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PosSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            PrimaryActionButton(
+                text = if (form.isEditing) "Simpan perubahan" else "Simpan produk",
+                onClick = actions.onSubmitForm,
+                loading = isSaving,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = actions.onDismissForm,
+                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            ) {
+                Text(text = "Batal", style = LocalAppTextStyles.current.buttonLabel)
+            }
+        }
     }
 }
 

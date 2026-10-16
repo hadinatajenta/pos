@@ -26,7 +26,11 @@ fun ReportsRoute(modifier: Modifier = Modifier) {
     val presenter = remember(container, exportDirectory) {
         ReportsPresenter(
             reportRepository = container.reportRepository,
+            transactionRepository = container.transactionRepository,
+            productRepository = container.productRepository,
             csvExporter = SalesCsvExporter(container.reportRepository, FileCsvSink()),
+            xlsxExporter = XlsxReportExporter(FileBinarySink()),
+            adController = container.adController,
             exportDirectory = exportDirectory,
             coroutineScope = coroutineScope,
             clock = container.clock,
@@ -48,7 +52,7 @@ fun ReportsRoute(modifier: Modifier = Modifier) {
         onDayDrillDown = presenter::openDayDrillDown,
         onCloseDrillDown = presenter::closeDrillDown,
         onTransactionReturn = presenter::requestReturn,
-        onExportCsv = presenter::exportCsv,
+        onExport = presenter::exportReport,
         onDismissExport = presenter::dismissExportState,
         modifier = modifier,
     )

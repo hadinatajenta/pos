@@ -24,6 +24,18 @@ data class ReportsPaymentShare(
     val transactionCount: Int,
 )
 
+data class ReportProductSummary(
+    val productId: Long,
+    val name: String,
+    val quantitySold: Double,
+    val salesValue: Long,
+)
+
+data class ReportContent(
+    val transactions: List<Transaction>,
+    val productSummaries: List<ReportProductSummary>,
+)
+
 sealed interface ReportsDrillDown {
     val transactions: List<Transaction>
 

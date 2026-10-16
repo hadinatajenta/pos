@@ -2,6 +2,8 @@ package id.umkm.pos.pro.feature.reports
 
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.common.formatQuantity
+import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import java.util.TimeZone
 
 object ReportCsv {
@@ -24,6 +26,21 @@ object ReportCsv {
         "paid_amount",
         "change_amount",
         "remaining_debt",
+    )
+
+    val REPORT_TRANSACTION_COLUMNS: List<String> = listOf(
+        "Tanggal",
+        "No. Transaksi",
+        "Total Penjualan",
+        "Metode Pembayaran",
+        "HPP",
+        "Laba",
+    )
+
+    val PRODUCT_SUMMARY_COLUMNS: List<String> = listOf(
+        "Nama Produk",
+        "Qty Terjual",
+        "Nilai Penjualan",
     )
 
     val DAILY_COLUMNS: List<String> = listOf(
@@ -70,6 +87,36 @@ object ReportCsv {
                     day.totalSales.toString(),
                     day.netProfit.toString(),
                     day.transactionCount.toString(),
+                ),
+            )
+        }
+    }
+
+    fun buildReportCsv(
+        content: ReportContent,
+        timeZone: TimeZone = TimeZone.getDefault(),
+    ): String = buildString {
+        appendRecord(REPORT_TRANSACTION_COLUMNS)
+        content.transactions.forEach { transaction ->
+            appendRecord(
+                listOf(
+                    ReportDates.formatTimestamp(transaction.createdAt, timeZone),
+                    transaction.invoiceNo,
+                    transaction.grandTotal.toString(),
+                    paymentMethodLabel(transaction.paymentMethod),
+                    transaction.totalHpp.toString(),
+                    transaction.netProfit.toString(),
+                ),
+            )
+        }
+        appendRecord(emptyList())
+        appendRecord(PRODUCT_SUMMARY_COLUMNS)
+        content.productSummaries.forEach { summary ->
+            appendRecord(
+                listOf(
+                    summary.name,
+                    formatQuantity(summary.quantitySold),
+                    summary.salesValue.toString(),
                 ),
             )
         }

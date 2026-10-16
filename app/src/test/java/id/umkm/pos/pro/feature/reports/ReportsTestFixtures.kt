@@ -1,13 +1,25 @@
 package id.umkm.pos.pro.feature.reports
 
+import id.umkm.pos.pro.core.contract.AdController
+import id.umkm.pos.pro.core.contract.AdPlacement
+import id.umkm.pos.pro.core.contract.AppError
+import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.DailySales
+import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.PaymentMethod
+import id.umkm.pos.pro.core.model.Product
+import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.core.model.TransactionItem
 import id.umkm.pos.pro.core.model.TransactionStatus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 internal fun sampleTransaction(
     id: Long = 1L,
@@ -42,6 +54,43 @@ internal fun sampleTransaction(
     notes = null,
 )
 
+internal fun sampleTransactionItem(
+    id: Long = 1L,
+    transactionId: Long = 1L,
+    productId: Long = 10L,
+    qty: Double = 3.0,
+    subtotal: Long = 45_000L,
+): TransactionItem = TransactionItem(
+    id = id,
+    transactionId = transactionId,
+    productId = productId,
+    variantName = null,
+    qty = qty,
+    unitHpp = 5_000L,
+    appliedUnitPrice = 15_000L,
+    isNegoPrice = false,
+    isWholesaleApplied = false,
+    itemDiscount = 0L,
+    subtotal = subtotal,
+)
+
+internal fun sampleProduct(
+    id: Long = 10L,
+    name: String = "Kopi Susu",
+): Product = Product(
+    id = id,
+    sku = "SKU-$id",
+    barcode = null,
+    name = name,
+    category = null,
+    baseUnit = "pcs",
+    baseHpp = 5_000L,
+    basePrice = 15_000L,
+    stockBaseQty = 100.0,
+    minStockAlert = 5.0,
+    isActive = true,
+)
+
 internal class FakeReportRepository(
     private val transactions: List<Transaction> = emptyList(),
     private val summary: SalesSummary = SalesSummary(0L, 0L, 0L, 0),
@@ -56,6 +105,96 @@ internal class FakeReportRepository(
     override suspend fun transactionsInRange(range: ReportRange): List<Transaction> {
         if (failRead) throw IllegalStateException("report store unavailable")
         return transactions
+    }
+}
+
+internal class FakeTransactionRepository(
+    private val itemsByTransaction: Map<Long, List<TransactionItem>> = emptyMap(),
+    private val failItemsRead: Boolean = false,
+) : TransactionRepository {
+
+    override suspend fun saveTransaction(transaction: Transaction, items: List<TransactionItem>): AppResult<Long> =
+        error("saveTransaction is not used in report tests")
+
+    override suspend fun nextInvoiceNumber(createdAtMillis: Long): String =
+        error("nextInvoiceNumber is not used in report tests")
+
+    override suspend fun getTransaction(transactionId: Long): Transaction? =
+        error("getTransaction is not used in report tests")
+
+    override fun observeTransactions(range: ReportRange): Flow<List<Transaction>> =
+        error("observeTransactions is not used in report tests")
+
+    override suspend fun getItems(transactionId: Long): List<TransactionItem> {
+        if (failItemsRead) throw IllegalStateException("transaction items unavailable")
+        return itemsByTransaction[transactionId].orEmpty()
+    }
+
+    override suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long> =
+        error("recordDebtPayment is not used in report tests")
+
+    override suspend fun markReturned(transactionId: Long, returnedItems: List<TransactionItem>): AppResult<Unit> =
+        error("markReturned is not used in report tests")
+}
+
+internal class FakeProductRepository(
+    private val products: Map<Long, Product> = emptyMap(),
+) : ProductRepository {
+
+    override fun observeProducts(query: String?): Flow<List<Product>> =
+        error("observeProducts is not used in report tests")
+
+    override suspend fun getProductById(productId: Long): Product? = products[productId]
+
+    override suspend fun findProductByBarcode(barcode: String): Product? =
+        error("findProductByBarcode is not used in report tests")
+
+    override suspend fun upsertProduct(product: Product): Long =
+        error("upsertProduct is not used in report tests")
+
+    override suspend fun deleteProduct(productId: Long) =
+        error("deleteProduct is not used in report tests")
+
+    override suspend fun getUnits(productId: Long): List<ProductUnit> =
+        error("getUnits is not used in report tests")
+
+    override suspend fun findUnitByBarcode(barcode: String): ProductUnit? =
+        error("findUnitByBarcode is not used in report tests")
+
+    override suspend fun upsertUnit(unit: ProductUnit): Long =
+        error("upsertUnit is not used in report tests")
+
+    override suspend fun deleteUnit(unitId: Long) =
+        error("deleteUnit is not used in report tests")
+}
+
+internal class RecordingBinarySink(private val failWrite: Boolean = false) : BinarySink {
+    var writtenPath: String? = null
+    var writtenBytes: ByteArray? = null
+
+    override suspend fun write(targetPath: String, content: ByteArray): Long {
+        if (failWrite) throw IllegalStateException("disk full")
+        writtenPath = targetPath
+        writtenBytes = content
+        return content.size.toLong()
+    }
+}
+
+internal class RecordingAdController(
+    private val result: AppResult<Unit> = AppResult.Failure(AppError.Network("ads unavailable")),
+    private val shouldThrow: Boolean = false,
+) : AdController {
+
+    var requestedPlacement: AdPlacement? = null
+    var callCount: Int = 0
+
+    override fun observeAvailability(placement: AdPlacement): Flow<Boolean> = flowOf(true)
+
+    override suspend fun showRewarded(placement: AdPlacement): AppResult<Unit> {
+        requestedPlacement = placement
+        callCount++
+        if (shouldThrow) throw IllegalStateException("rewarded ad sdk crashed")
+        return result
     }
 }
 

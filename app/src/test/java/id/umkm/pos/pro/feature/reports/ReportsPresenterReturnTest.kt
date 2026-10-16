@@ -142,7 +142,11 @@ class ReportsPresenterReturnTest {
         coroutineScope: CoroutineScope,
     ): ReportsPresenter = ReportsPresenter(
         reportRepository = repository,
+        transactionRepository = FakeTransactionRepository(),
+        productRepository = FakeProductRepository(),
         csvExporter = SalesCsvExporter(repository, RecordingCsvSink(), utc),
+        xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),
+        adController = RecordingAdController(),
         exportDirectory = exportDirectory,
         coroutineScope = coroutineScope,
         clock = clock,

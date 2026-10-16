@@ -1,9 +1,14 @@
 package id.umkm.pos.pro.feature.reports
 
+import id.umkm.pos.pro.core.contract.AdController
+import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
+import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
@@ -24,7 +29,11 @@ import java.util.TimeZone
 
 class ReportsPresenter(
     private val reportRepository: ReportRepository,
+    private val transactionRepository: TransactionRepository,
+    private val productRepository: ProductRepository,
     private val csvExporter: SalesCsvExporter,
+    private val xlsxExporter: XlsxReportExporter,
+    private val adController: AdController,
     private val exportDirectory: File,
     private val coroutineScope: CoroutineScope,
     clock: Clock,
@@ -97,27 +106,32 @@ class ReportsPresenter(
         refresh()
     }
 
-    fun exportCsv() {
+    fun exportReport(format: ReportExportFormat) {
         exportJob?.cancel()
         exportJob = coroutineScope.launch {
             val currentRange = mutableState.value.range
             mutableState.update { current -> current.copy(exportState = ReportsExportState.Running) }
-            val targetPath = File(
-                exportDirectory,
-                "transactions-${currentRange.startMillis}-${currentRange.endMillis}.csv",
-            ).absolutePath
-            when (val result = csvExporter.exportTransactions(currentRange, targetPath)) {
-                is AppResult.Success -> mutableState.update { current ->
+            try {
+                requestRewardedAd()
+                val content = loadReportContent(currentRange)
+                val targetPath = File(
+                    exportDirectory,
+                    "laporan-${currentRange.startMillis}-${currentRange.endMillis}.${format.fileExtension}",
+                ).absolutePath
+                val result = when (format) {
+                    ReportExportFormat.CSV -> csvExporter.exportReport(content, targetPath)
+                    ReportExportFormat.XLSX -> xlsxExporter.exportReport(content, targetPath)
+                }
+                mutableState.update { current -> current.withExportResult(result) }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                mutableState.update { current ->
                     current.copy(
-                        exportState = ReportsExportState.Succeeded(
-                            artifactPath = result.value.path,
-                            byteCount = result.value.byteCount,
+                        exportState = ReportsExportState.Failed(
+                            AppError.Storage(error.message ?: "failed to export report"),
                         ),
                     )
-                }
-
-                is AppResult.Failure -> mutableState.update { current ->
-                    current.copy(exportState = ReportsExportState.Failed(result.error))
                 }
             }
         }
@@ -126,6 +140,54 @@ class ReportsPresenter(
     fun dismissExportState() {
         mutableState.update { current -> current.copy(exportState = ReportsExportState.Idle) }
     }
+
+    private suspend fun requestRewardedAd(): AppResult<Unit> =
+        try {
+            adController.showRewarded(AdPlacement.EXCEL_EXPORT)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            AppResult.Failure(AppError.Network(error.message ?: "rewarded ad unavailable"))
+        }
+
+    private suspend fun loadReportContent(range: ReportRange): ReportContent {
+        val transactions = reportRepository.transactionsInRange(range)
+        val quantityByProduct = LinkedHashMap<Long, Double>()
+        val salesValueByProduct = LinkedHashMap<Long, Long>()
+        transactions.forEach { transaction ->
+            transactionRepository.getItems(transaction.id).forEach { item ->
+                quantityByProduct[item.productId] =
+                    (quantityByProduct[item.productId] ?: 0.0) + item.qty
+                salesValueByProduct[item.productId] =
+                    (salesValueByProduct[item.productId] ?: 0L) + item.subtotal
+            }
+        }
+        val summaries = quantityByProduct.entries
+            .mapNotNull { entry ->
+                productRepository.getProductById(entry.key)?.let { product ->
+                    ReportProductSummary(
+                        productId = product.id,
+                        name = product.name,
+                        quantitySold = entry.value,
+                        salesValue = salesValueByProduct[entry.key] ?: 0L,
+                    )
+                }
+            }
+            .sortedByDescending { summary -> summary.salesValue }
+        return ReportContent(transactions = transactions, productSummaries = summaries)
+    }
+
+    private fun ReportsUiState.withExportResult(result: AppResult<BackupArtifact>): ReportsUiState =
+        when (result) {
+            is AppResult.Success -> copy(
+                exportState = ReportsExportState.Succeeded(
+                    artifactPath = result.value.path,
+                    byteCount = result.value.byteCount,
+                ),
+            )
+
+            is AppResult.Failure -> copy(exportState = ReportsExportState.Failed(result.error))
+        }
 
     private fun loadReports(range: ReportRange, preset: ReportsRangePreset) {
         loadJob?.cancel()

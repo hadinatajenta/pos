@@ -85,4 +85,33 @@ class SalesCsvExporterTest {
 
         assertThat((result as AppResult.Failure).error).isInstanceOf(AppError.Storage::class.java)
     }
+
+    @Test
+    fun exportReportWritesTransactionsAndProductSummary() = runTest {
+        val sink = RecordingCsvSink()
+        val exporter = SalesCsvExporter(FakeReportRepository(), sink, utc)
+        val content = ReportContent(
+            transactions = listOf(sampleTransaction()),
+            productSummaries = listOf(
+                ReportProductSummary(productId = 10L, name = "Kopi Susu", quantitySold = 3.0, salesValue = 45_000L),
+            ),
+        )
+
+        val result = exporter.exportReport(content, "/exports/laporan.csv")
+
+        assertThat(result).isInstanceOf(AppResult.Success::class.java)
+        assertThat(sink.writtenContent).isEqualTo(ReportCsv.buildReportCsv(content, utc))
+        assertThat((result as AppResult.Success<BackupArtifact>).value.path).isEqualTo("/exports/laporan.csv")
+    }
+
+    @Test
+    fun exportReportRejectsBlankTargetPath() = runTest {
+        val sink = RecordingCsvSink()
+        val exporter = SalesCsvExporter(FakeReportRepository(), sink, utc)
+
+        val result = exporter.exportReport(ReportContent(emptyList(), emptyList()), " ")
+
+        assertThat((result as AppResult.Failure).error).isInstanceOf(AppError.Validation::class.java)
+        assertThat(sink.writtenContent).isNull()
+    }
 }

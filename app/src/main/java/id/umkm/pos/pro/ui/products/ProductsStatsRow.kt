@@ -92,17 +92,13 @@ internal fun ProductsStatsRow(
         Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
             badges.chunked(columnCount).forEach { badgeRow ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Max),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
                 ) {
                     badgeRow.forEach { badge ->
                         StatCard(
                             badge = badge,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
+                            modifier = Modifier.weight(1f),
                         )
                     }
                     repeat(columnCount - badgeRow.size) {
