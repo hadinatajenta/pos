@@ -20,7 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -32,6 +31,7 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
 import androidx.annotation.DrawableRes
+import androidx.compose.runtime.getValue
 
 @Composable
 fun LoadingState(

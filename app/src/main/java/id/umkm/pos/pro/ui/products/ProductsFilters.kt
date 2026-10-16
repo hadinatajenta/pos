@@ -12,34 +12,31 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.successDataOrNull
+import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 private const val ALL_CATEGORIES_LABEL = "Semua Kategori"
 private const val ALL_CATEGORY_CHIP_LABEL = "Semua"
@@ -49,24 +46,13 @@ internal fun ProductsSearchField(
     state: ProductsUiState,
     actions: ProductsActions,
 ) {
-    OutlinedTextField(
+    PosSearchField(
         value = state.searchQuery,
         onValueChange = actions.onSearchQueryChange,
+        placeholder = "Cari produk",
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        singleLine = true,
-        label = { Text("Cari produk") },
-        placeholder = { Text("Cari nama produk, kategori...") },
-        leadingIcon = { Icon(painter = painterResource(R.drawable.ic_search), contentDescription = null) },
-        trailingIcon = {
-            if (state.searchQuery.isNotEmpty()) {
-                IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
-                }
-            }
-        },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     )
 }
 

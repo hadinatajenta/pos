@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +54,7 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
+import androidx.compose.runtime.getValue
 
 private val RETURN_CONTENT_MAX_WIDTH = 640.dp
 private val RETURN_QUANTITY_FIELD_WIDTH = 120.dp

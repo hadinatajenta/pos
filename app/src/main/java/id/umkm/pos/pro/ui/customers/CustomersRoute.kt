@@ -15,24 +15,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,6 +52,7 @@ import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -64,6 +60,7 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
+import androidx.compose.runtime.getValue
 
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
@@ -160,24 +157,13 @@ private fun CustomersSearchField(
     state: CustomersUiState,
     actions: CustomersActions,
 ) {
-    OutlinedTextField(
+    PosSearchField(
         value = state.searchQuery,
         onValueChange = actions.onSearchQueryChange,
+        placeholder = "Cari pelanggan",
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        singleLine = true,
-        label = { Text("Cari pelanggan") },
-        placeholder = { Text("Nama") },
-        leadingIcon = { Icon(painter = painterResource(R.drawable.ic_search), contentDescription = null) },
-        trailingIcon = {
-            if (state.searchQuery.isNotEmpty()) {
-                IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
-                }
-            }
-        },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     )
 }
 

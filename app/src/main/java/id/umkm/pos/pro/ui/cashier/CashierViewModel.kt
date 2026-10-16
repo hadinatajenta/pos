@@ -26,7 +26,6 @@ import id.umkm.pos.pro.domain.usecase.CheckoutResult
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.formatQuantity
-import id.umkm.pos.pro.ui.common.mapList
 import id.umkm.pos.pro.ui.common.resolveStockStatus
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.common.toAppError

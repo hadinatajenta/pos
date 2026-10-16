@@ -17,10 +17,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +41,8 @@ import id.umkm.pos.pro.ui.theme.PosTextStyles
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
 import androidx.annotation.DrawableRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 private val PRODUCT_ROW_THUMBNAIL_SIZE = 64.dp
 private val STOCK_PILL_ICON_SIZE = 12.dp

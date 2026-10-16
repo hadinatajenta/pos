@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +33,8 @@ import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 
 const val WELCOME_SCREEN_TEST_TAG = "welcome-screen"
 
+private val WELCOME_TOP_INSET = 72.dp
+
 @Composable
 fun WelcomeScreen(
     onStart: () -> Unit,
@@ -46,13 +49,13 @@ fun WelcomeScreen(
             .testTag(WELCOME_SCREEN_TEST_TAG),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(modifier = Modifier.height(PosSpacing.xxl))
+        Spacer(modifier = Modifier.height(WELCOME_TOP_INSET))
         Column(
             modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
         ) {
             Text(
-                text = "Kelola bisnis jadi lebih mudah",
+                text = "Kelola Bisnis\nJadi Lebih Mudah",
                 style = MaterialTheme.typography.headlineLarge,
                 color = PosColors.TextInk,
                 textAlign = TextAlign.Start,
@@ -76,7 +79,11 @@ fun WelcomeScreen(
                 modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
             )
         }
-        PrimaryActionButton(text = "Mulai", onClick = onStart)
+        PrimaryActionButton(
+            text = "Mulai",
+            onClick = onStart,
+            shape = RoundedCornerShape(percent = 50),
+        )
         Spacer(modifier = Modifier.height(PosSpacing.lg))
     }
 }

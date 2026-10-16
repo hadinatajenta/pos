@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosShapes
@@ -89,11 +90,12 @@ fun PrimaryActionButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     @DrawableRes iconRes: Int? = null,
+    shape: Shape = PosShapes.medium,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled && !loading,
-        shape = PosShapes.medium,
+        shape = shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,

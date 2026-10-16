@@ -2,12 +2,12 @@ package id.umkm.pos.pro.ui.dashboard
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import id.umkm.pos.pro.ui.LocalAppContainer
+import androidx.compose.runtime.getValue
 
 @Composable
 fun DashboardRoute(

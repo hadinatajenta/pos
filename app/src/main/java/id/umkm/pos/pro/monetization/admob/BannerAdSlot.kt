@@ -4,10 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.ui.LocalAppContainer
+import androidx.compose.runtime.getValue
 
 @Composable
 fun BannerAdSlot(

@@ -15,33 +15,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items as lazyColumnItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,6 +46,7 @@ import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.components.ProductThumbnail
 import id.umkm.pos.pro.ui.components.StockStatusBadge
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
@@ -65,6 +57,10 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
 import androidx.annotation.DrawableRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.lazy.items as lazyColumnItems
+import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 
 private const val MAX_PRODUCT_COLUMNS = 4
 private val CATALOG_THUMBNAIL_SIZE = 52.dp
@@ -119,34 +115,11 @@ private fun CashierSearchField(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
-        OutlinedTextField(
+        PosSearchField(
             value = state.searchQuery,
             onValueChange = actions.onSearchQueryChange,
+            placeholder = "Cari produk",
             modifier = Modifier.weight(1f),
-            singleLine = true,
-            shape = PosShapes.large,
-            placeholder = {
-                Text(
-                    text = "Cari produk",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = LocalAppTextStyles.current.body,
-                )
-            },
-            leadingIcon = { Icon(painter = painterResource(R.drawable.ic_search), contentDescription = null) },
-            trailingIcon = {
-                if (state.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                        Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
-                    }
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                disabledContainerColor = Color.White,
-            ),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         )
         CashierFilterButton(state = state, actions = actions)
     }

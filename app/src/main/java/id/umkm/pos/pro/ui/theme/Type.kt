@@ -18,10 +18,28 @@ val PosFontFamily = FontFamily(
 )
 
 val PosTypography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = PosFontFamily,
+        fontSize = 57.sp,
+        lineHeight = 64.sp,
+        fontWeight = FontWeight.Normal,
+    ),
+    displayMedium = TextStyle(
+        fontFamily = PosFontFamily,
+        fontSize = 45.sp,
+        lineHeight = 52.sp,
+        fontWeight = FontWeight.Normal,
+    ),
+    displaySmall = TextStyle(
+        fontFamily = PosFontFamily,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        fontWeight = FontWeight.Normal,
+    ),
     headlineLarge = TextStyle(
         fontFamily = PosFontFamily,
-        fontSize = 30.sp,
-        lineHeight = 38.sp,
+        fontSize = 34.sp,
+        lineHeight = 42.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     headlineMedium = TextStyle(
