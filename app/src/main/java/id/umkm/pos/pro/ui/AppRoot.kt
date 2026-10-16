@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +27,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.feature.reports.ReportsRoute
 import id.umkm.pos.pro.ui.cashier.CashierRoute
 import id.umkm.pos.pro.ui.common.EmptyState
@@ -91,7 +94,17 @@ private fun PrimaryNavigationBar(
                 selected = destination == selectedDestination,
                 onClick = { onDestinationSelected(destination) },
                 icon = { Icon(imageVector = destination.icon, contentDescription = null) },
-                label = { Text(text = destination.label, maxLines = 1) },
+                label = {
+                    Text(
+                        text = destination.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            letterSpacing = 0.sp,
+                        ),
+                    )
+                },
             )
         }
     }
