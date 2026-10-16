@@ -28,54 +28,42 @@ fun PosApp(modifier: Modifier = Modifier) {
     var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.CASHIER) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isExpandedWindow = maxWidth >= RAIL_BREAKPOINT
-        if (isExpandedWindow) {
-            ExpandedLayout(selectedDestination) { selectedDestination = it }
-        } else {
-            CompactLayout(selectedDestination) { selectedDestination = it }
-        }
-    }
-}
-
-@Composable
-private fun CompactLayout(
-    selectedDestination: PosDestination,
-    onSelectDestination: (PosDestination) -> Unit,
-) {
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                PosDestination.entries.forEach { destination ->
-                    NavigationBarItem(
-                        selected = destination == selectedDestination,
-                        onClick = { onSelectDestination(destination) },
-                        icon = { Icon(destination.icon, contentDescription = null) },
-                        label = { Text(destination.label) },
-                    )
+        Scaffold(
+            bottomBar = {
+                if (!isExpandedWindow) {
+                    NavigationBar {
+                        PosDestination.entries.forEach { destination ->
+                            NavigationBarItem(
+                                selected = destination == selectedDestination,
+                                onClick = { selectedDestination = destination },
+                                icon = { Icon(destination.icon, contentDescription = null) },
+                                label = { Text(destination.label) },
+                            )
+                        }
+                    }
                 }
-            }
-        },
-    ) { contentPadding ->
-        DestinationContent(selectedDestination, Modifier.padding(contentPadding))
-    }
-}
-
-@Composable
-private fun ExpandedLayout(
-    selectedDestination: PosDestination,
-    onSelectDestination: (PosDestination) -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxSize()) {
-        NavigationRail {
-            PosDestination.entries.forEach { destination ->
-                NavigationRailItem(
-                    selected = destination == selectedDestination,
-                    onClick = { onSelectDestination(destination) },
-                    icon = { Icon(destination.icon, contentDescription = null) },
-                    label = { Text(destination.label) },
-                )
+            },
+        ) { contentPadding ->
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding),
+            ) {
+                if (isExpandedWindow) {
+                    NavigationRail {
+                        PosDestination.entries.forEach { destination ->
+                            NavigationRailItem(
+                                selected = destination == selectedDestination,
+                                onClick = { selectedDestination = destination },
+                                icon = { Icon(destination.icon, contentDescription = null) },
+                                label = { Text(destination.label) },
+                            )
+                        }
+                    }
+                }
+                DestinationContent(selectedDestination, Modifier.fillMaxSize())
             }
         }
-        DestinationContent(selectedDestination, Modifier.fillMaxSize())
     }
 }
 
