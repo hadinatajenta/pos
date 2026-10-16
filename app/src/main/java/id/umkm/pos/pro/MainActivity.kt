@@ -4,16 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
 import id.umkm.pos.pro.app.PosApp
+import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val container = (application as PosApplication).container
         setContent {
             UmkmPosTheme {
-                PosApp()
+                CompositionLocalProvider(LocalAppContainer provides container) {
+                    PosApp()
+                }
             }
         }
     }

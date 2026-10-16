@@ -2,6 +2,8 @@ package id.umkm.pos.pro.app
 
 import android.content.Context
 import id.umkm.pos.pro.core.contract.AccountingService
+import id.umkm.pos.pro.core.contract.AdController
+import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.PriceEngine
@@ -29,6 +31,7 @@ import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
 import id.umkm.pos.pro.hardware.printer.BluetoothReceiptPrinter
 import id.umkm.pos.pro.hardware.receipt.AndroidReceiptRenderer
 import id.umkm.pos.pro.hardware.scanner.HardwareScannerInput
+import id.umkm.pos.pro.monetization.admob.NoAdsController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -83,4 +86,6 @@ class DefaultAppContainer(
         BluetoothReceiptPrinter(applicationContext, receiptRenderer, lifecycleScope = applicationScope)
 
     override val scannerInput: ScannerInput = HardwareScannerInput()
+
+    override val adController: AdController = NoAdsController()
 }

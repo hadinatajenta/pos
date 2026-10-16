@@ -1,4 +1,4 @@
-package id.umkm.pos.pro.app
+package id.umkm.pos.pro.ui.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Groups

@@ -1,4 +1,4 @@
-package id.umkm.pos.pro.app
+package id.umkm.pos.pro.ui.navigation
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
