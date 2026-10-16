@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +19,8 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 @Composable
 internal fun AddProductButton(
@@ -38,7 +38,7 @@ internal fun AddProductButton(
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
         Icon(
-            imageVector = Icons.Filled.Add,
+            painter = painterResource(R.drawable.ic_plus),
             contentDescription = null,
             modifier = Modifier.size(PosSizes.iconSmall),
             tint = Color.White,

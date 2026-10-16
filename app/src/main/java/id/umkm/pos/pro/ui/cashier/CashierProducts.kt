@@ -21,14 +21,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -48,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +51,7 @@ import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.OfflineNotice
 import id.umkm.pos.pro.ui.common.ScreenHeader
+import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.components.PosCard
@@ -70,6 +62,9 @@ import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
 
 private const val MAX_PRODUCT_COLUMNS = 4
 private val CATALOG_THUMBNAIL_SIZE = 52.dp
@@ -130,13 +125,19 @@ private fun CashierSearchField(
             modifier = Modifier.weight(1f),
             singleLine = true,
             shape = PosShapes.large,
-            label = { Text("Cari produk") },
-            placeholder = { Text("Nama, SKU, atau barcode") },
-            leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+            placeholder = {
+                Text(
+                    text = "Cari produk",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = LocalAppTextStyles.current.body,
+                )
+            },
+            leadingIcon = { Icon(painter = painterResource(R.drawable.ic_search), contentDescription = null) },
             trailingIcon = {
                 if (state.searchQuery.isNotEmpty()) {
                     IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Hapus pencarian")
+                        Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
                     }
                 }
             },
@@ -173,7 +174,7 @@ private fun CashierFilterButton(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = Icons.Filled.FilterList,
+                    painter = painterResource(R.drawable.ic_list_filter),
                     contentDescription = "Filter produk",
                     tint = if (isFilterActive) PosColors.ForestGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(PosSizes.iconMedium),
@@ -192,7 +193,7 @@ private fun CashierFilterButton(
                 },
                 trailingIcon = {
                     if (state.catalogFilter.category == null) {
-                        Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                        Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null)
                     }
                 },
             )
@@ -205,7 +206,7 @@ private fun CashierFilterButton(
                     },
                     trailingIcon = {
                         if (state.catalogFilter.category == category) {
-                            Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                            Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null)
                         }
                     },
                 )
@@ -216,7 +217,7 @@ private fun CashierFilterButton(
                 onClick = { actions.onCatalogAvailableOnlyChange(!state.catalogFilter.isAvailableOnly) },
                 trailingIcon = {
                     if (state.catalogFilter.isAvailableOnly) {
-                        Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+                        Icon(painter = painterResource(R.drawable.ic_check), contentDescription = null)
                     }
                 },
             )
@@ -234,7 +235,7 @@ private fun CashierEmptyCatalog(
     val isFiltered = state.catalogFilter.isActive
     val isNarrowed = isSearching || isFiltered
     EmptyState(
-        icon = Icons.Filled.SearchOff,
+        iconRes = R.drawable.ic_search_x,
         title = if (isNarrowed) "Produk tidak ditemukan" else "Belum ada produk",
         supportingText = when {
             isSearching && isFiltered -> "Coba ubah kata kunci atau filter."
@@ -330,7 +331,7 @@ private fun CashierProductRow(
                     text = Rupiah.format(item.product.basePrice),
                     style = LocalAppTextStyles.current.catalogItemPrice,
                 )
-                StockStatusBadge(status = item.stockStatus)
+                CashierStockBadge(status = item.stockStatus)
             }
             CatalogQuantityControl(item = item, actions = actions)
         }
@@ -376,7 +377,7 @@ private fun CashierProductTile(
                     text = Rupiah.format(item.product.basePrice),
                     style = LocalAppTextStyles.current.catalogItemPrice,
                 )
-                StockStatusBadge(status = item.stockStatus)
+                CashierStockBadge(status = item.stockStatus)
             }
         }
         Row(
@@ -386,6 +387,12 @@ private fun CashierProductTile(
             CatalogQuantityControl(item = item, actions = actions)
         }
     }
+}
+
+@Composable
+private fun CashierStockBadge(status: StockStatus) {
+    if (status == StockStatus.IN_STOCK) return
+    StockStatusBadge(status = status)
 }
 
 @Composable
@@ -401,7 +408,7 @@ private fun CatalogQuantityControl(
 ) {
     if (item.quantityInCart <= 0.0) {
         CatalogCircleButton(
-            icon = Icons.Filled.Add,
+            iconRes = R.drawable.ic_plus,
             contentDescription = "Tambah ${item.product.name}",
             onClick = { actions.onAddProduct(item.product.id) },
         )
@@ -412,7 +419,7 @@ private fun CatalogQuantityControl(
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
         CatalogCircleButton(
-            icon = Icons.Filled.Remove,
+            iconRes = R.drawable.ic_minus,
             contentDescription = "Kurangi ${item.product.name}",
             onClick = { actions.onDecreaseProductQuantity(item.product.id) },
         )
@@ -423,7 +430,7 @@ private fun CatalogQuantityControl(
             modifier = Modifier.widthIn(min = CATALOG_QUANTITY_MIN_WIDTH),
         )
         CatalogCircleButton(
-            icon = Icons.Filled.Add,
+            iconRes = R.drawable.ic_plus,
             contentDescription = "Tambah ${item.product.name}",
             onClick = { actions.onAddProduct(item.product.id) },
         )
@@ -432,7 +439,7 @@ private fun CatalogQuantityControl(
 
 @Composable
 private fun CatalogCircleButton(
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     contentDescription: String,
     onClick: () -> Unit,
 ) {
@@ -451,7 +458,7 @@ private fun CatalogCircleButton(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = icon,
+                painter = painterResource(iconRes),
                 contentDescription = contentDescription,
                 tint = PosColors.ForestGreen,
                 modifier = Modifier.size(CATALOG_CONTROL_ICON_SIZE),

@@ -6,11 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
@@ -27,6 +21,9 @@ import id.umkm.pos.pro.ui.common.stockStatusLabel
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun StockStatusBadge(
@@ -36,30 +33,30 @@ fun StockStatusBadge(
     val palette = LocalPosSemanticPalette.current
     val containerColor: Color
     val contentColor: Color
-    val icon: ImageVector
+    @DrawableRes val iconRes: Int
     when (status) {
         StockStatus.IN_STOCK -> {
             containerColor = palette.successContainer
             contentColor = palette.success
-            icon = Icons.Filled.CheckCircle
+            iconRes = R.drawable.ic_circle_check
         }
 
         StockStatus.LOW_STOCK -> {
             containerColor = palette.warningContainer
             contentColor = palette.warning
-            icon = Icons.Filled.WarningAmber
+            iconRes = R.drawable.ic_triangle_alert
         }
 
         StockStatus.OUT_OF_STOCK -> {
             containerColor = palette.dangerContainer
             contentColor = palette.danger
-            icon = Icons.Filled.Cancel
+            iconRes = R.drawable.ic_circle_x
         }
 
         StockStatus.OVERSOLD -> {
             containerColor = palette.dangerContainer
             contentColor = palette.danger
-            icon = Icons.Filled.TrendingDown
+            iconRes = R.drawable.ic_trending_down
         }
     }
     val label = stockStatusLabel(status)
@@ -73,7 +70,7 @@ fun StockStatusBadge(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = contentColor)
+            Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = contentColor)
             Text(text = label, style = LocalAppTextStyles.current.supportingLabel, color = contentColor)
         }
     }

@@ -21,12 +21,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun PosCard(
@@ -87,7 +88,7 @@ fun PrimaryActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
-    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
 ) {
     Button(
         onClick = onClick,
@@ -107,13 +108,13 @@ fun PrimaryActionButton(
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.onPrimary,
             )
-        } else if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(PosSizes.iconSmall))
+        } else if (iconRes != null) {
+            Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(PosSizes.iconSmall))
         }
         Text(
             text = text,
             style = LocalAppTextStyles.current.buttonLabel,
-            modifier = Modifier.padding(start = if (loading || icon != null) PosSpacing.sm else 0.dp),
+            modifier = Modifier.padding(start = if (loading || iconRes != null) PosSpacing.sm else 0.dp),
         )
     }
 }

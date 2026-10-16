@@ -11,16 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,25 +23,27 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
 
 private data class MoreEntry(
     val label: String,
     val supportingText: String,
-    val icon: ImageVector,
+    @DrawableRes val iconRes: Int,
     val isAvailable: Boolean,
 )
 
 private val moreEntries = listOf(
-    MoreEntry("Pelanggan & Kasbon", "Catat utang dan pembayaran pelanggan", Icons.Filled.Groups, isAvailable = true),
-    MoreEntry("Printer Struk", "Sambungkan printer termal", Icons.Filled.Print, isAvailable = false),
-    MoreEntry("Scanner Barcode", "Kamera atau pemindai USB/Bluetooth", Icons.Filled.QrCodeScanner, isAvailable = false),
-    MoreEntry("Cadangkan & Pulihkan", "Salinan lokal dan Google Drive", Icons.Filled.CloudUpload, isAvailable = false),
-    MoreEntry("Keamanan & PIN", "Lindungi tindakan sensitif", Icons.Filled.Lock, isAvailable = false),
-    MoreEntry("Pengaturan", "Identitas toko dan preferensi", Icons.Filled.Settings, isAvailable = false),
+    MoreEntry("Pelanggan & Kasbon", "Catat utang dan pembayaran pelanggan", R.drawable.ic_users, isAvailable = true),
+    MoreEntry("Printer Struk", "Sambungkan printer termal", R.drawable.ic_printer, isAvailable = false),
+    MoreEntry("Scanner Barcode", "Kamera atau pemindai USB/Bluetooth", R.drawable.ic_scan_barcode, isAvailable = false),
+    MoreEntry("Cadangkan & Pulihkan", "Salinan lokal dan Google Drive", R.drawable.ic_cloud_upload, isAvailable = false),
+    MoreEntry("Keamanan & PIN", "Lindungi tindakan sensitif", R.drawable.ic_lock, isAvailable = false),
+    MoreEntry("Pengaturan", "Identitas toko dan preferensi", R.drawable.ic_settings, isAvailable = false),
 )
 
 @Composable
@@ -67,7 +59,10 @@ fun MoreRoute(modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = { showCustomers = false }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_left),
+                        contentDescription = "Kembali",
+                    )
                 }
                 Text(text = "Pelanggan & Kasbon", style = MaterialTheme.typography.titleLarge)
             }
@@ -126,7 +121,7 @@ private fun MoreEntryRow(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
             Icon(
-                imageVector = entry.icon,
+                painter = painterResource(entry.iconRes),
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary,
@@ -141,7 +136,7 @@ private fun MoreEntryRow(
             }
             if (entry.isAvailable) {
                 Icon(
-                    imageVector = Icons.Filled.ChevronRight,
+                    painter = painterResource(R.drawable.ic_chevron_right),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

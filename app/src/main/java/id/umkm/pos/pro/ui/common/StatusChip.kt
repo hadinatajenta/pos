@@ -12,16 +12,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun StatusChip(
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     label: String,
     containerColor: Color,
     contentColor: Color,
@@ -39,7 +40,7 @@ fun StatusChip(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
             Icon(
-                imageVector = icon,
+                painter = painterResource(iconRes),
                 contentDescription = null,
                 modifier = Modifier.size(PosSizes.iconSmall),
             )

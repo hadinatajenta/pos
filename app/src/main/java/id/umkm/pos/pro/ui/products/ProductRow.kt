@@ -10,12 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -30,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +40,9 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.PosTextStyles
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
 
 private val PRODUCT_ROW_THUMBNAIL_SIZE = 64.dp
 private val STOCK_PILL_ICON_SIZE = 12.dp
@@ -112,7 +108,7 @@ internal fun ProductRow(
                 Box {
                     IconButton(onClick = { isMenuExpanded = true }) {
                         Icon(
-                            imageVector = Icons.Filled.MoreVert,
+                            painter = painterResource(R.drawable.ic_ellipsis_vertical),
                             contentDescription = "Menu ${product.name}",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -150,30 +146,30 @@ private fun ProductStockPill(
     val palette = LocalPosSemanticPalette.current
     val containerColor: Color
     val contentColor: Color
-    val icon: ImageVector
+    @DrawableRes val iconRes: Int
     when (stockStatus) {
         StockStatus.IN_STOCK -> {
             containerColor = palette.successContainer
             contentColor = palette.success
-            icon = Icons.Filled.CheckCircle
+            iconRes = R.drawable.ic_circle_check
         }
 
         StockStatus.LOW_STOCK -> {
             containerColor = palette.warningContainer
             contentColor = palette.warning
-            icon = Icons.Filled.WarningAmber
+            iconRes = R.drawable.ic_triangle_alert
         }
 
         StockStatus.OUT_OF_STOCK -> {
             containerColor = palette.dangerContainer
             contentColor = palette.danger
-            icon = Icons.Filled.Cancel
+            iconRes = R.drawable.ic_circle_x
         }
 
         StockStatus.OVERSOLD -> {
             containerColor = palette.dangerContainer
             contentColor = palette.danger
-            icon = Icons.Filled.TrendingDown
+            iconRes = R.drawable.ic_trending_down
         }
     }
     val quantityLabel = "Stok: ${formatQuantity(stockBaseQty)}"
@@ -188,7 +184,7 @@ private fun ProductStockPill(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
             Icon(
-                imageVector = icon,
+                painter = painterResource(iconRes),
                 contentDescription = null,
                 modifier = Modifier.size(STOCK_PILL_ICON_SIZE),
                 tint = contentColor,

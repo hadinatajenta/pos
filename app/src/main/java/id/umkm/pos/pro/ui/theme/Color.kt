@@ -13,8 +13,8 @@ object PosColors {
     val Secondary = Color(0xFF245848)
     val Accent = Color(0xFF16845F)
 
-    val Background = Color(0xFFF8F7F3)
-    val Surface = Color(0xFFFEFEFD)
+    val Background = Color(0xFFFFFFFF)
+    val Surface = Color(0xFFFFFFFF)
     val SoftNeutral = Color(0xFFF1F0EA)
     val Border = Color(0xFFEEEDE8)
 

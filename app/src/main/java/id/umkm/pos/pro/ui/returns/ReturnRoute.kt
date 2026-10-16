@@ -18,9 +18,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -56,6 +53,8 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private val RETURN_CONTENT_MAX_WIDTH = 640.dp
 private val RETURN_QUANTITY_FIELD_WIDTH = 120.dp
@@ -280,7 +279,7 @@ private fun InlineError(message: String) {
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
         Icon(
-            imageVector = Icons.Filled.ErrorOutline,
+            painter = painterResource(R.drawable.ic_circle_alert),
             contentDescription = null,
             modifier = Modifier.size(PosSizes.iconSmall),
             tint = MaterialTheme.colorScheme.error,
@@ -304,7 +303,7 @@ private fun ReturnSuccessState(
         verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         Icon(
-            imageVector = Icons.Filled.CheckCircle,
+            painter = painterResource(R.drawable.ic_circle_check),
             contentDescription = null,
             modifier = Modifier.size(40.dp),
             tint = MaterialTheme.colorScheme.primary,

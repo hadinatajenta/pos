@@ -19,10 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -56,6 +52,8 @@ import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private const val CUSTOMER_LIST_MAX_HEIGHT_DP = 320
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
@@ -147,7 +145,7 @@ private fun PaymentMethodChips(
                 leadingIcon = if (method == selectedMethod) {
                     {
                         Icon(
-                            imageVector = Icons.Filled.Check,
+                            painter = painterResource(R.drawable.ic_check),
                             contentDescription = null,
                             modifier = Modifier.size(PosSizes.iconSmall),
                         )
@@ -226,7 +224,7 @@ private fun CustomerField(
         modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
     ) {
         Icon(
-            imageVector = Icons.Filled.Groups,
+            painter = painterResource(R.drawable.ic_users),
             contentDescription = null,
             modifier = Modifier.size(PosSizes.iconSmall),
         )
@@ -252,7 +250,7 @@ private fun DueDateField(
         modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
     ) {
         Icon(
-            imageVector = Icons.Filled.CalendarMonth,
+            painter = painterResource(R.drawable.ic_calendar),
             contentDescription = null,
             modifier = Modifier.size(PosSizes.iconSmall),
         )

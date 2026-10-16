@@ -13,12 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -44,6 +38,8 @@ import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private const val ALL_CATEGORIES_LABEL = "Semua Kategori"
 private const val ALL_CATEGORY_CHIP_LABEL = "Semua"
@@ -62,11 +58,11 @@ internal fun ProductsSearchField(
         singleLine = true,
         label = { Text("Cari produk") },
         placeholder = { Text("Cari nama produk, kategori...") },
-        leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = { Icon(painter = painterResource(R.drawable.ic_search), contentDescription = null) },
         trailingIcon = {
             if (state.searchQuery.isNotEmpty()) {
                 IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Hapus pencarian")
+                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
                 }
             }
         },
@@ -222,7 +218,7 @@ private fun ProductsDropdown(
                 modifier = Modifier.weight(1f),
             )
             Icon(
-                imageVector = Icons.Filled.ArrowDropDown,
+                painter = painterResource(R.drawable.ic_chevron_down),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(PosSizes.iconMedium),
@@ -241,7 +237,7 @@ private fun ProductsDropdown(
 private fun SelectedOptionIcon(isSelected: Boolean) {
     if (!isSelected) return
     Icon(
-        imageVector = Icons.Filled.Check,
+        painter = painterResource(R.drawable.ic_check),
         contentDescription = null,
         tint = MaterialTheme.colorScheme.primary,
         modifier = Modifier.size(PosSizes.iconSmall),
@@ -251,7 +247,7 @@ private fun SelectedOptionIcon(isSelected: Boolean) {
 @Composable
 internal fun ProductsFilterEmptyState(actions: ProductsActions) {
     EmptyState(
-        icon = Icons.Filled.FilterAlt,
+        iconRes = R.drawable.ic_funnel,
         title = "Tidak ada produk pada filter ini",
         supportingText = "Pilih kategori lain atau tampilkan semua produk.",
         actionLabel = "Tampilkan semua",

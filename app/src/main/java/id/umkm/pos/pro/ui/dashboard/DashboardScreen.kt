@@ -17,11 +17,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +47,8 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 @Composable
 internal fun DashboardScreen(
@@ -96,7 +93,7 @@ private fun DashboardHeader(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.PointOfSale,
+                    painter = painterResource(R.drawable.ic_store),
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = PosColors.ForestGreen,
@@ -189,7 +186,7 @@ private fun SummaryCard(state: DashboardUiState) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Filled.ShowChart,
+                    painter = painterResource(R.drawable.ic_chart_line),
                     contentDescription = null,
                     modifier = Modifier.size(22.dp),
                     tint = MaterialTheme.colorScheme.primary,
@@ -267,7 +264,7 @@ private fun DeltaLabel(percent: Int) {
         modifier = Modifier.padding(top = PosSpacing.xxs),
     ) {
         Icon(
-            imageVector = if (isPositive) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+            painter = painterResource(if (isPositive) R.drawable.ic_trending_up else R.drawable.ic_trending_down),
             contentDescription = null,
             modifier = Modifier.size(14.dp),
             tint = if (isPositive) palette.success else palette.danger,
@@ -371,7 +368,7 @@ private fun DashboardEmptyState(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             Icon(
-                imageVector = Icons.Filled.PointOfSale,
+                painter = painterResource(R.drawable.ic_store),
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,

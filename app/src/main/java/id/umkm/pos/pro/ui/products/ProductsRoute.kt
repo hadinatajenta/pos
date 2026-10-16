@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -48,6 +45,7 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.R
 
 private val PRODUCTS_CONTENT_SHAPE = RoundedCornerShape(topStart = PosSpacing.lg, topEnd = PosSpacing.lg)
 private val FORM_MAX_WIDTH = 560.dp
@@ -165,7 +163,7 @@ private fun ProductsEmptyCatalog(
 ) {
     val isSearching = state.searchQuery.isNotBlank()
     EmptyState(
-        icon = if (isSearching) Icons.Filled.SearchOff else Icons.Filled.Inventory2,
+        iconRes = if (isSearching) R.drawable.ic_search_x else R.drawable.ic_package,
         title = if (isSearching) "Produk tidak ditemukan" else "Belum ada produk",
         supportingText = if (isSearching) {
             "Coba kata kunci lain atau periksa ejaan nama produk."

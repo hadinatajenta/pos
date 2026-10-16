@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -27,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.BuildConfig
 import id.umkm.pos.pro.core.contract.AppResult
@@ -38,6 +34,9 @@ import id.umkm.pos.pro.ui.common.SectionHeading
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import kotlinx.coroutines.launch
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 
 val LocalDemoDataSeeder = staticCompositionLocalOf<DemoDataSeeder?> { null }
 
@@ -64,7 +63,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
         DemoActionRow(
             label = "Muat data demo",
             supportingText = "Isi katalog, pelanggan, dan transaksi contoh",
-            icon = Icons.Filled.Science,
+            iconRes = R.drawable.ic_flask,
             isBusy = isBusy,
             onClick = {
                 if (!isBusy) {
@@ -80,7 +79,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
         DemoActionRow(
             label = "Hapus data demo",
             supportingText = "Hapus hanya data bertanda DEMO",
-            icon = Icons.Filled.Delete,
+            iconRes = R.drawable.ic_trash,
             isBusy = isBusy,
             onClick = { if (!isBusy) showClearConfirm = true },
         )
@@ -128,7 +127,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
 private fun DemoActionRow(
     label: String,
     supportingText: String,
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     isBusy: Boolean,
     onClick: () -> Unit,
 ) {
@@ -152,7 +151,7 @@ private fun DemoActionRow(
                 )
             } else {
                 Icon(
-                    imageVector = icon,
+                    painter = painterResource(iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(PosSizes.iconMedium),
                     tint = MaterialTheme.colorScheme.primary,

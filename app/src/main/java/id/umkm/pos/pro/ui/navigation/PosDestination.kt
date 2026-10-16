@@ -7,9 +7,9 @@ enum class PosDestination(
     val label: String,
     @DrawableRes val iconRes: Int,
 ) {
-    BERANDA("Beranda", R.drawable.ic_nav_beranda),
-    KASIR("Kasir", R.drawable.ic_nav_kasir),
-    PRODUK("Produk", R.drawable.ic_nav_produk),
-    LAPORAN("Laporan", R.drawable.ic_nav_laporan),
-    LAINNYA("Lainnya", R.drawable.ic_nav_lainnya),
+    BERANDA("Beranda", R.drawable.ic_house),
+    KASIR("Kasir", R.drawable.ic_shopping_cart),
+    PRODUK("Produk", R.drawable.ic_package),
+    LAPORAN("Laporan", R.drawable.ic_chart_column),
+    LAINNYA("Lainnya", R.drawable.ic_ellipsis),
 }

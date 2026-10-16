@@ -16,17 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material.icons.filled.Timelapse
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,6 +62,8 @@ import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
@@ -123,7 +114,7 @@ internal fun CustomersScreen(
                         modifier = Modifier.heightIn(min = PosSizes.touchTarget),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Add,
+                            painter = painterResource(R.drawable.ic_plus),
                             contentDescription = null,
                             modifier = Modifier.size(PosSizes.iconSmall),
                         )
@@ -178,11 +169,11 @@ private fun CustomersSearchField(
         singleLine = true,
         label = { Text("Cari pelanggan") },
         placeholder = { Text("Nama") },
-        leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = { Icon(painter = painterResource(R.drawable.ic_search), contentDescription = null) },
         trailingIcon = {
             if (state.searchQuery.isNotEmpty()) {
                 IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Hapus pencarian")
+                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
                 }
             }
         },
@@ -198,7 +189,7 @@ private fun CustomersEmptyState(
 ) {
     val isSearching = state.searchQuery.isNotBlank()
     EmptyState(
-        icon = if (isSearching) Icons.Filled.SearchOff else Icons.Filled.Groups,
+        iconRes = if (isSearching) R.drawable.ic_search_x else R.drawable.ic_users,
         title = if (isSearching) "Pelanggan tidak ditemukan" else "Belum ada pelanggan",
         supportingText = if (isSearching) {
             "Coba nama lain."
@@ -284,7 +275,7 @@ private fun CustomerDebtCard(
                 modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Payments,
+                    painter = painterResource(R.drawable.ic_banknote),
                     contentDescription = null,
                     modifier = Modifier.size(PosSizes.iconSmall),
                 )
@@ -298,11 +289,11 @@ private fun CustomerDebtCard(
 @Composable
 private fun DebtStatusChip(status: DebtStatus) {
     val palette = LocalPosSemanticPalette.current
-    val icon = when (status) {
-        DebtStatus.PAID -> Icons.Filled.CheckCircle
-        DebtStatus.UNPAID -> Icons.Filled.Schedule
-        DebtStatus.PARTIALLY_PAID -> Icons.Filled.Timelapse
-        DebtStatus.OVERDUE -> Icons.Filled.ErrorOutline
+    val iconRes = when (status) {
+        DebtStatus.PAID -> R.drawable.ic_circle_check
+        DebtStatus.UNPAID -> R.drawable.ic_clock
+        DebtStatus.PARTIALLY_PAID -> R.drawable.ic_timer
+        DebtStatus.OVERDUE -> R.drawable.ic_circle_alert
     }
     val containerColor = when (status) {
         DebtStatus.PAID -> palette.successContainer
@@ -317,7 +308,7 @@ private fun DebtStatusChip(status: DebtStatus) {
         DebtStatus.OVERDUE -> palette.danger
     }
     StatusChip(
-        icon = icon,
+        iconRes = iconRes,
         label = debtStatusLabel(status),
         containerColor = containerColor,
         contentColor = contentColor,

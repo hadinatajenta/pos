@@ -13,11 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -34,6 +28,9 @@ import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.res.painterResource
 
 private val STAT_CARD_MIN_WIDTH = 148.dp
 private val STAT_BADGE_SIZE = 26.dp
@@ -42,7 +39,7 @@ private data class StatBadge(
     val label: String,
     val value: String,
     val supportingText: String,
-    val icon: ImageVector,
+    @DrawableRes val iconRes: Int,
     val containerColor: Color,
     val contentColor: Color,
 )
@@ -58,7 +55,7 @@ internal fun ProductsStatsRow(
             label = "Total Produk",
             value = stats.totalCount.toString(),
             supportingText = totalSupportText(stats),
-            icon = Icons.Filled.Inventory2,
+            iconRes = R.drawable.ic_package,
             containerColor = palette.successContainer,
             contentColor = palette.success,
         ),
@@ -66,7 +63,7 @@ internal fun ProductsStatsRow(
             label = "Kategori",
             value = stats.categoryCount.toString(),
             supportingText = categorySupportText(stats),
-            icon = Icons.Filled.Category,
+            iconRes = R.drawable.ic_shapes,
             containerColor = palette.successContainer,
             contentColor = palette.success,
         ),
@@ -74,7 +71,7 @@ internal fun ProductsStatsRow(
             label = "Stok Menipis",
             value = stats.lowStockCount.toString(),
             supportingText = "Perlu perhatian",
-            icon = Icons.Filled.WarningAmber,
+            iconRes = R.drawable.ic_triangle_alert,
             containerColor = palette.warningContainer,
             contentColor = palette.warning,
         ),
@@ -82,7 +79,7 @@ internal fun ProductsStatsRow(
             label = "Stok Habis",
             value = stats.outOfStockCount.toString(),
             supportingText = "Segera restok",
-            icon = Icons.Filled.Cancel,
+            iconRes = R.drawable.ic_circle_x,
             containerColor = palette.dangerContainer,
             contentColor = palette.danger,
         ),
@@ -137,7 +134,7 @@ private fun StatCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = badge.icon,
+                    painter = painterResource(badge.iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = badge.contentColor,

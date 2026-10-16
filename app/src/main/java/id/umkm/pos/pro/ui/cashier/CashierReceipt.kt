@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,6 +31,8 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
@@ -60,7 +58,7 @@ internal fun CashierReceiptSheet(
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
             Icon(
-                imageVector = Icons.Filled.CheckCircle,
+                painter = painterResource(R.drawable.ic_circle_check),
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
                 tint = LocalPosSemanticPalette.current.success,
@@ -101,7 +99,7 @@ internal fun CashierReceiptSheet(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Filled.Print,
+                            painter = painterResource(R.drawable.ic_printer),
                             contentDescription = null,
                             modifier = Modifier.size(PosSizes.iconSmall),
                         )
@@ -114,7 +112,7 @@ internal fun CashierReceiptSheet(
                     modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Share,
+                        painter = painterResource(R.drawable.ic_share),
                         contentDescription = null,
                         modifier = Modifier.size(PosSizes.iconSmall),
                     )

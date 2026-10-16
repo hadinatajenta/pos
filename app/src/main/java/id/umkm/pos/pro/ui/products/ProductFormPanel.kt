@@ -16,11 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -43,6 +38,8 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private val PHOTO_PREVIEW_SIZE = 96.dp
 private const val FIELD_MARKER_SEPARATOR = " · "
@@ -73,7 +70,7 @@ internal fun ProductFormPanel(
                 )
             }
             IconButton(onClick = actions.onDismissForm) {
-                Icon(imageVector = Icons.Filled.Close, contentDescription = "Tutup formulir produk")
+                Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Tutup formulir produk")
             }
         }
         HorizontalDivider()
@@ -258,7 +255,7 @@ private fun ValidationSummary(errors: Map<ProductFormField, String>) {
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
         Icon(
-            imageVector = Icons.Filled.WarningAmber,
+            painter = painterResource(R.drawable.ic_triangle_alert),
             contentDescription = null,
             tint = palette.danger,
             modifier = Modifier.size(PosSizes.iconSmall),
@@ -297,7 +294,7 @@ private fun PricingSection(
         )
         TextButton(onClick = actions.onFormAdvancedToggle) {
             Icon(
-                imageVector = if (form.isAdvancedExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                painter = painterResource(if (form.isAdvancedExpanded) R.drawable.ic_chevron_up else R.drawable.ic_chevron_down),
                 contentDescription = null,
                 modifier = Modifier.size(PosSizes.iconSmall),
             )

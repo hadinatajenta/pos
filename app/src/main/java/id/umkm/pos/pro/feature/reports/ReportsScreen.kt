@@ -23,13 +23,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -53,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -87,6 +79,9 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import java.util.TimeZone
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
 
 private enum class DatePickerTarget { START, END }
 
@@ -335,7 +330,7 @@ private fun ExportAction(onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
             ) {
                 Icon(
-                    imageVector = Icons.Filled.FileDownload,
+                    painter = painterResource(R.drawable.ic_download),
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = Color.White,
@@ -470,7 +465,7 @@ private fun MainReportContent(
     val summary = uiState.summary ?: return
     if (summary.transactionCount == 0) {
         EmptyState(
-            icon = Icons.Filled.BarChart,
+            iconRes = R.drawable.ic_chart_column,
             title = "Belum ada penjualan",
             supportingText = "Laporan akan terisi setelah ada transaksi selesai di Kasir pada rentang ini.",
         )
@@ -576,19 +571,19 @@ private fun ReportTotals(
             ReportMetricCard(
                 label = "Total Penjualan",
                 value = Rupiah.format(summary.totalSales),
-                icon = Icons.Filled.PointOfSale,
+                iconRes = R.drawable.ic_store,
                 modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
                 label = "Jumlah Transaksi",
                 value = summary.transactionCount.toString(),
-                icon = Icons.Filled.Receipt,
+                iconRes = R.drawable.ic_receipt,
                 modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
                 label = "Rata-rata Transaksi",
                 value = Rupiah.format(averageTransaction),
-                icon = Icons.Filled.Payments,
+                iconRes = R.drawable.ic_banknote,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -601,7 +596,7 @@ private fun ReportTotals(
         ReportMetricCard(
             label = "Total Penjualan",
             value = Rupiah.format(summary.totalSales),
-            icon = Icons.Filled.PointOfSale,
+            iconRes = R.drawable.ic_store,
             emphasized = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -628,7 +623,7 @@ private fun ReportMetricCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
+    @DrawableRes iconRes: Int? = null,
     emphasized: Boolean = false,
 ) {
     PosCard(modifier = modifier) {
@@ -654,8 +649,8 @@ private fun ReportMetricCard(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            if (icon != null) {
-                IconBadge(icon = icon)
+            if (iconRes != null) {
+                IconBadge(iconRes = iconRes)
             }
         }
     }
@@ -765,7 +760,7 @@ private fun DrillDownSection(
         ) {
             IconButton(onClick = onCloseDrillDown) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    painter = painterResource(R.drawable.ic_arrow_left),
                     contentDescription = "Kembali",
                 )
             }
@@ -787,7 +782,7 @@ private fun DrillDownSection(
         HorizontalDivider()
         if (drillDown.transactions.isEmpty()) {
             EmptyState(
-                icon = Icons.Filled.Receipt,
+                iconRes = R.drawable.ic_receipt,
                 title = "Belum ada transaksi",
                 supportingText = "Tidak ada transaksi pada rentang ini.",
             )

@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -47,6 +44,8 @@ import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private const val RECORD_PAYMENT_SHEET_HEIGHT_FRACTION = 0.92f
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
@@ -82,7 +81,7 @@ internal fun RecordPaymentSheet(
                     )
                 }
                 IconButton(onClick = actions.onCloseRecordPayment) {
-                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Tutup formulir pembayaran")
+                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Tutup formulir pembayaran")
                 }
             }
             HorizontalDivider()
@@ -244,7 +243,7 @@ private fun PaymentMethodSelector(
                     leadingIcon = if (method == selectedMethod) {
                         {
                             Icon(
-                                imageVector = Icons.Filled.Check,
+                                painter = painterResource(R.drawable.ic_check),
                                 contentDescription = null,
                                 modifier = Modifier.size(PosSizes.iconSmall),
                             )

@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -27,13 +23,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
+import androidx.annotation.DrawableRes
 
 @Composable
 fun LoadingState(
@@ -60,7 +58,7 @@ fun LoadingState(
 
 @Composable
 fun EmptyState(
-    icon: ImageVector,
+    @DrawableRes iconRes: Int,
     title: String,
     supportingText: String,
     modifier: Modifier = Modifier,
@@ -73,7 +71,7 @@ fun EmptyState(
         verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         Icon(
-            imageVector = icon,
+            painter = painterResource(iconRes),
             contentDescription = null,
             modifier = Modifier.size(40.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -113,7 +111,7 @@ fun ErrorState(
         verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         Icon(
-            imageVector = Icons.Filled.ErrorOutline,
+            painter = painterResource(R.drawable.ic_circle_alert),
             contentDescription = null,
             modifier = Modifier.size(40.dp),
             tint = MaterialTheme.colorScheme.error,
@@ -135,7 +133,7 @@ fun ErrorState(
             modifier = Modifier.heightIn(min = PosSizes.touchTarget),
         ) {
             Icon(
-                imageVector = Icons.Filled.Refresh,
+                painter = painterResource(R.drawable.ic_refresh),
                 contentDescription = null,
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
@@ -164,7 +162,7 @@ fun OfflineNotice(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             Icon(
-                imageVector = Icons.Filled.CloudOff,
+                painter = painterResource(R.drawable.ic_cloud_off),
                 contentDescription = null,
                 modifier = Modifier.size(PosSizes.iconSmall),
             )

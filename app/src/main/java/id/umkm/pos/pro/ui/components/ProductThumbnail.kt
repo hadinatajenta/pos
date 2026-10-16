@@ -5,25 +5,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BakeryDining
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.RiceBowl
-import androidx.compose.material.icons.filled.SmokingRooms
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
+import id.umkm.pos.pro.R
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun ProductThumbnail(
@@ -49,7 +42,7 @@ fun ProductThumbnail(
             )
         } else {
             Icon(
-                imageVector = iconForCategory(category),
+                painter = painterResource(iconResForCategory(category)),
                 contentDescription = null,
                 modifier = Modifier.size(size / 2),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -58,12 +51,12 @@ fun ProductThumbnail(
     }
 }
 
-private fun iconForCategory(category: String?): ImageVector = when (category?.trim()?.lowercase()) {
-    "minuman" -> Icons.Filled.LocalDrink
-    "kopi" -> Icons.Filled.Coffee
-    "makanan" -> Icons.Filled.Restaurant
-    "nasi" -> Icons.Filled.RiceBowl
-    "roti" -> Icons.Filled.BakeryDining
-    "rokok" -> Icons.Filled.SmokingRooms
-    else -> Icons.Filled.Inventory2
+private fun iconResForCategory(category: String?): Int = when (category?.trim()?.lowercase()) {
+    "minuman" -> R.drawable.ic_cup_soda
+    "kopi" -> R.drawable.ic_coffee
+    "makanan" -> R.drawable.ic_utensils_crossed
+    "nasi" -> R.drawable.ic_utensils
+    "roti" -> R.drawable.ic_croissant
+    "rokok" -> R.drawable.ic_cigarette
+    else -> R.drawable.ic_package
 }

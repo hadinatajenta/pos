@@ -20,13 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -62,6 +55,8 @@ import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import androidx.compose.ui.res.painterResource
+import id.umkm.pos.pro.R
 
 private const val SHEET_HEIGHT_FRACTION = 0.9f
 private const val FLOATING_CART_BAR_ELEVATION = 6
@@ -124,7 +119,7 @@ internal fun CashierCartBar(
                 maxLines = 1,
             )
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                painter = painterResource(R.drawable.ic_chevron_right),
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(PosSizes.iconSmall),
@@ -165,7 +160,7 @@ private fun CartContents(
     Column(modifier = modifier.fillMaxWidth()) {
         if (state.cartLines.isEmpty()) {
             EmptyState(
-                icon = Icons.Filled.ShoppingCart,
+                iconRes = R.drawable.ic_shopping_cart,
                 title = "Keranjang kosong",
                 supportingText = "Ketuk produk untuk menambahkan ke penjualan.",
                 modifier = Modifier.weight(1f),
@@ -231,7 +226,7 @@ private fun CartLineCard(
         ) {
             IconButton(onClick = { actions.onDecreaseQuantity(line.lineId) }) {
                 Icon(
-                    imageVector = Icons.Filled.Remove,
+                    painter = painterResource(R.drawable.ic_minus),
                     contentDescription = "Kurangi jumlah ${line.productName}",
                 )
             }
@@ -241,7 +236,7 @@ private fun CartLineCard(
             )
             IconButton(onClick = { actions.onIncreaseQuantity(line.lineId) }) {
                 Icon(
-                    imageVector = Icons.Filled.Add,
+                    painter = painterResource(R.drawable.ic_plus),
                     contentDescription = "Tambah jumlah ${line.productName}",
                 )
             }
@@ -252,7 +247,7 @@ private fun CartLineCard(
             )
             IconButton(onClick = { actions.onRemoveLine(line.lineId) }) {
                 Icon(
-                    imageVector = Icons.Filled.DeleteOutline,
+                    painter = painterResource(R.drawable.ic_trash),
                     contentDescription = "Hapus ${line.productName}",
                 )
             }
