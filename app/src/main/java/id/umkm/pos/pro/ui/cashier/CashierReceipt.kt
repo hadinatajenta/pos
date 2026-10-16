@@ -13,8 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,7 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
@@ -58,10 +59,10 @@ internal fun CashierReceiptSheet(
                 imageVector = Icons.Filled.CheckCircle,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = LocalPosSemanticPalette.current.success,
             )
             Text(
-                text = "Sale complete",
+                text = "Transaksi selesai",
                 style = LocalAppTextStyles.current.sectionHeading,
                 textAlign = TextAlign.Center,
             )
@@ -70,19 +71,14 @@ internal fun CashierReceiptSheet(
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(PosSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-                ) {
-                    ReceiptSummaryLine(label = "Total", value = Rupiah.format(receipt.grandTotal), emphasized = true)
-                    ReceiptSummaryLine(label = "Paid", value = Rupiah.format(receipt.paidAmount))
-                    if (receipt.changeAmount > 0L) {
-                        ReceiptSummaryLine(label = "Change", value = Rupiah.format(receipt.changeAmount))
-                    }
-                    if (receipt.remainingDebt > 0L) {
-                        ReceiptSummaryLine(label = "Remaining balance", value = Rupiah.format(receipt.remainingDebt))
-                    }
+            PosCard(modifier = Modifier.fillMaxWidth()) {
+                ReceiptSummaryLine(label = "Total", value = Rupiah.format(receipt.grandTotal), emphasized = true)
+                ReceiptSummaryLine(label = "Dibayar", value = Rupiah.format(receipt.paidAmount))
+                if (receipt.changeAmount > 0L) {
+                    ReceiptSummaryLine(label = "Kembalian", value = Rupiah.format(receipt.changeAmount))
+                }
+                if (receipt.remainingDebt > 0L) {
+                    ReceiptSummaryLine(label = "Sisa tagihan", value = Rupiah.format(receipt.remainingDebt))
                 }
             }
             Row(
@@ -106,7 +102,7 @@ internal fun CashierReceiptSheet(
                             modifier = Modifier.size(PosSizes.iconSmall),
                         )
                         Spacer(modifier = Modifier.width(PosSpacing.xs))
-                        Text(text = "Print")
+                        Text(text = "Cetak struk")
                     }
                 }
                 OutlinedButton(
@@ -119,15 +115,13 @@ internal fun CashierReceiptSheet(
                         modifier = Modifier.size(PosSizes.iconSmall),
                     )
                     Spacer(modifier = Modifier.width(PosSpacing.xs))
-                    Text(text = "Share")
+                    Text(text = "Bagikan")
                 }
             }
-            Button(
+            PrimaryActionButton(
+                text = "Transaksi baru",
                 onClick = actions.onNewSale,
-                modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
-            ) {
-                Text(text = "New sale", style = LocalAppTextStyles.current.buttonLabel)
-            }
+            )
             if (receiptMessage != null) {
                 Text(
                     text = receiptMessage,

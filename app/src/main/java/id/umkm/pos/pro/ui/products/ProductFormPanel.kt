@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,8 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,8 +28,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import id.umkm.pos.pro.ui.common.SectionHeading
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PosSectionHeader
+import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -51,17 +49,17 @@ internal fun ProductFormPanel(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (form.isEditing) "Edit product" else "New product",
+                    text = if (form.isEditing) "Ubah produk" else "Produk baru",
                     style = LocalAppTextStyles.current.screenTitle,
                 )
                 Text(
-                    text = "Basics, pricing and units, stock alerts",
+                    text = "Dasar, harga & satuan, stok",
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = actions.onDismissForm) {
-                Icon(imageVector = Icons.Filled.Close, contentDescription = "Close product form")
+                Icon(imageVector = Icons.Filled.Close, contentDescription = "Tutup formulir produk")
             }
         }
         HorizontalDivider()
@@ -77,26 +75,12 @@ internal fun ProductFormPanel(
             StockSection(form = form, actions = actions)
         }
         HorizontalDivider()
-        Button(
+        PrimaryActionButton(
+            text = if (form.isEditing) "Simpan perubahan" else "Simpan produk",
             onClick = actions.onSubmitForm,
-            enabled = !isSaving,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(PosSpacing.md)
-                .heightIn(min = PosSizes.touchTarget),
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(PosSizes.iconSmall),
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Text(
-                    text = if (form.isEditing) "Save changes" else "Save product",
-                    style = LocalAppTextStyles.current.buttonLabel,
-                )
-            }
-        }
+            loading = isSaving,
+            modifier = Modifier.padding(PosSpacing.md),
+        )
     }
 }
 
@@ -105,13 +89,10 @@ private fun BasicsSection(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-    ) {
-        SectionHeading(text = "Basics")
+    PosCard(modifier = Modifier.fillMaxWidth()) {
+        PosSectionHeader(title = "Dasar")
         FormTextField(
-            label = "Name",
+            label = "Nama",
             value = form.name,
             onValueChange = { actions.onFormFieldChange(ProductFormField.NAME, it) },
             error = form.errorFor(ProductFormField.NAME),
@@ -121,7 +102,7 @@ private fun BasicsSection(
             value = form.sku,
             onValueChange = { actions.onFormFieldChange(ProductFormField.SKU, it) },
             error = form.errorFor(ProductFormField.SKU),
-            supportingText = "Generated automatically when empty.",
+            supportingText = "Dibuat otomatis bila dikosongkan.",
         )
         FormTextField(
             label = "Barcode",
@@ -130,23 +111,23 @@ private fun BasicsSection(
             error = form.errorFor(ProductFormField.BARCODE),
         )
         FormTextField(
-            label = "Category",
+            label = "Kategori",
             value = form.category,
             onValueChange = { actions.onFormFieldChange(ProductFormField.CATEGORY, it) },
             error = form.errorFor(ProductFormField.CATEGORY),
         )
         FormTextField(
-            label = "Base unit",
+            label = "Satuan dasar",
             value = form.baseUnit,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_UNIT, it) },
             error = form.errorFor(ProductFormField.BASE_UNIT),
-            supportingText = "For example pcs, kg, or liter.",
+            supportingText = "Contoh: pcs, kg, atau liter.",
         )
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Active", style = LocalAppTextStyles.current.body)
+                Text(text = "Aktif", style = LocalAppTextStyles.current.body)
                 Text(
-                    text = "Inactive products stay out of the cashier list.",
+                    text = "Produk nonaktif tidak muncul di kasir.",
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -161,24 +142,22 @@ private fun PricingSection(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-    ) {
-        SectionHeading(text = "Pricing and units")
+    PosCard(modifier = Modifier.fillMaxWidth()) {
+        PosSectionHeader(title = "Harga & Satuan")
         FormTextField(
-            label = "Selling price",
+            label = "Harga jual",
             value = form.basePrice,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_PRICE, it) },
             error = form.errorFor(ProductFormField.BASE_PRICE),
             keyboardType = KeyboardType.Number,
         )
         FormTextField(
-            label = "Cost of goods",
+            label = "Harga pokok",
             value = form.baseHpp,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_HPP, it) },
             error = form.errorFor(ProductFormField.BASE_HPP),
             keyboardType = KeyboardType.Number,
+            supportingText = "Harga pokok (HPP) per satuan dasar.",
         )
         TextButton(onClick = actions.onFormAdvancedToggle) {
             Icon(
@@ -187,7 +166,7 @@ private fun PricingSection(
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
             Spacer(modifier = Modifier.width(PosSpacing.xs))
-            Text(text = "More options")
+            Text(text = "Opsi lainnya")
         }
         if (form.isAdvancedExpanded) {
             AdvancedUnitFields(form = form, actions = actions)
@@ -205,36 +184,36 @@ private fun AdvancedUnitFields(
         verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         FormTextField(
-            label = "Unit name",
+            label = "Nama satuan",
             value = form.variantName,
             onValueChange = { actions.onFormFieldChange(ProductFormField.VARIANT_NAME, it) },
             error = form.errorFor(ProductFormField.VARIANT_NAME),
-            supportingText = "For example bundle or carton.",
+            supportingText = "Contoh: dus atau karton.",
         )
         FormTextField(
-            label = "Conversion factor",
+            label = "Faktor konversi",
             value = form.conversionFactor,
             onValueChange = { actions.onFormFieldChange(ProductFormField.CONVERSION_FACTOR, it) },
             error = form.errorFor(ProductFormField.CONVERSION_FACTOR),
             keyboardType = KeyboardType.Decimal,
-            supportingText = "Base units per unit, for example 10.",
+            supportingText = "Jumlah satuan dasar per satuan, contoh 10.",
         )
         FormTextField(
-            label = "Unit price",
+            label = "Harga satuan",
             value = form.variantPrice,
             onValueChange = { actions.onFormFieldChange(ProductFormField.VARIANT_PRICE, it) },
             error = form.errorFor(ProductFormField.VARIANT_PRICE),
             keyboardType = KeyboardType.Number,
         )
         FormTextField(
-            label = "Wholesale minimum quantity",
+            label = "Minimal grosir",
             value = form.wholesaleMinQty,
             onValueChange = { actions.onFormFieldChange(ProductFormField.WHOLESALE_MIN_QTY, it) },
             error = form.errorFor(ProductFormField.WHOLESALE_MIN_QTY),
             keyboardType = KeyboardType.Number,
         )
         FormTextField(
-            label = "Wholesale price",
+            label = "Harga grosir",
             value = form.wholesalePrice,
             onValueChange = { actions.onFormFieldChange(ProductFormField.WHOLESALE_PRICE, it) },
             error = form.errorFor(ProductFormField.WHOLESALE_PRICE),
@@ -248,25 +227,22 @@ private fun StockSection(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-    ) {
-        SectionHeading(text = "Stock alerts")
+    PosCard(modifier = Modifier.fillMaxWidth()) {
+        PosSectionHeader(title = "Stok")
         FormTextField(
-            label = "Stock quantity",
+            label = "Jumlah stok",
             value = form.stockQuantity,
             onValueChange = { actions.onFormFieldChange(ProductFormField.STOCK_QUANTITY, it) },
             error = form.errorFor(ProductFormField.STOCK_QUANTITY),
             keyboardType = KeyboardType.Decimal,
         )
         FormTextField(
-            label = "Low stock alert at",
+            label = "Peringatan stok menipis",
             value = form.minStockAlert,
             onValueChange = { actions.onFormFieldChange(ProductFormField.MIN_STOCK_ALERT, it) },
             error = form.errorFor(ProductFormField.MIN_STOCK_ALERT),
             keyboardType = KeyboardType.Decimal,
-            supportingText = "Shown as a low stock chip when reached.",
+            supportingText = "Ditandai stok menipis saat jumlah ini tercapai.",
         )
     }
 }

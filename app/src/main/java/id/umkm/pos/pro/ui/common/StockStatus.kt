@@ -17,8 +17,8 @@ fun resolveStockStatus(product: Product): StockStatus = when {
 }
 
 fun stockStatusLabel(status: StockStatus): String = when (status) {
-    StockStatus.OVERSOLD -> "Oversold"
-    StockStatus.OUT_OF_STOCK -> "Out of stock"
-    StockStatus.LOW_STOCK -> "Low stock"
-    StockStatus.IN_STOCK -> "In stock"
+    StockStatus.OVERSOLD -> "Stok Minus"
+    StockStatus.OUT_OF_STOCK -> "Stok Habis"
+    StockStatus.LOW_STOCK -> "Stok Menipis"
+    StockStatus.IN_STOCK -> "Tersedia"
 }

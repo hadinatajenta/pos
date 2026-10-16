@@ -11,6 +11,6 @@ object Rupiah {
             .chunked(3)
             .joinToString(separator = ".")
             .reversed()
-        return if (amount < 0L) "-Rp$groupedDigits" else "Rp$groupedDigits"
+        return if (amount < 0L) "-Rp $groupedDigits" else "Rp $groupedDigits"
     }
 }

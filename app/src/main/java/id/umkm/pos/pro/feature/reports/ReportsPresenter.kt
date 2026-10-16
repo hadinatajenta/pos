@@ -5,6 +5,8 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.model.ReportRange
+import id.umkm.pos.pro.core.model.SalesSummary
+import id.umkm.pos.pro.core.model.Transaction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -135,10 +137,13 @@ class ReportsPresenter(
             try {
                 val summary = reportRepository.salesSummary(range)
                 val dailySales = reportRepository.salesByDay(range)
+                val transactions = reportRepository.transactionsInRange(range)
                 mutableState.update { current ->
                     current.copy(
                         summary = summary,
+                        averageTransaction = averageTransactionOf(summary),
                         dailySales = dailySales,
+                        paymentShares = paymentShares(transactions),
                         isLoading = false,
                         error = null,
                     )
@@ -155,6 +160,20 @@ class ReportsPresenter(
             }
         }
     }
+
+    private fun averageTransactionOf(summary: SalesSummary): Long =
+        if (summary.transactionCount > 0) summary.totalSales / summary.transactionCount else 0L
+
+    private fun paymentShares(transactions: List<Transaction>): List<ReportsPaymentShare> =
+        transactions.groupBy { transaction -> transaction.paymentMethod }
+            .map { (method, group) ->
+                ReportsPaymentShare(
+                    paymentMethod = method,
+                    amount = group.sumOf { transaction -> transaction.grandTotal },
+                    transactionCount = group.size,
+                )
+            }
+            .sortedByDescending { share -> share.amount }
 
     private fun loadDrillDown(day: Long?, range: ReportRange) {
         loadJob?.cancel()

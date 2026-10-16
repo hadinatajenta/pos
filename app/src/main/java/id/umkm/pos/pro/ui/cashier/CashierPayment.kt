@@ -23,12 +23,11 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -47,9 +46,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
-import id.umkm.pos.pro.ui.common.SectionHeading
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PosSectionHeader
+import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -75,14 +76,17 @@ internal fun CashierPaymentSheet(
                 .padding(bottom = PosSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            SectionHeading(text = "Payment")
-            PaymentTotal(grandTotal = state.grandTotal)
-            PaymentMethodChips(
-                selectedMethod = state.paymentDraft.method,
-                onSelect = actions.onPaymentMethodChange,
-            )
-            PaymentConditionalFields(state = state, actions = actions)
-            PaymentSummary(state = state)
+            PosSectionHeader(title = "Pembayaran")
+            PosCard(modifier = Modifier.fillMaxWidth()) {
+                PaymentTotal(grandTotal = state.grandTotal)
+                HorizontalDivider()
+                PaymentMethodChips(
+                    selectedMethod = state.paymentDraft.method,
+                    onSelect = actions.onPaymentMethodChange,
+                )
+                PaymentConditionalFields(state = state, actions = actions)
+                PaymentSummary(state = state)
+            }
             state.submitErrorMessage?.let { message ->
                 Text(
                     text = message,
@@ -90,20 +94,12 @@ internal fun CashierPaymentSheet(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            Button(
+            PrimaryActionButton(
+                text = "Konfirmasi pembayaran",
                 onClick = actions.onConfirmCharge,
-                enabled = !state.isSubmitting && state.lineCount > 0,
-                modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
-            ) {
-                if (state.isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(PosSizes.iconSmall),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(text = "Confirm payment", style = LocalAppTextStyles.current.buttonLabel)
-                }
-            }
+                enabled = state.lineCount > 0,
+                loading = state.isSubmitting,
+            )
         }
     }
 }
@@ -129,6 +125,11 @@ private fun PaymentMethodChips(
     selectedMethod: PaymentMethod,
     onSelect: (PaymentMethod) -> Unit,
 ) {
+    Text(
+        text = "Metode pembayaran",
+        style = LocalAppTextStyles.current.supportingLabel,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
@@ -163,13 +164,13 @@ private fun PaymentConditionalFields(
         PaymentMethod.CASH -> AmountReceivedField(
             value = state.paymentDraft.amountReceivedInput,
             onValueChange = actions.onAmountReceivedChange,
-            label = "Amount received",
+            label = "Jumlah diterima",
         )
 
         PaymentMethod.SPLIT -> AmountReceivedField(
             value = state.paymentDraft.amountReceivedInput,
             onValueChange = actions.onAmountReceivedChange,
-            label = "Amount received",
+            label = "Jumlah diterima",
         )
 
         PaymentMethod.KASBON -> {
@@ -177,8 +178,8 @@ private fun PaymentConditionalFields(
             AmountReceivedField(
                 value = state.paymentDraft.amountReceivedInput,
                 onValueChange = actions.onAmountReceivedChange,
-                label = "Deposit received",
-                supportingText = "Leave empty when nothing is paid now.",
+                label = "Titipan diterima",
+                supportingText = "Biarkan kosong bila belum ada pembayaran.",
             )
             if (expectedRemainingAmount(state) > 0L) {
                 DueDateField(state = state, actions = actions)
@@ -226,7 +227,7 @@ private fun CustomerField(
         )
         Spacer(modifier = Modifier.width(PosSpacing.sm))
         Text(
-            text = state.selectedCustomerName ?: "Choose customer",
+            text = state.selectedCustomerName ?: "Pilih pelanggan",
             style = LocalAppTextStyles.current.buttonLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -252,7 +253,7 @@ private fun DueDateField(
         )
         Spacer(modifier = Modifier.width(PosSpacing.sm))
         Text(
-            text = dueDateMillis?.let { millis -> "Due ${formatDate(millis)}" } ?: "Set due date",
+            text = dueDateMillis?.let { millis -> "Jatuh tempo ${formatDate(millis)}" } ?: "Atur jatuh tempo",
             style = LocalAppTextStyles.current.buttonLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -276,15 +277,14 @@ private fun PaymentSummary(state: CashierUiState) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
     ) {
-        SummaryLine(label = "Total", value = Rupiah.format(grandTotal))
         if (paidAmount != null && paidAmount != grandTotal) {
-            SummaryLine(label = "Paid", value = Rupiah.format(paidAmount))
+            SummaryLine(label = "Dibayar", value = Rupiah.format(paidAmount))
         }
         if (changeAmount > 0L) {
-            SummaryLine(label = "Change", value = Rupiah.format(changeAmount), emphasized = true)
+            SummaryLine(label = "Kembalian", value = Rupiah.format(changeAmount), emphasized = true)
         }
         if (remainingAmount > 0L) {
-            SummaryLine(label = "Remaining balance", value = Rupiah.format(remainingAmount))
+            SummaryLine(label = "Sisa tagihan", value = Rupiah.format(remainingAmount))
         }
     }
 }
@@ -324,11 +324,11 @@ internal fun CashierCustomerPicker(
     if (!state.isCustomerPickerVisible) return
     AlertDialog(
         onDismissRequest = actions.onCloseCustomerPicker,
-        title = { Text(text = "Choose customer") },
+        title = { Text(text = "Pilih pelanggan") },
         text = {
             if (state.payableCustomers.isEmpty()) {
                 Text(
-                    text = "No customers yet. Add a customer before selling on kasbon.",
+                    text = "Belum ada pelanggan. Tambahkan pelanggan sebelum menjual dengan kasbon.",
                     style = LocalAppTextStyles.current.supportingLabel,
                 )
             } else {
@@ -342,7 +342,7 @@ internal fun CashierCustomerPicker(
                         ) {
                             Text(text = customer.name, style = LocalAppTextStyles.current.body)
                             Text(
-                                text = "Debt ${Rupiah.format(customer.totalDebt)}",
+                                text = "Utang ${Rupiah.format(customer.totalDebt)}",
                                 style = LocalAppTextStyles.current.supportingLabel,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -353,7 +353,7 @@ internal fun CashierCustomerPicker(
         },
         confirmButton = {
             TextButton(onClick = actions.onCloseCustomerPicker) {
-                Text(text = "Cancel")
+                Text(text = "Batal")
             }
         },
     )
@@ -382,12 +382,12 @@ internal fun CashierDueDatePicker(
                     }
                 },
             ) {
-                Text(text = "Set due date")
+                Text(text = "Atur jatuh tempo")
             }
         },
         dismissButton = {
             TextButton(onClick = actions.onCloseDueDatePicker) {
-                Text(text = "Cancel")
+                Text(text = "Batal")
             }
         },
     ) {

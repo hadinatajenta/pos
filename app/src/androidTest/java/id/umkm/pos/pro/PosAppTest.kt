@@ -13,10 +13,10 @@ class PosAppTest {
 
     @Test
     fun compactWindowShowsAllPrimaryDestinations() {
-        composeRule.onNodeWithText("Cashier").assertIsDisplayed()
-        composeRule.onNodeWithText("Products").assertIsDisplayed()
-        composeRule.onNodeWithText("Customers").assertIsDisplayed()
-        composeRule.onNodeWithText("Reports").assertIsDisplayed()
-        composeRule.onNodeWithText("More").assertIsDisplayed()
+        composeRule.onNodeWithText("Beranda").assertIsDisplayed()
+        composeRule.onNodeWithText("Kasir").assertIsDisplayed()
+        composeRule.onNodeWithText("Produk").assertIsDisplayed()
+        composeRule.onNodeWithText("Laporan").assertIsDisplayed()
+        composeRule.onNodeWithText("Lainnya").assertIsDisplayed()
     }
 }

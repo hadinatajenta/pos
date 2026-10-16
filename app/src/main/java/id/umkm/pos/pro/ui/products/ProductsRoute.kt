@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,20 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyColumnItems
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,15 +62,18 @@ import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.monetization.admob.BannerAdSlot
 import id.umkm.pos.pro.ui.LocalAppContainer
-import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.EmptyState
+import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.OfflineNotice
 import id.umkm.pos.pro.ui.common.PreviewAppContainerProvider
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StockStatus
-import id.umkm.pos.pro.ui.common.StockStatusChip
 import id.umkm.pos.pro.ui.common.UiStateContent
+import id.umkm.pos.pro.ui.common.formatQuantity
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.ProductThumbnail
+import id.umkm.pos.pro.ui.components.StockStatusBadge
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosPaneWeights
@@ -77,8 +81,7 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 
-private val PRODUCT_CARD_MIN_WIDTH = 320.dp
-private const val MAX_PRODUCT_COLUMNS = 2
+private val PRODUCT_ROW_THUMBNAIL_SIZE = 44.dp
 private const val FORM_SHEET_HEIGHT_FRACTION = 0.92f
 
 @Composable
@@ -117,25 +120,13 @@ internal fun ProductsScreen(
         val form = state.form
         Column(modifier = Modifier.fillMaxSize()) {
             ScreenHeader(
-                title = "Products",
-                supportingText = "Prices, units, and stock",
-                actions = {
-                    Button(
-                        onClick = actions.onOpenCreateForm,
-                        modifier = Modifier.heightIn(min = PosSizes.touchTarget),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(PosSizes.iconSmall),
-                        )
-                        Spacer(modifier = Modifier.width(PosSpacing.xs))
-                        Text(text = "Add", style = LocalAppTextStyles.current.buttonLabel)
-                    }
-                },
+                title = "Produk",
+                supportingText = "Harga, satuan, dan stok",
+                actions = { AddProductAction(onClick = actions.onOpenCreateForm) },
             )
             OfflineNotice()
             ProductsSearchField(state = state, actions = actions)
+            ProductsStockFilterRow(selected = state.stockFilter, onSelect = actions.onStockFilterChange)
             Row(modifier = Modifier.weight(1f)) {
                 ProductsListPane(state = state, actions = actions, modifier = Modifier.weight(1f))
                 if (isTwoPane && form != null) {
@@ -166,6 +157,22 @@ internal fun ProductsScreen(
 }
 
 @Composable
+private fun AddProductAction(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = null,
+            modifier = Modifier.size(PosSizes.iconSmall),
+        )
+        Spacer(modifier = Modifier.width(PosSpacing.xs))
+        Text(text = "Tambah", style = LocalAppTextStyles.current.buttonLabel)
+    }
+}
+
+@Composable
 private fun ProductsSearchField(
     state: ProductsUiState,
     actions: ProductsActions,
@@ -177,11 +184,41 @@ private fun ProductsSearchField(
             .fillMaxWidth()
             .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
         singleLine = true,
-        label = { Text("Search products") },
-        placeholder = { Text("Name, SKU, or barcode") },
+        label = { Text("Cari produk") },
+        placeholder = { Text("Nama, SKU, atau barcode") },
         leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (state.searchQuery.isNotEmpty()) {
+                IconButton(onClick = { actions.onSearchQueryChange("") }) {
+                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Hapus pencarian")
+                }
+            }
+        },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProductsStockFilterRow(
+    selected: ProductStockFilter,
+    onSelect: (ProductStockFilter) -> Unit,
+) {
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
+        ProductStockFilter.entries.forEach { filter ->
+            FilterChip(
+                selected = filter == selected,
+                onClick = { onSelect(filter) },
+                label = { Text(filter.label) },
+            )
+        }
+    }
 }
 
 @Composable
@@ -192,7 +229,7 @@ private fun ProductsListPane(
 ) {
     UiStateContent(
         state = state.products,
-        onLoading = { LoadingState(modifier = modifier, label = "Loading products") },
+        onLoading = { LoadingState(modifier = modifier, label = "Memuat produk") },
         onEmpty = { ProductsEmptyState(state = state, actions = actions, modifier = modifier) },
         onError = { error -> ErrorState(error = error, onRetry = actions.onRetry, modifier = modifier) },
         onSuccess = { items -> ProductsList(items = items, actions = actions, modifier = modifier) },
@@ -206,21 +243,39 @@ private fun ProductsEmptyState(
     modifier: Modifier,
 ) {
     val isSearching = state.searchQuery.isNotBlank()
+    val isFiltered = state.stockFilter != ProductStockFilter.ALL
+    val icon = when {
+        isSearching -> Icons.Filled.SearchOff
+        isFiltered -> Icons.Filled.FilterAlt
+        else -> Icons.Filled.Inventory2
+    }
+    val title = when {
+        isSearching -> "Produk tidak ditemukan"
+        isFiltered -> "Tidak ada produk pada filter ini"
+        else -> "Belum ada produk"
+    }
+    val supportingText = when {
+        isSearching -> "Coba kata kunci, SKU, atau barcode lain."
+        isFiltered -> "Pilih filter lain atau tambahkan produk baru."
+        else -> "Tambahkan produk pertama untuk mencatat harga dan stok."
+    }
+    val actionLabel = when {
+        isSearching -> "Hapus pencarian"
+        isFiltered -> "Tampilkan semua"
+        else -> "Tambah produk"
+    }
+    val onAction = when {
+        isSearching -> { { actions.onSearchQueryChange("") } }
+        isFiltered -> { { actions.onStockFilterChange(ProductStockFilter.ALL) } }
+        else -> actions.onOpenCreateForm
+    }
     EmptyState(
-        icon = if (isSearching) Icons.Filled.SearchOff else Icons.Filled.Inventory2,
-        title = if (isSearching) "No products match" else "No products yet",
-        supportingText = if (isSearching) {
-            "Try another name, SKU, or barcode."
-        } else {
-            "Add your first product to start tracking prices and stock."
-        },
+        icon = icon,
+        title = title,
+        supportingText = supportingText,
         modifier = modifier,
-        actionLabel = if (isSearching) "Clear search" else "Add product",
-        onAction = if (isSearching) {
-            { actions.onSearchQueryChange("") }
-        } else {
-            actions.onOpenCreateForm
-        },
+        actionLabel = actionLabel,
+        onAction = onAction,
     )
 }
 
@@ -230,55 +285,39 @@ private fun ProductsList(
     actions: ProductsActions,
     modifier: Modifier,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val columnCount = (maxWidth / PRODUCT_CARD_MIN_WIDTH).toInt().coerceIn(1, MAX_PRODUCT_COLUMNS)
-        val contentPadding = PaddingValues(
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(
             start = PosSpacing.md,
             end = PosSpacing.md,
             top = PosSpacing.xs,
             bottom = PosSizes.listBottomPadding,
-        )
-        if (columnCount <= 1) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = contentPadding,
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            ) {
-                lazyColumnItems(items = items, key = { item -> item.product.id }) { item ->
-                    ProductCard(item = item, actions = actions)
-                }
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columnCount),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = contentPadding,
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            ) {
-                lazyGridItems(items = items, key = { item -> item.product.id }) { item ->
-                    ProductCard(item = item, actions = actions)
-                }
-            }
+        ),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+    ) {
+        lazyColumnItems(items = items, key = { item -> item.product.id }) { item ->
+            ProductRow(item = item, actions = actions)
         }
     }
 }
 
 @Composable
-private fun ProductCard(
+private fun ProductRow(
     item: ProductListItem,
     actions: ProductsActions,
 ) {
-    Card(
+    PosCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { actions.onOpenEditForm(item.product.id) },
+        contentPadding = PosSpacing.sm,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(PosSpacing.md),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
+            ProductThumbnail(category = item.product.category, size = PRODUCT_ROW_THUMBNAIL_SIZE)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
@@ -286,13 +325,6 @@ private fun ProductCard(
                 Text(
                     text = item.product.name,
                     style = LocalAppTextStyles.current.body,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = productSupportingText(item.product),
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -300,12 +332,26 @@ private fun ProductCard(
                     text = Rupiah.format(item.product.basePrice),
                     style = LocalAppTextStyles.current.financialValue,
                 )
-                StockStatusChip(status = item.stockStatus)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                ) {
+                    Text(
+                        text = stockText(item.product),
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    StockStatusBadge(status = item.stockStatus)
+                }
             }
             IconButton(onClick = { actions.onRequestDelete(item.product.id) }) {
                 Icon(
                     imageVector = Icons.Filled.DeleteOutline,
-                    contentDescription = "Delete ${item.product.name}",
+                    contentDescription = "Hapus ${item.product.name}",
                 )
             }
         }
@@ -316,21 +362,21 @@ private fun ProductCard(
 private fun DeleteProductDialog(actions: ProductsActions) {
     AlertDialog(
         onDismissRequest = actions.onCancelDelete,
-        title = { Text(text = "Delete product") },
+        title = { Text(text = "Hapus produk") },
         text = {
             Text(
-                text = "This removes the product from your catalog. Past sales stay unchanged.",
+                text = "Produk akan dihapus dari katalog. Riwayat penjualan tetap tersimpan.",
                 style = LocalAppTextStyles.current.supportingLabel,
             )
         },
         confirmButton = {
             TextButton(onClick = actions.onConfirmDelete) {
-                Text(text = "Delete")
+                Text(text = "Hapus")
             }
         },
         dismissButton = {
             TextButton(onClick = actions.onCancelDelete) {
-                Text(text = "Cancel")
+                Text(text = "Batal")
             }
         },
     )
@@ -358,20 +404,15 @@ private fun ProductFormSheet(
     }
 }
 
-private fun productSupportingText(product: Product): String {
-    val category = product.category?.takeIf { it.isNotBlank() }
-    return when {
-        category != null -> "$category · ${product.sku}"
-        else -> product.sku
-    }
-}
+private fun stockText(product: Product): String =
+    "Stok ${formatQuantity(product.stockBaseQty)} ${product.baseUnit}"
 
 private fun previewProduct(id: Long, name: String, price: Long, stock: Double, unit: String): Product = Product(
     id = id,
     sku = "SKU-$id",
     barcode = null,
     name = name,
-    category = "Drinks",
+    category = "Minuman",
     baseUnit = unit,
     baseHpp = price / 2,
     basePrice = price,
@@ -401,6 +442,7 @@ private fun previewProductsState(): ProductsUiState {
 
 private fun previewProductsActions(): ProductsActions = ProductsActions(
     onSearchQueryChange = {},
+    onStockFilterChange = {},
     onRetry = {},
     onOpenCreateForm = {},
     onOpenEditForm = {},

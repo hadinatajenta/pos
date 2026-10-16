@@ -18,14 +18,17 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Timelapse
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -61,7 +64,9 @@ import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StatusChip
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.formatDate
+import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
@@ -105,8 +110,8 @@ internal fun CustomersScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             ScreenHeader(
-                title = "Customers",
-                supportingText = "Debt, due dates, and payments",
+                title = "Pelanggan",
+                supportingText = "Utang, jatuh tempo, dan pembayaran",
                 actions = {
                     Button(
                         onClick = actions.onOpenCreateCustomer,
@@ -118,7 +123,7 @@ internal fun CustomersScreen(
                             modifier = Modifier.size(PosSizes.iconSmall),
                         )
                         Spacer(modifier = Modifier.width(PosSpacing.xs))
-                        Text(text = "New", style = LocalAppTextStyles.current.buttonLabel)
+                        Text(text = "Tambah", style = LocalAppTextStyles.current.buttonLabel)
                     }
                 },
             )
@@ -126,7 +131,7 @@ internal fun CustomersScreen(
             CustomersSearchField(state = state, actions = actions)
             UiStateContent(
                 state = state.customers,
-                onLoading = { LoadingState(modifier = Modifier.weight(1f), label = "Loading customers") },
+                onLoading = { LoadingState(modifier = Modifier.weight(1f), label = "Memuat pelanggan") },
                 onEmpty = {
                     CustomersEmptyState(state = state, actions = actions, modifier = Modifier.weight(1f))
                 },
@@ -166,9 +171,16 @@ private fun CustomersSearchField(
             .fillMaxWidth()
             .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
         singleLine = true,
-        label = { Text("Search customers") },
-        placeholder = { Text("Name") },
+        label = { Text("Cari pelanggan") },
+        placeholder = { Text("Nama") },
         leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (state.searchQuery.isNotEmpty()) {
+                IconButton(onClick = { actions.onSearchQueryChange("") }) {
+                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Hapus pencarian")
+                }
+            }
+        },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
     )
 }
@@ -182,14 +194,14 @@ private fun CustomersEmptyState(
     val isSearching = state.searchQuery.isNotBlank()
     EmptyState(
         icon = if (isSearching) Icons.Filled.SearchOff else Icons.Filled.Groups,
-        title = if (isSearching) "No customers match" else "No customers yet",
+        title = if (isSearching) "Pelanggan tidak ditemukan" else "Belum ada pelanggan",
         supportingText = if (isSearching) {
-            "Try another name."
+            "Coba nama lain."
         } else {
-            "Add a customer to track kasbon debt and payments."
+            "Tambahkan pelanggan untuk mencatat utang dan pembayaran."
         },
         modifier = modifier,
-        actionLabel = if (isSearching) "Clear search" else "Add customer",
+        actionLabel = if (isSearching) "Hapus pencarian" else "Tambah pelanggan",
         onAction = if (isSearching) {
             { actions.onSearchQueryChange("") }
         } else {
@@ -225,34 +237,53 @@ private fun CustomerDebtCard(
     item: CustomerDebtItem,
     actions: CustomersActions,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(PosSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    PosCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             Text(
                 text = item.customer.name,
                 style = LocalAppTextStyles.current.body,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            DebtStatusChip(status = item.status)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
             Text(
-                text = "Outstanding ${Rupiah.format(item.outstandingDebt)}",
-                style = LocalAppTextStyles.current.financialValue,
-            )
-            Text(
-                text = item.nextDueDateMillis?.let { millis -> "Next due ${formatDate(millis)}" } ?: "No due date set",
+                text = "Sisa utang",
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            DebtStatusChip(status = item.status)
-            if (item.outstandingDebt > 0L) {
-                OutlinedButton(
-                    onClick = { actions.onOpenRecordPayment(item.customer.id) },
-                    modifier = Modifier.align(Alignment.End).heightIn(min = PosSizes.touchTarget),
-                ) {
-                    Text(text = "Record payment")
-                }
+            Text(
+                text = Rupiah.format(item.outstandingDebt),
+                style = LocalAppTextStyles.current.financialValue,
+            )
+        }
+        Text(
+            text = dueDateText(item.nextDueDateMillis),
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (item.outstandingDebt > 0L) {
+            OutlinedButton(
+                onClick = { actions.onOpenRecordPayment(item.customer.id) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Payments,
+                    contentDescription = null,
+                    modifier = Modifier.size(PosSizes.iconSmall),
+                )
+                Spacer(modifier = Modifier.width(PosSpacing.xs))
+                Text(text = "Catat pembayaran", style = LocalAppTextStyles.current.buttonLabel)
             }
         }
     }
@@ -260,24 +291,24 @@ private fun CustomerDebtCard(
 
 @Composable
 private fun DebtStatusChip(status: DebtStatus) {
-    val colorScheme = MaterialTheme.colorScheme
+    val palette = LocalPosSemanticPalette.current
     val icon = when (status) {
         DebtStatus.PAID -> Icons.Filled.CheckCircle
-        DebtStatus.UNPAID -> Icons.Filled.Timelapse
+        DebtStatus.UNPAID -> Icons.Filled.Schedule
         DebtStatus.PARTIALLY_PAID -> Icons.Filled.Timelapse
         DebtStatus.OVERDUE -> Icons.Filled.ErrorOutline
     }
     val containerColor = when (status) {
-        DebtStatus.PAID -> colorScheme.secondaryContainer
-        DebtStatus.UNPAID -> colorScheme.surfaceVariant
-        DebtStatus.PARTIALLY_PAID -> colorScheme.tertiaryContainer
-        DebtStatus.OVERDUE -> colorScheme.errorContainer
+        DebtStatus.PAID -> palette.successContainer
+        DebtStatus.UNPAID -> palette.neutralContainer
+        DebtStatus.PARTIALLY_PAID -> palette.warningContainer
+        DebtStatus.OVERDUE -> palette.dangerContainer
     }
     val contentColor = when (status) {
-        DebtStatus.PAID -> colorScheme.onSecondaryContainer
-        DebtStatus.UNPAID -> colorScheme.onSurfaceVariant
-        DebtStatus.PARTIALLY_PAID -> colorScheme.onTertiaryContainer
-        DebtStatus.OVERDUE -> colorScheme.onErrorContainer
+        DebtStatus.PAID -> palette.success
+        DebtStatus.UNPAID -> MaterialTheme.colorScheme.onSurfaceVariant
+        DebtStatus.PARTIALLY_PAID -> palette.warning
+        DebtStatus.OVERDUE -> palette.danger
     }
     StatusChip(
         icon = icon,
@@ -286,6 +317,9 @@ private fun DebtStatusChip(status: DebtStatus) {
         contentColor = contentColor,
     )
 }
+
+private fun dueDateText(nextDueDateMillis: Long?): String =
+    nextDueDateMillis?.let { millis -> "Jatuh tempo ${formatDate(millis)}" } ?: "Tanpa jatuh tempo"
 
 private fun previewCustomer(id: Long, name: String, debt: Long): Customer = Customer(
     id = id,

@@ -85,7 +85,43 @@ class ProductsViewModelTest {
         assertThat(saved.stockBaseQty).isEqualTo(12.0)
         assertThat(saved.sku).isEqualTo("SKU-10000")
         assertThat(viewModel.state.value.form).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Product saved")
+        assertThat(viewModel.state.value.message).isEqualTo("Produk disimpan")
+    }
+
+    @Test
+    fun stockFilterNarrowsTheCatalogToTheMatchingStatus() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu", stockBaseQty = 100.0, minStockAlert = 5.0),
+                uiSampleProduct(id = 2L, name = "Teh Manis", stockBaseQty = 2.0, minStockAlert = 5.0),
+                uiSampleProduct(id = 3L, name = "Gula Pasir", stockBaseQty = 0.0, minStockAlert = 5.0),
+                uiSampleProduct(id = 4L, name = "Sabun Cuci", stockBaseQty = -1.0, minStockAlert = 5.0),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onStockFilterChange(ProductStockFilter.IN_STOCK)
+        assertThat(itemsOf(viewModel.state.value).map { it.product.name }).containsExactly("Kopi Susu")
+
+        viewModel.onStockFilterChange(ProductStockFilter.LOW_STOCK)
+        assertThat(itemsOf(viewModel.state.value).map { it.product.name }).containsExactly("Teh Manis")
+
+        viewModel.onStockFilterChange(ProductStockFilter.OUT_OF_STOCK)
+        assertThat(itemsOf(viewModel.state.value).map { it.product.name }).containsExactly("Gula Pasir", "Sabun Cuci")
+
+        viewModel.onStockFilterChange(ProductStockFilter.ALL)
+        assertThat(itemsOf(viewModel.state.value)).hasSize(4)
+        assertThat(viewModel.state.value.stockFilter).isEqualTo(ProductStockFilter.ALL)
+    }
+
+    @Test
+    fun stockFilterWithoutMatchesReportsEmptyState() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(listOf(uiSampleProduct(id = 1L, name = "Kopi Susu", stockBaseQty = 100.0)))
+        val viewModel = createViewModel()
+
+        viewModel.onStockFilterChange(ProductStockFilter.OUT_OF_STOCK)
+
+        assertThat(viewModel.state.value.products).isEqualTo(UiState.Empty)
     }
 
     @Test
@@ -152,7 +188,7 @@ class ProductsViewModelTest {
         viewModel.onOpenEditForm(404L)
 
         assertThat(viewModel.state.value.form).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Product was not found")
+        assertThat(viewModel.state.value.message).isEqualTo("Produk tidak ditemukan")
     }
 
     @Test
@@ -167,7 +203,7 @@ class ProductsViewModelTest {
 
         assertThat(products.currentProducts()).isEmpty()
         assertThat(viewModel.state.value.pendingDeleteProductId).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Product deleted")
+        assertThat(viewModel.state.value.message).isEqualTo("Produk dihapus")
     }
 
     @Test

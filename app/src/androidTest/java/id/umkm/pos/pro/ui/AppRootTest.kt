@@ -78,10 +78,9 @@ class AppRootTest {
     }
 
     @Test
-    fun cashierIsTheDefaultDestination() {
+    fun dashboardIsTheDefaultDestination() {
         showConstrainedAppRoot(windowWidth = 360.dp)
 
-        composeRule.onNodeWithText("Cart is empty").assertIsDisplayed()
-        composeRule.onNodeWithText("No products yet").assertIsDisplayed()
+        composeRule.onNodeWithText("Buka Kasir").assertIsDisplayed()
     }
 }

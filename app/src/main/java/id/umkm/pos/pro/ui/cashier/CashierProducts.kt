@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,18 +31,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.feature.reports.Rupiah
-import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.EmptyState
+import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.OfflineNotice
-import id.umkm.pos.pro.ui.common.StockStatusChip
+import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.UiStateContent
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.ProductThumbnail
+import id.umkm.pos.pro.ui.components.StockStatusBadge
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
 private const val MAX_PRODUCT_COLUMNS = 4
+private val CATALOG_THUMBNAIL_SIZE = 44.dp
+private val CATALOG_TILE_THUMBNAIL_SIZE = 40.dp
 
 @Composable
 internal fun CashierCatalogPane(
@@ -52,29 +57,15 @@ internal fun CashierCatalogPane(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        OutlinedTextField(
-            value = state.searchQuery,
-            onValueChange = actions.onSearchQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-            singleLine = true,
-            label = { Text("Search products") },
-            placeholder = { Text("Name, SKU, or barcode") },
-            leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
-            trailingIcon = {
-                if (state.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { actions.onSearchQueryChange("") }) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Clear search")
-                    }
-                }
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        ScreenHeader(
+            title = "Kasir",
+            supportingText = "Cari produk dan proses pembayaran",
         )
+        CashierSearchField(state = state, actions = actions)
         OfflineNotice()
         UiStateContent(
             state = state.catalog,
-            onLoading = { LoadingState(modifier = Modifier.weight(1f), label = "Loading products") },
+            onLoading = { LoadingState(modifier = Modifier.weight(1f), label = "Memuat produk") },
             onEmpty = {
                 CashierEmptyCatalog(state = state, actions = actions, modifier = Modifier.weight(1f))
             },
@@ -89,6 +80,32 @@ internal fun CashierCatalogPane(
 }
 
 @Composable
+private fun CashierSearchField(
+    state: CashierUiState,
+    actions: CashierActions,
+) {
+    OutlinedTextField(
+        value = state.searchQuery,
+        onValueChange = actions.onSearchQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+        singleLine = true,
+        label = { Text("Cari produk") },
+        placeholder = { Text("Nama, SKU, atau barcode") },
+        leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (state.searchQuery.isNotEmpty()) {
+                IconButton(onClick = { actions.onSearchQueryChange("") }) {
+                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Hapus pencarian")
+                }
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+    )
+}
+
+@Composable
 private fun CashierEmptyCatalog(
     state: CashierUiState,
     actions: CashierActions,
@@ -97,14 +114,14 @@ private fun CashierEmptyCatalog(
     val isSearching = state.searchQuery.isNotBlank()
     EmptyState(
         icon = Icons.Filled.SearchOff,
-        title = if (isSearching) "No products match" else "No products yet",
+        title = if (isSearching) "Produk tidak ditemukan" else "Belum ada produk",
         supportingText = if (isSearching) {
-            "Try another name, SKU, or barcode."
+            "Coba nama, SKU, atau barcode lain."
         } else {
-            "Add products from the Products tab to start selling."
+            "Tambahkan produk dari tab Produk untuk mulai berjualan."
         },
         modifier = modifier,
-        actionLabel = if (isSearching) "Clear search" else null,
+        actionLabel = if (isSearching) "Hapus pencarian" else null,
         onAction = if (isSearching) {
             { actions.onSearchQueryChange("") }
         } else {
@@ -153,12 +170,18 @@ private fun CashierProductRow(
     item: CashierProductItem,
     onAdd: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onAdd)) {
+    PosCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "Tambah ${item.product.name}", onClick = onAdd),
+        contentPadding = PosSpacing.sm,
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(PosSpacing.md),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
+            ProductThumbnail(category = item.product.category, size = CATALOG_THUMBNAIL_SIZE)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
@@ -166,14 +189,21 @@ private fun CashierProductRow(
                 Text(
                     text = item.product.name,
                     style = LocalAppTextStyles.current.body,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = Rupiah.format(item.product.basePrice),
-                    style = LocalAppTextStyles.current.financialValue,
-                )
-                StockStatusChip(status = item.stockStatus)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                ) {
+                    Text(
+                        text = Rupiah.format(item.product.basePrice),
+                        style = LocalAppTextStyles.current.financialValue,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    StockStatusBadge(status = item.stockStatus)
+                }
             }
             Icon(
                 imageVector = Icons.Filled.AddCircleOutline,
@@ -190,22 +220,30 @@ private fun CashierProductTile(
     item: CashierProductItem,
     onAdd: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onAdd)) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(PosSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    PosCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "Tambah ${item.product.name}", onClick = onAdd),
+        contentPadding = PosSpacing.sm,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
+            ProductThumbnail(category = item.product.category, size = CATALOG_TILE_THUMBNAIL_SIZE)
             Text(
                 text = item.product.name,
                 style = LocalAppTextStyles.current.body,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
-            Text(
-                text = Rupiah.format(item.product.basePrice),
-                style = LocalAppTextStyles.current.financialValue,
-            )
-            StockStatusChip(status = item.stockStatus)
         }
+        Text(
+            text = Rupiah.format(item.product.basePrice),
+            style = LocalAppTextStyles.current.financialValue,
+        )
+        StockStatusBadge(status = item.stockStatus)
     }
 }

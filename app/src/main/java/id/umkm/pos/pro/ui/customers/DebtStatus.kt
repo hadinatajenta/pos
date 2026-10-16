@@ -23,10 +23,10 @@ fun resolveDebtStatus(
 }
 
 fun debtStatusLabel(status: DebtStatus): String = when (status) {
-    DebtStatus.PAID -> "Paid"
-    DebtStatus.UNPAID -> "Unpaid"
-    DebtStatus.PARTIALLY_PAID -> "Partially paid"
-    DebtStatus.OVERDUE -> "Overdue"
+    DebtStatus.PAID -> "Lunas"
+    DebtStatus.UNPAID -> "Belum Dibayar"
+    DebtStatus.PARTIALLY_PAID -> "Dibayar Sebagian"
+    DebtStatus.OVERDUE -> "Jatuh Tempo"
 }
 
 fun nextDueDateMillis(transactions: List<Transaction>): Long? = transactions

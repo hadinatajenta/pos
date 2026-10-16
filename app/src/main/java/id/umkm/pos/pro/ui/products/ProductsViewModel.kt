@@ -8,7 +8,6 @@ import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.ui.common.formatQuantity
-import id.umkm.pos.pro.ui.common.mapList
 import id.umkm.pos.pro.ui.common.resolveStockStatus
 import id.umkm.pos.pro.ui.common.sanitizeQuantityInput
 import id.umkm.pos.pro.ui.common.toAppError
@@ -33,6 +32,7 @@ class ProductsViewModel(
     val state: StateFlow<ProductsUiState> = _state.asStateFlow()
 
     private val searchQuery = MutableStateFlow("")
+    private val stockFilter = MutableStateFlow(ProductStockFilter.ALL)
     private val reloadTrigger = MutableStateFlow(0)
 
     init {
@@ -42,6 +42,11 @@ class ProductsViewModel(
     fun onSearchQueryChange(query: String) {
         searchQuery.value = query
         _state.update { it.copy(searchQuery = query) }
+    }
+
+    fun onStockFilterChange(filter: ProductStockFilter) {
+        stockFilter.value = filter
+        _state.update { it.copy(stockFilter = filter) }
     }
 
     fun onRetry() {
@@ -56,7 +61,7 @@ class ProductsViewModel(
         viewModelScope.launch {
             val product = productRepository.getProductById(productId)
             if (product == null) {
-                _state.update { it.copy(message = "Product was not found") }
+                _state.update { it.copy(message = "Produk tidak ditemukan") }
                 return@launch
             }
             val unit = productRepository.getUnits(productId).firstOrNull()
@@ -101,11 +106,11 @@ class ProductsViewModel(
             _state.update { it.copy(isSaving = true) }
             val productId = saveProduct(form)
             if (productId == null) {
-                _state.update { it.copy(isSaving = false, message = "Could not save the product.") }
+                _state.update { it.copy(isSaving = false, message = "Produk gagal disimpan.") }
                 return@launch
             }
             saveVariantUnit(form = form, productId = productId)
-            _state.update { it.copy(isSaving = false, form = null, message = "Product saved") }
+            _state.update { it.copy(isSaving = false, form = null, message = "Produk disimpan") }
         }
     }
 
@@ -125,7 +130,7 @@ class ProductsViewModel(
                 current.copy(
                     pendingDeleteProductId = null,
                     form = if (current.form?.productId == productId) null else current.form,
-                    message = "Product deleted",
+                    message = "Produk dihapus",
                 )
             }
         }
@@ -137,22 +142,21 @@ class ProductsViewModel(
 
     private fun observeProducts() {
         viewModelScope.launch {
-            combine(searchQuery, reloadTrigger) { query, _ -> query }
-                .flatMapLatest { query ->
+            combine(searchQuery, reloadTrigger, stockFilter) { query, _, filter -> query to filter }
+                .flatMapLatest { (query, filter) ->
                     productRepository.observeProducts(query.ifBlank { null })
-                        .map<List<Product>, UiState<List<Product>>> { products ->
-                            if (products.isEmpty()) UiState.Empty else UiState.Success(products)
+                        .map<List<Product>, UiState<List<ProductListItem>>> { products ->
+                            val items = products
+                                .map { product ->
+                                    ProductListItem(product = product, stockStatus = resolveStockStatus(product))
+                                }
+                                .filter { item -> filter.matches(item.stockStatus) }
+                            if (items.isEmpty()) UiState.Empty else UiState.Success(items)
                         }
                         .catch { error -> emit(UiState.Error(error.toAppError())) }
                 }
                 .collect { listState ->
-                    _state.update { current ->
-                        current.copy(
-                            products = listState.mapList { product ->
-                                ProductListItem(product = product, stockStatus = resolveStockStatus(product))
-                            },
-                        )
-                    }
+                    _state.update { current -> current.copy(products = listState) }
                 }
         }
     }

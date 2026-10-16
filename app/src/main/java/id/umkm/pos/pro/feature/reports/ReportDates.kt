@@ -12,14 +12,26 @@ object ReportDates {
 
     private val UTC: TimeZone = TimeZone.getTimeZone("UTC")
 
+    private val MONTH_LABELS = arrayOf(
+        "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+    )
+
+    private val WEEKDAY_LABELS = arrayOf("Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min")
+
     fun formatEpochDay(epochDay: Long): String =
         newFormatter("yyyy-MM-dd", UTC).format(Date(epochDay * MILLIS_PER_DAY))
 
+    fun formatEpochDayShort(epochDay: Long): String =
+        formatShortDate(Calendar.getInstance(UTC).apply { timeInMillis = epochDay * MILLIS_PER_DAY })
+
+    fun formatLocalDateShort(millis: Long, timeZone: TimeZone): String =
+        formatShortDate(Calendar.getInstance(timeZone).apply { timeInMillis = millis })
+
+    fun weekdayShortLabel(epochDay: Long): String =
+        WEEKDAY_LABELS[Math.floorMod(epochDay + 3L, 7L).toInt()]
+
     fun formatTimestamp(millis: Long, timeZone: TimeZone): String =
         newFormatter("yyyy-MM-dd HH:mm:ss", timeZone).format(Date(millis))
-
-    fun formatLocalDate(millis: Long, timeZone: TimeZone): String =
-        newFormatter("yyyy-MM-dd", timeZone).format(Date(millis))
 
     fun epochDayForLocalMillis(millis: Long, timeZone: TimeZone): Long {
         val local = Calendar.getInstance(timeZone).apply { timeInMillis = millis }
@@ -39,4 +51,12 @@ object ReportDates {
 
     private fun newFormatter(pattern: String, timeZone: TimeZone): SimpleDateFormat =
         SimpleDateFormat(pattern, Locale.US).apply { this.timeZone = timeZone }
+
+    private fun formatShortDate(calendar: Calendar): String = String.format(
+        Locale.US,
+        "%02d %s %d",
+        calendar.get(Calendar.DAY_OF_MONTH),
+        MONTH_LABELS[calendar.get(Calendar.MONTH)],
+        calendar.get(Calendar.YEAR),
+    )
 }

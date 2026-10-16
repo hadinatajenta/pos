@@ -145,7 +145,7 @@ private fun previewProduct(id: Long, name: String, price: Long, stock: Double): 
     sku = "SKU-$id",
     barcode = null,
     name = name,
-    category = "Drinks",
+    category = "Minuman",
     baseUnit = "pcs",
     baseHpp = price / 2,
     basePrice = price,

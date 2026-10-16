@@ -3,6 +3,7 @@ package id.umkm.pos.pro.feature.reports
 import com.google.common.truth.Truth.assertThat
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.model.DailySales
+import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
@@ -91,7 +92,49 @@ class ReportsPresenterReturnTest {
         assertThat(state.dailySales).isEqualTo(repository.dailySales)
         assertThat(repository.summaryReadCount).isEqualTo(2)
         assertThat(repository.dailySalesReadCount).isEqualTo(2)
-        assertThat(repository.transactionsReadCount).isEqualTo(1)
+        assertThat(repository.transactionsReadCount).isEqualTo(3)
+    }
+
+    @Test
+    fun loadsPaymentSharesFromNettedTransactions() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingReportRepository(
+            summary = SalesSummary(
+                totalSales = 62_000L,
+                totalHpp = 0L,
+                netProfit = 0L,
+                transactionCount = 3,
+            ),
+            transactions = listOf(
+                sampleTransaction(id = 1L, paymentMethod = PaymentMethod.CASH, grandTotal = 30_000L),
+                sampleTransaction(id = 2L, paymentMethod = PaymentMethod.CASH, grandTotal = 20_000L),
+                sampleTransaction(id = 3L, paymentMethod = PaymentMethod.QRIS, grandTotal = 12_000L),
+            ),
+        )
+        val presenter = createPresenter(repository, this)
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val shares = presenter.uiState.value.paymentShares
+        assertThat(shares).hasSize(2)
+        assertThat(shares[0].paymentMethod).isEqualTo(PaymentMethod.CASH)
+        assertThat(shares[0].amount).isEqualTo(50_000L)
+        assertThat(shares[0].transactionCount).isEqualTo(2)
+        assertThat(shares[1].paymentMethod).isEqualTo(PaymentMethod.QRIS)
+        assertThat(shares[1].amount).isEqualTo(12_000L)
+        assertThat(shares[1].transactionCount).isEqualTo(1)
+        assertThat(presenter.uiState.value.averageTransaction).isEqualTo(20_666L)
+    }
+
+    @Test
+    fun hasNoPaymentSharesWhenRangeHasNoTransactions() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createPresenter(RecordingReportRepository(), this)
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(presenter.uiState.value.paymentShares).isEmpty()
+        assertThat(presenter.uiState.value.averageTransaction).isEqualTo(0L)
     }
 
     private fun createPresenter(

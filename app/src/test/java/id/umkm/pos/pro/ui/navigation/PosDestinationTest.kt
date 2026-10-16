@@ -10,13 +10,22 @@ class PosDestinationTest {
         val names = PosDestination.entries.map { it.name }
 
         assertThat(names)
-            .containsExactly("CASHIER", "PRODUCTS", "CUSTOMERS", "REPORTS", "MORE")
+            .containsExactly("BERANDA", "KASIR", "PRODUK", "LAPORAN", "LAINNYA")
             .inOrder()
     }
 
     @Test
-    fun cashierIsTheDefaultDestination() {
-        assertThat(PosDestination.entries.first()).isEqualTo(PosDestination.CASHIER)
+    fun berandaIsTheDefaultDestination() {
+        assertThat(PosDestination.entries.first()).isEqualTo(PosDestination.BERANDA)
+    }
+
+    @Test
+    fun destinationsUseIndonesianLabels() {
+        val labels = PosDestination.entries.map { it.label }
+
+        assertThat(labels)
+            .containsExactly("Beranda", "Kasir", "Produk", "Laporan", "Lainnya")
+            .inOrder()
     }
 
     @Test

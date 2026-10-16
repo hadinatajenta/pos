@@ -87,7 +87,7 @@ class CustomersViewModelTest {
 
         val state = viewModel.state.value
         assertThat(state.recordPayment).isNull()
-        assertThat(state.message).isEqualTo("Payment recorded")
+        assertThat(state.message).isEqualTo("Pembayaran dicatat")
         val recorded = transactions.recordedPayments.single()
         assertThat(recorded.transactionId).isEqualTo(20L)
         assertThat(recorded.customerId).isEqualTo(7L)
@@ -107,7 +107,7 @@ class CustomersViewModelTest {
         viewModel.onConfirmPayment()
 
         assertThat(viewModel.state.value.recordPayment?.validationMessage)
-            .isEqualTo("The payment exceeds the outstanding balance.")
+            .isEqualTo("Jumlah pembayaran melebihi sisa utang.")
         assertThat(transactions.recordedPayments).isEmpty()
     }
 
@@ -124,7 +124,7 @@ class CustomersViewModelTest {
         viewModel.onConfirmPayment()
 
         assertThat(viewModel.state.value.recordPayment?.validationMessage)
-            .isEqualTo("Enter a payment amount greater than zero.")
+            .isEqualTo("Masukkan jumlah pembayaran lebih dari nol.")
         assertThat(transactions.recordedPayments).isEmpty()
     }
 
@@ -148,7 +148,7 @@ class CustomersViewModelTest {
         viewModel.onOpenCreateCustomer()
         viewModel.onSubmitCustomerForm()
 
-        assertThat(viewModel.state.value.customerForm?.validationMessage).isEqualTo("Enter a customer name.")
+        assertThat(viewModel.state.value.customerForm?.validationMessage).isEqualTo("Masukkan nama pelanggan.")
         assertThat(customers.currentCustomers()).isEmpty()
     }
 
@@ -165,7 +165,7 @@ class CustomersViewModelTest {
         assertThat(saved.name).isEqualTo("Ibu Ani")
         assertThat(saved.whatsappNumber).isEqualTo("0812345678")
         assertThat(viewModel.state.value.customerForm).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Customer saved")
+        assertThat(viewModel.state.value.message).isEqualTo("Pelanggan disimpan")
     }
 
     @Test

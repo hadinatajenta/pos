@@ -77,6 +77,6 @@ class DebtStatusTest {
         val labels = DebtStatus.entries.map { debtStatusLabel(it) }
 
         assertThat(labels.toSet()).hasSize(DebtStatus.entries.size)
-        assertThat(labels).containsExactly("Paid", "Unpaid", "Partially paid", "Overdue")
+        assertThat(labels).containsExactly("Lunas", "Belum Dibayar", "Dibayar Sebagian", "Jatuh Tempo")
     }
 }

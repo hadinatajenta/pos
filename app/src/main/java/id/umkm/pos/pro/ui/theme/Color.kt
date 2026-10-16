@@ -1,71 +1,128 @@
 package id.umkm.pos.pro.ui.theme
 
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-internal val LightPrimary = Color(0xFF1F6F5C)
-internal val LightOnPrimary = Color(0xFFFFFFFF)
-internal val LightPrimaryContainer = Color(0xFFC8E9DE)
-internal val LightOnPrimaryContainer = Color(0xFF0A3A2E)
-internal val LightInversePrimary = Color(0xFF8ED4BE)
-internal val LightSecondary = Color(0xFF4A635C)
-internal val LightOnSecondary = Color(0xFFFFFFFF)
-internal val LightSecondaryContainer = Color(0xFFCDE8DF)
-internal val LightOnSecondaryContainer = Color(0xFF12231E)
-internal val LightTertiary = Color(0xFF40606F)
-internal val LightOnTertiary = Color(0xFFFFFFFF)
-internal val LightTertiaryContainer = Color(0xFFC3E0F0)
-internal val LightOnTertiaryContainer = Color(0xFF001F2B)
-internal val LightError = Color(0xFFB3261E)
-internal val LightOnError = Color(0xFFFFFFFF)
-internal val LightErrorContainer = Color(0xFFF9DEDC)
-internal val LightOnErrorContainer = Color(0xFF410E0B)
-internal val LightBackground = Color(0xFFFCFDFB)
-internal val LightOnBackground = Color(0xFF1A1C1B)
-internal val LightSurface = Color(0xFFFCFDFB)
-internal val LightOnSurface = Color(0xFF1A1C1B)
-internal val LightSurfaceVariant = Color(0xFFDEE4DF)
-internal val LightOnSurfaceVariant = Color(0xFF414944)
-internal val LightSurfaceContainerLowest = Color(0xFFFFFFFF)
-internal val LightSurfaceContainerLow = Color(0xFFF6F8F5)
-internal val LightSurfaceContainer = Color(0xFFF0F3EF)
-internal val LightSurfaceContainerHigh = Color(0xFFEAEEE8)
-internal val LightSurfaceContainerHighest = Color(0xFFE4E9E3)
-internal val LightOutline = Color(0xFF717974)
-internal val LightOutlineVariant = Color(0xFFC1C9C3)
-internal val LightInverseSurface = Color(0xFF2F312F)
-internal val LightInverseOnSurface = Color(0xFFF0F1EE)
-internal val LightScrim = Color(0xFF000000)
+object PosColors {
+    val ForestGreen = Color(0xFF0B3B32)
+    val DeepGreen = Color(0xFF082D27)
+    val GreenElevated = Color(0xFF14503F)
+    val GreenSoft = Color(0xFFE3EDE8)
 
-internal val DarkPrimary = Color(0xFF7FD3BC)
-internal val DarkOnPrimary = Color(0xFF00382A)
-internal val DarkPrimaryContainer = Color(0xFF00513F)
-internal val DarkOnPrimaryContainer = Color(0xFF9BF0D5)
-internal val DarkInversePrimary = Color(0xFF1F6F5C)
-internal val DarkSecondary = Color(0xFFB1CCC2)
-internal val DarkOnSecondary = Color(0xFF1D352D)
-internal val DarkSecondaryContainer = Color(0xFF334B43)
-internal val DarkOnSecondaryContainer = Color(0xFFCDE8DF)
-internal val DarkTertiary = Color(0xFFA7C9DC)
-internal val DarkOnTertiary = Color(0xFF0A3542)
-internal val DarkTertiaryContainer = Color(0xFF294B5A)
-internal val DarkOnTertiaryContainer = Color(0xFFC3E0F0)
-internal val DarkError = Color(0xFFF2B8B5)
-internal val DarkOnError = Color(0xFF601410)
-internal val DarkErrorContainer = Color(0xFF8C1D18)
-internal val DarkOnErrorContainer = Color(0xFFF9DEDC)
-internal val DarkBackground = Color(0xFF0D0F0E)
-internal val DarkOnBackground = Color(0xFFE2E3E0)
-internal val DarkSurface = Color(0xFF0D0F0E)
-internal val DarkOnSurface = Color(0xFFE2E3E0)
-internal val DarkSurfaceVariant = Color(0xFF414944)
-internal val DarkOnSurfaceVariant = Color(0xFFC1C9C3)
-internal val DarkSurfaceContainerLowest = Color(0xFF080A09)
-internal val DarkSurfaceContainerLow = Color(0xFF151716)
-internal val DarkSurfaceContainer = Color(0xFF191C1A)
-internal val DarkSurfaceContainerHigh = Color(0xFF232624)
-internal val DarkSurfaceContainerHighest = Color(0xFF2E312F)
-internal val DarkOutline = Color(0xFF8B938D)
-internal val DarkOutlineVariant = Color(0xFF414944)
-internal val DarkInverseSurface = Color(0xFFE2E3E0)
-internal val DarkInverseOnSurface = Color(0xFF2F312F)
-internal val DarkScrim = Color(0xFF000000)
+    val Background = Color(0xFFF7F5EF)
+    val Surface = Color(0xFFFFFFFF)
+    val SoftNeutral = Color(0xFFF4F1E9)
+    val Border = Color(0xFFE8E5DD)
+
+    val TextPrimary = Color(0xFF17231F)
+    val TextSecondary = Color(0xFF6D7771)
+
+    val Gold = Color(0xFFE7C46A)
+    val GoldContainer = Color(0xFFF7EDD2)
+    val OnGoldContainer = Color(0xFF4A3907)
+
+    val Success = Color(0xFF21845D)
+    val SuccessContainer = Color(0xFFDCEFE5)
+    val Warning = Color(0xFFB87917)
+    val WarningContainer = Color(0xFFF7E8CC)
+    val Danger = Color(0xFFC74742)
+    val DangerContainer = Color(0xFFF8DEDB)
+    val NeutralContainer = Color(0xFFEDEAE1)
+
+    val ChartGrid = Color(0xFFE8E5DD)
+    val ChartLine = Color(0xFF0B3B32)
+    val ChartArea = Color(0x1F21845D)
+    val ChartBar = Color(0xFF1E6B54)
+    val ChartBarMuted = Color(0xFFBCD6CA)
+}
+
+object PosColorsDark {
+    val ForestGreen = Color(0xFF16342B)
+    val DeepGreen = Color(0xFF0C211B)
+    val GreenElevated = Color(0xFF1D4A3C)
+    val GreenSoft = Color(0xFF1B2C25)
+
+    val Background = Color(0xFF0E1411)
+    val Surface = Color(0xFF151C18)
+    val SoftNeutral = Color(0xFF1C2420)
+    val Border = Color(0xFF2A342E)
+
+    val TextPrimary = Color(0xFFE7EDE9)
+    val TextSecondary = Color(0xFF9AA69F)
+
+    val Gold = Color(0xFFE7C46A)
+    val GoldContainer = Color(0xFF3A3117)
+    val OnGoldContainer = Color(0xFFF2E2B4)
+
+    val Success = Color(0xFF7FCBA7)
+    val SuccessContainer = Color(0xFF17382B)
+    val Warning = Color(0xFFE0AE5C)
+    val WarningContainer = Color(0xFF3C2F14)
+    val Danger = Color(0xFFE99B96)
+    val DangerContainer = Color(0xFF3E1F1D)
+    val NeutralContainer = Color(0xFF232C27)
+
+    val ChartGrid = Color(0xFF2A342E)
+    val ChartLine = Color(0xFF7FCBA7)
+    val ChartArea = Color(0x337FCBA7)
+    val ChartBar = Color(0xFF3E7F66)
+    val ChartBarMuted = Color(0xFF2C4A3E)
+}
+
+@Immutable
+data class PosSemanticPalette(
+    val success: Color,
+    val successContainer: Color,
+    val warning: Color,
+    val warningContainer: Color,
+    val danger: Color,
+    val dangerContainer: Color,
+    val gold: Color,
+    val goldContainer: Color,
+    val onGoldContainer: Color,
+    val neutralContainer: Color,
+    val chartGrid: Color,
+    val chartLine: Color,
+    val chartArea: Color,
+    val chartBar: Color,
+    val chartBarMuted: Color,
+)
+
+val PosLightSemanticPalette = PosSemanticPalette(
+    success = PosColors.Success,
+    successContainer = PosColors.SuccessContainer,
+    warning = PosColors.Warning,
+    warningContainer = PosColors.WarningContainer,
+    danger = PosColors.Danger,
+    dangerContainer = PosColors.DangerContainer,
+    gold = PosColors.Gold,
+    goldContainer = PosColors.GoldContainer,
+    onGoldContainer = PosColors.OnGoldContainer,
+    neutralContainer = PosColors.NeutralContainer,
+    chartGrid = PosColors.ChartGrid,
+    chartLine = PosColors.ChartLine,
+    chartArea = PosColors.ChartArea,
+    chartBar = PosColors.ChartBar,
+    chartBarMuted = PosColors.ChartBarMuted,
+)
+
+val PosDarkSemanticPalette = PosSemanticPalette(
+    success = PosColorsDark.Success,
+    successContainer = PosColorsDark.SuccessContainer,
+    warning = PosColorsDark.Warning,
+    warningContainer = PosColorsDark.WarningContainer,
+    danger = PosColorsDark.Danger,
+    dangerContainer = PosColorsDark.DangerContainer,
+    gold = PosColorsDark.Gold,
+    goldContainer = PosColorsDark.GoldContainer,
+    onGoldContainer = PosColorsDark.OnGoldContainer,
+    neutralContainer = PosColorsDark.NeutralContainer,
+    chartGrid = PosColorsDark.ChartGrid,
+    chartLine = PosColorsDark.ChartLine,
+    chartArea = PosColorsDark.ChartArea,
+    chartBar = PosColorsDark.ChartBar,
+    chartBarMuted = PosColorsDark.ChartBarMuted,
+)
+
+val LocalPosSemanticPalette = staticCompositionLocalOf { PosLightSemanticPalette }

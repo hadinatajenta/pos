@@ -1,22 +1,19 @@
 package id.umkm.pos.pro.ui
 
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,28 +23,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.feature.reports.ReportsRoute
 import id.umkm.pos.pro.ui.cashier.CashierRoute
-import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.LocalConnectivityMonitor
-import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.rememberAndroidConnectivityMonitor
 import id.umkm.pos.pro.ui.common.rememberReceiptSharer
-import id.umkm.pos.pro.ui.customers.CustomersRoute
+import id.umkm.pos.pro.ui.dashboard.DashboardRoute
+import id.umkm.pos.pro.ui.more.MoreRoute
 import id.umkm.pos.pro.ui.navigation.PosDestination
 import id.umkm.pos.pro.ui.products.ProductsRoute
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
-import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.ui.theme.PosColors
 
 const val COMPACT_NAVIGATION_TEST_TAG = "compact-navigation-bar"
 const val EXPANDED_NAVIGATION_TEST_TAG = "expanded-navigation-rail"
 
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
-    var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.CASHIER) }
+    var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.BERANDA) }
     val connectivityMonitor = rememberAndroidConnectivityMonitor()
     val shareReceipt = rememberReceiptSharer()
     CompositionLocalProvider(LocalConnectivityMonitor provides connectivityMonitor) {
@@ -55,6 +52,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
             val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
+                containerColor = MaterialTheme.colorScheme.background,
                 contentWindowInsets = WindowInsets.safeDrawing,
                 bottomBar = {
                     if (!isExpandedWindow) {
@@ -75,6 +73,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
                     DestinationHost(
                         destination = selectedDestination,
                         onShareReceipt = shareReceipt,
+                        onOpenCashier = { selectedDestination = PosDestination.KASIR },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -88,7 +87,11 @@ private fun PrimaryNavigationBar(
     selectedDestination: PosDestination,
     onDestinationSelected: (PosDestination) -> Unit,
 ) {
-    NavigationBar(modifier = Modifier.testTag(COMPACT_NAVIGATION_TEST_TAG)) {
+    NavigationBar(
+        containerColor = PosColors.ForestGreen,
+        contentColor = Color.White,
+        modifier = Modifier.testTag(COMPACT_NAVIGATION_TEST_TAG),
+    ) {
         PosDestination.entries.forEach { destination ->
             NavigationBarItem(
                 selected = destination == selectedDestination,
@@ -99,12 +102,16 @@ private fun PrimaryNavigationBar(
                         text = destination.label,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            letterSpacing = 0.sp,
-                        ),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp),
                     )
                 },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    indicatorColor = PosColors.GreenElevated,
+                    unselectedIconColor = Color.White.copy(alpha = 0.62f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.62f),
+                ),
             )
         }
     }
@@ -116,8 +123,9 @@ private fun PrimaryNavigationRail(
     onDestinationSelected: (PosDestination) -> Unit,
 ) {
     NavigationRail(
+        containerColor = PosColors.ForestGreen,
+        contentColor = Color.White,
         modifier = Modifier.testTag(EXPANDED_NAVIGATION_TEST_TAG),
-        header = { Spacer(modifier = Modifier.height(PosSpacing.sm)) },
     ) {
         PosDestination.entries.forEach { destination ->
             NavigationRailItem(
@@ -125,6 +133,13 @@ private fun PrimaryNavigationRail(
                 onClick = { onDestinationSelected(destination) },
                 icon = { Icon(imageVector = destination.icon, contentDescription = null) },
                 label = { Text(text = destination.label, maxLines = 1) },
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    indicatorColor = PosColors.GreenElevated,
+                    unselectedIconColor = Color.White.copy(alpha = 0.62f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.62f),
+                ),
             )
         }
     }
@@ -134,29 +149,17 @@ private fun PrimaryNavigationRail(
 private fun DestinationHost(
     destination: PosDestination,
     onShareReceipt: (String) -> Unit,
+    onOpenCashier: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (destination) {
-        PosDestination.CASHIER -> CashierRoute(onShareReceipt = onShareReceipt, modifier = modifier)
-        PosDestination.PRODUCTS -> ProductsRoute(modifier = modifier)
-        PosDestination.CUSTOMERS -> CustomersRoute(modifier = modifier)
-        PosDestination.REPORTS -> ReportsRoute(modifier = modifier)
-        PosDestination.MORE -> MoreDestination(modifier = modifier)
-    }
-}
-
-@Composable
-private fun MoreDestination(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxSize()) {
-        ScreenHeader(
-            title = "More",
-            supportingText = "Setup and data tools",
+        PosDestination.BERANDA -> DashboardRoute(
+            modifier = modifier,
+            onOpenCashier = onOpenCashier,
         )
-        EmptyState(
-            icon = Icons.Filled.MoreHoriz,
-            title = "Setup tools are not connected yet",
-            supportingText = "Printer, scanner, backup, export, and staff access settings appear here once their modules are wired in.",
-            modifier = Modifier.fillMaxSize(),
-        )
+        PosDestination.KASIR -> CashierRoute(onShareReceipt = onShareReceipt, modifier = modifier)
+        PosDestination.PRODUK -> ProductsRoute(modifier = modifier)
+        PosDestination.LAPORAN -> ReportsRoute(modifier = modifier)
+        PosDestination.LAINNYA -> MoreRoute(modifier = modifier)
     }
 }

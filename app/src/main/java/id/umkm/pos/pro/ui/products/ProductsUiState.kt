@@ -21,6 +21,20 @@ enum class ProductFormField {
     WHOLESALE_PRICE,
 }
 
+enum class ProductStockFilter(val label: String) {
+    ALL("Semua"),
+    IN_STOCK("Stok Tersedia"),
+    LOW_STOCK("Stok Menipis"),
+    OUT_OF_STOCK("Stok Habis");
+
+    fun matches(status: StockStatus): Boolean = when (this) {
+        ALL -> true
+        IN_STOCK -> status == StockStatus.IN_STOCK
+        LOW_STOCK -> status == StockStatus.LOW_STOCK
+        OUT_OF_STOCK -> status == StockStatus.OUT_OF_STOCK || status == StockStatus.OVERSOLD
+    }
+}
+
 data class ProductListItem(
     val product: Product,
     val stockStatus: StockStatus,
@@ -53,6 +67,7 @@ data class ProductFormState(
 
 data class ProductsUiState(
     val searchQuery: String = "",
+    val stockFilter: ProductStockFilter = ProductStockFilter.ALL,
     val products: UiState<List<ProductListItem>> = UiState.Loading,
     val form: ProductFormState? = null,
     val isSaving: Boolean = false,

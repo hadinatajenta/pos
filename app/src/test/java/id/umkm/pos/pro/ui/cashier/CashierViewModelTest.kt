@@ -65,7 +65,7 @@ class CashierViewModelTest {
         assertThat(state.cartLines).hasSize(1)
         assertThat(state.cartLines.single().productName).isEqualTo("Kopi Susu")
         assertThat(state.grandTotal).isEqualTo(2_000L)
-        assertThat(state.message).isEqualTo("Added Kopi Susu")
+        assertThat(state.message).isEqualTo("Kopi Susu ditambahkan")
     }
 
     @Test
@@ -149,7 +149,7 @@ class CashierViewModelTest {
 
         scanner.emitScan("000000")
 
-        assertThat(viewModel.state.value.message).isEqualTo("No product matched code 000000")
+        assertThat(viewModel.state.value.message).isEqualTo("Tidak ada produk dengan kode 000000")
         assertThat(viewModel.state.value.cartLines).isEmpty()
     }
 
@@ -162,7 +162,7 @@ class CashierViewModelTest {
         viewModel.onAmountReceivedChange("1000")
         viewModel.onConfirmCharge()
 
-        assertThat(viewModel.state.value.submitErrorMessage).isEqualTo("Amount received is less than the total.")
+        assertThat(viewModel.state.value.submitErrorMessage).isEqualTo("Jumlah diterima kurang dari total.")
         assertThat(viewModel.state.value.cartLines).hasSize(1)
         assertThat(transactions.savedTransactions()).isEmpty()
     }
@@ -199,7 +199,7 @@ class CashierViewModelTest {
         viewModel.onConfirmCharge()
 
         assertThat(viewModel.state.value.submitErrorMessage)
-            .isEqualTo("Choose a customer for the outstanding balance.")
+            .isEqualTo("Pilih pelanggan untuk sisa tagihan.")
         assertThat(transactions.savedTransactions()).isEmpty()
     }
 
@@ -235,7 +235,7 @@ class CashierViewModelTest {
 
         assertThat(printer.lastPrintedDocument).isNotNull()
         assertThat(printer.lastPrintedDocument?.storeName).isEqualTo("Toko Uji")
-        assertThat(viewModel.state.value.receiptMessage).isEqualTo("Receipt sent to the printer.")
+        assertThat(viewModel.state.value.receiptMessage).isEqualTo("Struk terkirim ke printer.")
     }
 
     @Test

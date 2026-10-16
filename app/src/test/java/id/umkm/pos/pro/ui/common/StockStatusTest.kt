@@ -57,9 +57,9 @@ class StockStatusTest {
         val labels = StockStatus.entries.map { stockStatusLabel(it) }
 
         assertThat(labels.toSet()).hasSize(StockStatus.entries.size)
-        assertThat(labels).contains("Oversold")
-        assertThat(labels).contains("Out of stock")
-        assertThat(labels).contains("Low stock")
-        assertThat(labels).contains("In stock")
+        assertThat(labels).contains("Stok Minus")
+        assertThat(labels).contains("Stok Habis")
+        assertThat(labels).contains("Stok Menipis")
+        assertThat(labels).contains("Tersedia")
     }
 }

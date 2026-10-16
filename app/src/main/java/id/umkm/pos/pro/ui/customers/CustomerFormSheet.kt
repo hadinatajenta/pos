@@ -23,7 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import id.umkm.pos.pro.ui.common.SectionHeading
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -48,36 +49,38 @@ internal fun CustomerFormSheet(
                 .padding(bottom = PosSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            SectionHeading(text = "New customer")
-            OutlinedTextField(
-                value = form.name,
-                onValueChange = actions.onCustomerNameChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Name") },
-                isError = form.validationMessage != null,
-                supportingText = form.validationMessage?.let { message -> { Text(message) } },
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = form.whatsappNumber,
-                onValueChange = actions.onCustomerWhatsappChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("WhatsApp number") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            )
-            OutlinedTextField(
-                value = form.notes,
-                onValueChange = actions.onCustomerNotesChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Notes") },
-            )
+            PosSectionHeader(title = "Pelanggan baru")
+            PosCard(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = form.name,
+                    onValueChange = actions.onCustomerNameChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Nama") },
+                    isError = form.validationMessage != null,
+                    supportingText = form.validationMessage?.let { message -> { Text(message) } },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = form.whatsappNumber,
+                    onValueChange = actions.onCustomerWhatsappChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Nomor WhatsApp") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                )
+                OutlinedTextField(
+                    value = form.notes,
+                    onValueChange = actions.onCustomerNotesChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Catatan") },
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
                 OutlinedButton(
                     onClick = actions.onCloseCustomerForm,
                     modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
                 ) {
-                    Text(text = "Cancel")
+                    Text(text = "Batal")
                 }
                 Button(
                     onClick = actions.onSubmitCustomerForm,
@@ -90,7 +93,7 @@ internal fun CustomerFormSheet(
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Text(text = "Save customer", style = LocalAppTextStyles.current.buttonLabel)
+                        Text(text = "Simpan", style = LocalAppTextStyles.current.buttonLabel)
                     }
                 }
             }

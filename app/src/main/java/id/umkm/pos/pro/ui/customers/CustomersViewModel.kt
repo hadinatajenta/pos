@@ -128,17 +128,17 @@ class CustomersViewModel(
         if (_state.value.isSubmitting) return
         val transactionId = draft.selectedTransactionId
         if (transactionId == null) {
-            updatePaymentValidation("Choose the debt to pay.")
+            updatePaymentValidation("Pilih utang yang akan dibayar.")
             return
         }
         val amount = draft.amountInput.toLongOrNull()
         if (amount == null || amount <= 0L) {
-            updatePaymentValidation("Enter a payment amount greater than zero.")
+            updatePaymentValidation("Masukkan jumlah pembayaran lebih dari nol.")
             return
         }
         val remainingDebt = draft.transactions.firstOrNull { it.transactionId == transactionId }?.remainingDebt ?: 0L
         if (amount > remainingDebt) {
-            updatePaymentValidation("The payment exceeds the outstanding balance.")
+            updatePaymentValidation("Jumlah pembayaran melebihi sisa utang.")
             return
         }
         viewModelScope.launch {
@@ -152,7 +152,7 @@ class CustomersViewModel(
                 )
             ) {
                 is AppResult.Success -> _state.update {
-                    it.copy(isSubmitting = false, recordPayment = null, message = "Payment recorded")
+                    it.copy(isSubmitting = false, recordPayment = null, message = "Pembayaran dicatat")
                 }
 
                 is AppResult.Failure -> _state.update {
@@ -199,7 +199,7 @@ class CustomersViewModel(
         if (_state.value.isSubmitting) return
         if (form.name.isBlank()) {
             _state.update { current ->
-                current.copy(customerForm = form.copy(validationMessage = "Enter a customer name."))
+                current.copy(customerForm = form.copy(validationMessage = "Masukkan nama pelanggan."))
             }
             return
         }
@@ -214,7 +214,7 @@ class CustomersViewModel(
                     notes = form.notes.trim().ifBlank { null },
                 ),
             )
-            _state.update { it.copy(isSubmitting = false, customerForm = null, message = "Customer saved") }
+            _state.update { it.copy(isSubmitting = false, customerForm = null, message = "Pelanggan disimpan") }
         }
     }
 

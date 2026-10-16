@@ -17,8 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -39,9 +37,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
-import id.umkm.pos.pro.ui.common.SectionHeading
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PosSectionHeader
+import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -68,7 +68,7 @@ internal fun RecordPaymentSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Record payment",
+                        text = "Catat pembayaran",
                         style = LocalAppTextStyles.current.screenTitle,
                     )
                     Text(
@@ -78,7 +78,7 @@ internal fun RecordPaymentSheet(
                     )
                 }
                 IconButton(onClick = actions.onCloseRecordPayment) {
-                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Close payment form")
+                    Icon(imageVector = Icons.Filled.Close, contentDescription = "Tutup formulir pembayaran")
                 }
             }
             HorizontalDivider()
@@ -90,33 +90,35 @@ internal fun RecordPaymentSheet(
                     .padding(horizontal = PosSpacing.md, vertical = PosSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
             ) {
-                OutstandingDebtRow(outstandingDebt = draft.outstandingDebt)
+                OutstandingDebtCard(outstandingDebt = draft.outstandingDebt)
                 if (draft.transactions.isEmpty()) {
                     Text(
-                        text = "This customer has no outstanding debt to pay.",
+                        text = "Pelanggan ini tidak punya utang yang perlu dibayar.",
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    SectionHeading(text = "Debt to pay")
-                    draft.transactions.forEach { item ->
-                        TransactionOptionRow(
-                            item = item,
-                            isSelected = item.transactionId == draft.selectedTransactionId,
-                            onSelect = { actions.onSelectTransaction(item.transactionId) },
-                        )
+                    PosCard(modifier = Modifier.fillMaxWidth()) {
+                        PosSectionHeader(title = "Pilih utang")
+                        draft.transactions.forEach { item ->
+                            TransactionOptionRow(
+                                item = item,
+                                isSelected = item.transactionId == draft.selectedTransactionId,
+                                onSelect = { actions.onSelectTransaction(item.transactionId) },
+                            )
+                        }
                     }
                 }
                 OutlinedTextField(
                     value = draft.amountInput,
                     onValueChange = actions.onAmountChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Amount received") },
+                    label = { Text("Jumlah diterima") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 PaymentShortcut(
-                    label = "Pay selected debt in full",
+                    label = "Bayar penuh utang terpilih",
                     remainingDebt = draft.transactions
                         .firstOrNull { it.transactionId == draft.selectedTransactionId }
                         ?.remainingDebt,
@@ -130,7 +132,7 @@ internal fun RecordPaymentSheet(
                     value = draft.note,
                     onValueChange = actions.onNoteChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Note") },
+                    label = { Text("Catatan") },
                 )
                 draft.validationMessage?.let { message ->
                     Text(
@@ -141,42 +143,34 @@ internal fun RecordPaymentSheet(
                 }
             }
             HorizontalDivider()
-            Button(
+            PrimaryActionButton(
+                text = "Konfirmasi pembayaran",
                 onClick = actions.onConfirmPayment,
-                enabled = !isSubmitting && draft.transactions.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(PosSpacing.md)
-                    .heightIn(min = PosSizes.touchTarget),
-            ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(PosSizes.iconSmall),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(text = "Confirm payment", style = LocalAppTextStyles.current.buttonLabel)
-                }
-            }
+                enabled = draft.transactions.isNotEmpty(),
+                loading = isSubmitting,
+                modifier = Modifier.padding(PosSpacing.md),
+            )
         }
     }
 }
 
 @Composable
-private fun OutstandingDebtRow(outstandingDebt: Long) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = "Outstanding",
-            style = LocalAppTextStyles.current.sectionHeading,
-        )
-        Text(
-            text = Rupiah.format(outstandingDebt),
-            style = LocalAppTextStyles.current.financialValueLarge,
-        )
+private fun OutstandingDebtCard(outstandingDebt: Long) {
+    PosCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "Sisa utang",
+                style = LocalAppTextStyles.current.sectionHeading,
+            )
+            Text(
+                text = Rupiah.format(outstandingDebt),
+                style = LocalAppTextStyles.current.financialValueLarge,
+            )
+        }
     }
 }
 
@@ -231,7 +225,7 @@ private fun PaymentMethodSelector(
     onSelect: (PaymentMethod) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
-        SectionHeading(text = "Payment method")
+        PosSectionHeader(title = "Metode pembayaran")
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
@@ -261,8 +255,8 @@ private fun PaymentMethodSelector(
 private fun dueDateText(item: OutstandingTransactionItem): String {
     val dueDate = item.dueDateMillis
     return when {
-        dueDate == null -> "No due date"
-        item.isOverdue -> "Overdue since ${formatDate(dueDate)}"
-        else -> "Due ${formatDate(dueDate)}"
+        dueDate == null -> "Tanpa jatuh tempo"
+        item.isOverdue -> "Terlambat sejak ${formatDate(dueDate)}"
+        else -> "Jatuh tempo ${formatDate(dueDate)}"
     }
 }

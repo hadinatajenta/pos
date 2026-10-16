@@ -38,7 +38,7 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 @Composable
 fun LoadingState(
     modifier: Modifier = Modifier,
-    label: String = "Loading",
+    label: String = "Memuat",
 ) {
     Box(
         modifier = modifier.fillMaxWidth().padding(PosSpacing.lg),
@@ -119,7 +119,7 @@ fun ErrorState(
             tint = MaterialTheme.colorScheme.error,
         )
         Text(
-            text = "Something went wrong",
+            text = "Terjadi kesalahan",
             style = LocalAppTextStyles.current.sectionHeading,
             textAlign = TextAlign.Center,
         )
@@ -140,7 +140,7 @@ fun ErrorState(
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
             Spacer(modifier = Modifier.width(PosSpacing.xs))
-            Text(text = "Try again", style = LocalAppTextStyles.current.buttonLabel)
+            Text(text = "Coba lagi", style = LocalAppTextStyles.current.buttonLabel)
         }
     }
 }
@@ -169,7 +169,7 @@ fun OfflineNotice(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
             Text(
-                text = "Offline. Sales keep working and data stays on this device.",
+                text = "Mode offline. Penjualan tetap berjalan dan data tersimpan di perangkat ini.",
                 style = LocalAppTextStyles.current.supportingLabel,
             )
         }
