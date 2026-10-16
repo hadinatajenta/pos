@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -45,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -64,12 +66,15 @@ import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StatusChip
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.formatDate
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
+
+private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
 @Composable
 fun CustomersRoute(modifier: Modifier = Modifier) {
@@ -262,9 +267,10 @@ private fun CustomerDebtCard(
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
+            AutoSizeNumberText(
                 text = Rupiah.format(item.outstandingDebt),
                 style = LocalAppTextStyles.current.financialValue,
+                modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
             )
         }
         Text(

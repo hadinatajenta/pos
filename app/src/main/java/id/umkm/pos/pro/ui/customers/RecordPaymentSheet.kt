@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +40,7 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -47,6 +49,8 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
 private const val RECORD_PAYMENT_SHEET_HEIGHT_FRACTION = 0.92f
+private val TRAILING_VALUE_MAX_WIDTH = 176.dp
+private val TOTAL_VALUE_MAX_WIDTH = 208.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,9 +170,10 @@ private fun OutstandingDebtCard(outstandingDebt: Long) {
                 text = "Sisa utang",
                 style = LocalAppTextStyles.current.sectionHeading,
             )
-            Text(
+            AutoSizeNumberText(
                 text = Rupiah.format(outstandingDebt),
                 style = LocalAppTextStyles.current.financialValueLarge,
+                modifier = Modifier.widthIn(max = TOTAL_VALUE_MAX_WIDTH),
             )
         }
     }
@@ -198,9 +203,10 @@ private fun TransactionOptionRow(
                 },
             )
         }
-        Text(
+        AutoSizeNumberText(
             text = Rupiah.format(item.remainingDebt),
             style = LocalAppTextStyles.current.financialValue,
+            modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
         )
     }
 }

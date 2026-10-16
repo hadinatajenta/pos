@@ -40,6 +40,7 @@ import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.formatQuantity
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.ChartLegend
 import id.umkm.pos.pro.ui.components.ChartSlice
 import id.umkm.pos.pro.ui.components.DailySalesBarChart
@@ -177,12 +178,11 @@ private fun SummaryCard(state: DashboardUiState) {
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
+                AutoSizeNumberText(
                     text = Rupiah.format(state.totalSales),
                     style = LocalAppTextStyles.current.financialValueLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 if (state.comparisonPercent != null) {
                     DeltaLabel(percent = state.comparisonPercent)
@@ -243,13 +243,13 @@ private fun MetricCell(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
+        AutoSizeNumberText(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = PosSpacing.xxs),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = PosSpacing.xxs),
         )
     }
 }

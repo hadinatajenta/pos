@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +48,7 @@ import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.formatQuantity
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -56,6 +58,8 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
 private const val SHEET_HEIGHT_FRACTION = 0.9f
+private val TRAILING_VALUE_MAX_WIDTH = 176.dp
+private val TOTAL_VALUE_MAX_WIDTH = 208.dp
 
 @Composable
 internal fun CashierCartPane(
@@ -100,9 +104,10 @@ internal fun CashierCartBar(
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(
+                    AutoSizeNumberText(
                         text = Rupiah.format(state.grandTotal),
                         style = LocalAppTextStyles.current.financialValue,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 SecondaryTextAction(
@@ -207,9 +212,10 @@ private fun CartLineCard(
                 )
                 LinePriceNote(line = line)
             }
-            Text(
+            AutoSizeNumberText(
                 text = Rupiah.format(line.lineSubtotal),
                 style = LocalAppTextStyles.current.financialValue,
+                modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
             )
         }
         Row(
@@ -288,9 +294,10 @@ private fun CartTotals(state: CashierUiState) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(text = "Total", style = LocalAppTextStyles.current.sectionHeading)
-            Text(
+            AutoSizeNumberText(
                 text = Rupiah.format(pricedCart.grandTotal),
                 style = LocalAppTextStyles.current.financialValueLarge,
+                modifier = Modifier.widthIn(max = TOTAL_VALUE_MAX_WIDTH),
             )
         }
     }
@@ -308,7 +315,11 @@ private fun TotalLine(label: String, value: String) {
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(text = value, style = LocalAppTextStyles.current.body)
+        AutoSizeNumberText(
+            text = value,
+            style = LocalAppTextStyles.current.body,
+            modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
+        )
     }
 }
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
@@ -39,6 +40,7 @@ import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.stockStatusLabel
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.ProductThumbnail
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
@@ -48,6 +50,7 @@ import id.umkm.pos.pro.ui.theme.PosTextStyles
 
 private val PRODUCT_ROW_THUMBNAIL_SIZE = 64.dp
 private val STOCK_PILL_ICON_SIZE = 12.dp
+private val STOCK_PILL_TEXT_MAX_WIDTH = 84.dp
 private val PRODUCT_PRICE_TEXT_STYLE = PosTextStyles.financialValue.copy(fontSize = 15.sp, lineHeight = 20.sp)
 
 @Composable
@@ -87,12 +90,11 @@ internal fun ProductRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                AutoSizeNumberText(
                     text = Rupiah.format(product.basePrice),
                     style = PRODUCT_PRICE_TEXT_STYLE,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
             Row(
@@ -187,11 +189,11 @@ private fun ProductStockPill(
                 modifier = Modifier.size(STOCK_PILL_ICON_SIZE),
                 tint = contentColor,
             )
-            Text(
+            AutoSizeNumberText(
                 text = quantityLabel,
                 style = MaterialTheme.typography.labelMedium,
                 color = contentColor,
-                maxLines = 1,
+                modifier = Modifier.widthIn(max = STOCK_PILL_TEXT_MAX_WIDTH),
             )
         }
     }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +49,7 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -56,6 +58,8 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
 private const val CUSTOMER_LIST_MAX_HEIGHT_DP = 320
+private val TRAILING_VALUE_MAX_WIDTH = 176.dp
+private val TOTAL_VALUE_MAX_WIDTH = 208.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,9 +116,10 @@ private fun PaymentTotal(grandTotal: Long) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(text = "Total", style = LocalAppTextStyles.current.sectionHeading)
-        Text(
+        AutoSizeNumberText(
             text = Rupiah.format(grandTotal),
             style = LocalAppTextStyles.current.financialValueLarge,
+            modifier = Modifier.widthIn(max = TOTAL_VALUE_MAX_WIDTH),
         )
     }
 }
@@ -305,13 +310,14 @@ private fun SummaryLine(
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
+        AutoSizeNumberText(
             text = value,
             style = if (emphasized) {
                 LocalAppTextStyles.current.financialValue
             } else {
                 LocalAppTextStyles.current.body
             },
+            modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
         )
     }
 }

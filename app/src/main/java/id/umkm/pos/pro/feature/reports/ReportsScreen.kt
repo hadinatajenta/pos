@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -68,10 +69,11 @@ import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.ChartLegend
 import id.umkm.pos.pro.ui.components.ChartPoint
 import id.umkm.pos.pro.ui.components.ChartSlice
-import id.umkm.pos.pro.ui.components.MetricCard
+import id.umkm.pos.pro.ui.components.IconBadge
 import id.umkm.pos.pro.ui.components.PaymentMethodDonut
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
@@ -97,6 +99,7 @@ private val VISIBLE_RANGE_PRESETS = listOf(
 
 private const val DAILY_BREAKDOWN_COLUMNS = 2
 private const val TOTAL_METRIC_WEIGHT = 1.3f
+private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
 @Composable
 internal fun ReportsScreen(
@@ -482,20 +485,20 @@ private fun ReportTotals(
                 .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            MetricCard(
+            ReportMetricCard(
                 label = "Total Penjualan",
                 value = Rupiah.format(summary.totalSales),
                 icon = Icons.Filled.PointOfSale,
                 emphasized = true,
                 modifier = Modifier.weight(TOTAL_METRIC_WEIGHT).fillMaxHeight(),
             )
-            MetricCard(
+            ReportMetricCard(
                 label = "Jumlah Transaksi",
                 value = summary.transactionCount.toString(),
                 icon = Icons.Filled.Receipt,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
-            MetricCard(
+            ReportMetricCard(
                 label = "Rata-rata Transaksi",
                 value = Rupiah.format(averageTransaction),
                 icon = Icons.Filled.Payments,
@@ -508,7 +511,7 @@ private fun ReportTotals(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
     ) {
-        MetricCard(
+        ReportMetricCard(
             label = "Total Penjualan",
             value = Rupiah.format(summary.totalSales),
             icon = Icons.Filled.PointOfSale,
@@ -519,16 +522,53 @@ private fun ReportTotals(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            MetricCard(
+            ReportMetricCard(
                 label = "Jumlah Transaksi",
                 value = summary.transactionCount.toString(),
                 modifier = Modifier.weight(1f),
             )
-            MetricCard(
+            ReportMetricCard(
                 label = "Rata-rata Transaksi",
                 value = Rupiah.format(averageTransaction),
                 modifier = Modifier.weight(1f),
             )
+        }
+    }
+}
+
+@Composable
+private fun ReportMetricCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    emphasized: Boolean = false,
+) {
+    PosCard(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.size(PosSpacing.xs))
+                AutoSizeNumberText(
+                    text = value,
+                    style = if (emphasized) {
+                        LocalAppTextStyles.current.financialValueLarge
+                    } else {
+                        LocalAppTextStyles.current.financialValue
+                    },
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (icon != null) {
+                IconBadge(icon = icon)
+            }
         }
     }
 }
@@ -604,14 +644,16 @@ private fun DailyRow(
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
+                AutoSizeNumberText(
                     text = Rupiah.format(day.totalSales),
                     style = LocalAppTextStyles.current.financialValue,
+                    modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
                 )
-                Text(
+                AutoSizeNumberText(
                     text = "Laba ${Rupiah.format(day.netProfit)}",
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
                 )
             }
         }
@@ -702,9 +744,10 @@ private fun TransactionRow(
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(modifier = Modifier.width(PosSpacing.sm))
-                Text(
+                AutoSizeNumberText(
                     text = Rupiah.format(transaction.grandTotal),
                     style = LocalAppTextStyles.current.financialValue,
+                    modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
                 )
             }
             Text(

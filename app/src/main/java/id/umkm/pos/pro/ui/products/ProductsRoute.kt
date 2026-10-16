@@ -1,10 +1,8 @@
 package id.umkm.pos.pro.ui.products
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -22,7 +20,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,13 +42,12 @@ import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.OfflineNotice
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosColors
-import id.umkm.pos.pro.ui.theme.PosPaneWeights
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
 private val PRODUCTS_CONTENT_SHAPE = RoundedCornerShape(topStart = PosSpacing.lg, topEnd = PosSpacing.lg)
+private val FORM_SHEET_MAX_WIDTH = 560.dp
 private const val FORM_SHEET_HEIGHT_FRACTION = 0.92f
 
 @Composable
@@ -85,9 +81,7 @@ internal fun ProductsScreen(
         snackbarHostState.showSnackbar(message)
         actions.onMessageConsumed()
     }
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isTwoPane = maxWidth >= PosBreakpoints.twoPane
-        val form = state.form
+    Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -106,25 +100,11 @@ internal fun ProductsScreen(
                     OfflineNotice()
                     ProductsSearchField(state = state, actions = actions)
                     ProductsFilterRow(state = state, actions = actions)
-                    Row(modifier = Modifier.weight(1f)) {
-                        ProductsCatalogPane(
-                            state = state,
-                            actions = actions,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (isTwoPane && form != null) {
-                            VerticalDivider()
-                            ProductFormPanel(
-                                form = form,
-                                isSaving = state.isSaving,
-                                actions = actions,
-                                modifier = Modifier
-                                    .weight(PosPaneWeights.detail)
-                                    .fillMaxHeight()
-                                    .background(MaterialTheme.colorScheme.background),
-                            )
-                        }
-                    }
+                    ProductsCatalogPane(
+                        state = state,
+                        actions = actions,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
             BannerAdSlot(placement = AdPlacement.STOCK_MANAGEMENT)
@@ -135,7 +115,7 @@ internal fun ProductsScreen(
                 .align(Alignment.BottomCenter)
                 .padding(PosSpacing.md),
         )
-        if (!isTwoPane && form != null) {
+        state.form?.let { form ->
             ProductFormSheet(form = form, isSaving = state.isSaving, actions = actions)
         }
         if (state.pendingDeleteProductId != null) {
@@ -233,6 +213,7 @@ private fun ProductFormSheet(
     ModalBottomSheet(
         onDismissRequest = actions.onDismissForm,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetMaxWidth = FORM_SHEET_MAX_WIDTH,
     ) {
         ProductFormPanel(
             form = form,

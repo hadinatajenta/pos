@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Print
@@ -27,12 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+
+private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,13 +154,14 @@ private fun ReceiptSummaryLine(
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
+        AutoSizeNumberText(
             text = value,
             style = if (emphasized) {
                 LocalAppTextStyles.current.financialValue
             } else {
                 LocalAppTextStyles.current.body
             },
+            modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
         )
     }
 }
