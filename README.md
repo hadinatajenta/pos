@@ -94,3 +94,5 @@ See [docs/playstore-release.md](docs/playstore-release.md) for the Google Play r
 ## License
 
 © 2026 Hadinata Jenta. All rights reserved.
+
+Navigation icons are from [Lucide](https://lucide.dev), used under the ISC License.

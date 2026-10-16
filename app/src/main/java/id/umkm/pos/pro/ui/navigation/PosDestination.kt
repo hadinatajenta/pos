@@ -1,20 +1,15 @@
 package id.umkm.pos.pro.ui.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
+import id.umkm.pos.pro.R
 
 enum class PosDestination(
     val label: String,
-    val icon: ImageVector,
+    @DrawableRes val iconRes: Int,
 ) {
-    BERANDA("Beranda", Icons.Filled.Home),
-    KASIR("Kasir", Icons.Filled.PointOfSale),
-    PRODUK("Produk", Icons.Filled.Inventory2),
-    LAPORAN("Laporan", Icons.Filled.BarChart),
-    LAINNYA("Lainnya", Icons.Filled.MoreHoriz),
+    BERANDA("Beranda", R.drawable.ic_nav_beranda),
+    KASIR("Kasir", R.drawable.ic_nav_kasir),
+    PRODUK("Produk", R.drawable.ic_nav_produk),
+    LAPORAN("Laporan", R.drawable.ic_nav_laporan),
+    LAINNYA("Lainnya", R.drawable.ic_nav_lainnya),
 }

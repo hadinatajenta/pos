@@ -39,9 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,7 +67,6 @@ private const val FLOATING_NAVIGATION_ELEVATION = 10
 
 private val FloatingNavigationShape = RoundedCornerShape(28.dp)
 private val FloatingNavigationMinHeight = 56.dp
-private val FloatingNavigationGlowHeight = 26.dp
 private val FloatingNavigationIndicatorWidth = 26.dp
 private val FloatingNavigationIndicatorHeight = 3.dp
 
@@ -171,17 +170,6 @@ private fun FloatingNavigationItem(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .height(FloatingNavigationGlowHeight)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(PosColors.Accent.copy(alpha = 0.20f), Color.Transparent),
-                        ),
-                    ),
-            )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
                     .width(FloatingNavigationIndicatorWidth)
                     .height(FloatingNavigationIndicatorHeight)
                     .clip(RoundedCornerShape(percent = 50))
@@ -194,7 +182,7 @@ private fun FloatingNavigationItem(
             verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
         ) {
             Icon(
-                imageVector = destination.icon,
+                painter = painterResource(destination.iconRes),
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(PosSizes.iconMedium),
@@ -224,7 +212,7 @@ private fun PrimaryNavigationRail(
             NavigationRailItem(
                 selected = destination == selectedDestination,
                 onClick = { onDestinationSelected(destination) },
-                icon = { Icon(imageVector = destination.icon, contentDescription = null) },
+                icon = { Icon(painter = painterResource(destination.iconRes), contentDescription = null) },
                 label = { Text(text = destination.label, maxLines = 1) },
                 colors = NavigationRailItemDefaults.colors(
                     selectedIconColor = Color.White,
