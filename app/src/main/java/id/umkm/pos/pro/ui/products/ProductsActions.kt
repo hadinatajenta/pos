@@ -2,7 +2,8 @@ package id.umkm.pos.pro.ui.products
 
 class ProductsActions(
     val onSearchQueryChange: (String) -> Unit,
-    val onStockFilterChange: (ProductStockFilter) -> Unit,
+    val onCategoryFilterChange: (String?) -> Unit,
+    val onSortOrderChange: (ProductSortOrder) -> Unit,
     val onRetry: () -> Unit,
     val onOpenCreateForm: () -> Unit,
     val onOpenEditForm: (Long) -> Unit,
@@ -19,7 +20,8 @@ class ProductsActions(
     companion object {
         fun from(viewModel: ProductsViewModel): ProductsActions = ProductsActions(
             onSearchQueryChange = viewModel::onSearchQueryChange,
-            onStockFilterChange = viewModel::onStockFilterChange,
+            onCategoryFilterChange = viewModel::onCategoryFilterChange,
+            onSortOrderChange = viewModel::onSortOrderChange,
             onRetry = viewModel::onRetry,
             onOpenCreateForm = viewModel::onOpenCreateForm,
             onOpenEditForm = viewModel::onOpenEditForm,

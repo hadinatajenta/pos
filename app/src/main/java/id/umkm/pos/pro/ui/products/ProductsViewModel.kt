@@ -10,8 +10,10 @@ import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.resolveStockStatus
 import id.umkm.pos.pro.ui.common.sanitizeQuantityInput
+import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.common.toAppError
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +34,8 @@ class ProductsViewModel(
     val state: StateFlow<ProductsUiState> = _state.asStateFlow()
 
     private val searchQuery = MutableStateFlow("")
-    private val stockFilter = MutableStateFlow(ProductStockFilter.ALL)
+    private val categoryFilter = MutableStateFlow<String?>(null)
+    private val sortOrder = MutableStateFlow(ProductSortOrder.NEWEST)
     private val reloadTrigger = MutableStateFlow(0)
 
     init {
@@ -44,9 +47,15 @@ class ProductsViewModel(
         _state.update { it.copy(searchQuery = query) }
     }
 
-    fun onStockFilterChange(filter: ProductStockFilter) {
-        stockFilter.value = filter
-        _state.update { it.copy(stockFilter = filter) }
+    fun onCategoryFilterChange(category: String?) {
+        val normalizedCategory = category?.trim()?.takeIf { it.isNotEmpty() }
+        categoryFilter.value = normalizedCategory
+        _state.update { it.copy(categoryFilter = normalizedCategory) }
+    }
+
+    fun onSortOrderChange(order: ProductSortOrder) {
+        sortOrder.value = order
+        _state.update { it.copy(sortOrder = order) }
     }
 
     fun onRetry() {
@@ -142,24 +151,24 @@ class ProductsViewModel(
 
     private fun observeProducts() {
         viewModelScope.launch {
-            combine(searchQuery, reloadTrigger, stockFilter) { query, _, filter -> query to filter }
-                .flatMapLatest { (query, filter) ->
-                    productRepository.observeProducts(query.ifBlank { null })
-                        .map<List<Product>, UiState<List<ProductListItem>>> { products ->
-                            val items = products
-                                .map { product ->
-                                    ProductListItem(product = product, stockStatus = resolveStockStatus(product))
-                                }
-                                .filter { item -> filter.matches(item.stockStatus) }
-                            if (items.isEmpty()) UiState.Empty else UiState.Success(items)
-                        }
-                        .catch { error -> emit(UiState.Error(error.toAppError())) }
-                }
-                .collect { listState ->
-                    _state.update { current -> current.copy(products = listState) }
+            combine(loadedProductsFlow(), categoryFilter, sortOrder) { productsState, category, order ->
+                productsState.toCatalogState(categoryFilter = category, sortOrder = order)
+            }
+                .collect { catalogState ->
+                    _state.update { current -> current.copy(catalog = catalogState) }
                 }
         }
     }
+
+    private fun loadedProductsFlow(): Flow<UiState<List<Product>>> =
+        combine(searchQuery, reloadTrigger) { query, _ -> query }
+            .flatMapLatest { query ->
+                productRepository.observeProducts(query.ifBlank { null })
+                    .map<List<Product>, UiState<List<Product>>> { products ->
+                        if (products.isEmpty()) UiState.Empty else UiState.Success(products)
+                    }
+                    .catch { error -> emit(UiState.Error(error.toAppError())) }
+            }
 
     private suspend fun saveProduct(form: ProductFormState): Long? {
         val existing = form.productId?.let { productId -> productRepository.getProductById(productId) }
@@ -197,6 +206,24 @@ class ProductsViewModel(
             ),
         )
     }
+}
+
+private fun UiState<List<Product>>.toCatalogState(
+    categoryFilter: String?,
+    sortOrder: ProductSortOrder,
+): UiState<ProductsCatalog> {
+    if (this is UiState.Error) return UiState.Error(error)
+    if (this == UiState.Loading) return UiState.Loading
+    val products = successDataOrNull() ?: return UiState.Empty
+    return UiState.Success(
+        buildProductsCatalog(
+            productItems = products.map { product ->
+                ProductListItem(product = product, stockStatus = resolveStockStatus(product))
+            },
+            categoryFilter = categoryFilter,
+            sortOrder = sortOrder,
+        ),
+    )
 }
 
 private fun Product.toForm(unit: ProductUnit?): ProductFormState = ProductFormState(

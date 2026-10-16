@@ -26,13 +26,22 @@ class ProductsViewModelTest {
     )
 
     private fun itemsOf(state: ProductsUiState): List<ProductListItem> =
-        state.products.successDataOrNull().orEmpty()
+        state.catalog.successDataOrNull()?.items.orEmpty()
+
+    private fun categoriesOf(state: ProductsUiState): List<String> =
+        state.catalog.successDataOrNull()?.categories.orEmpty()
+
+    private fun runPendingCoroutines() {
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+    }
 
     @Test
     fun loadingAnEmptyCatalogReportsEmptyState() = runTest(mainDispatcherRule.testDispatcher) {
         val viewModel = createViewModel()
 
-        assertThat(viewModel.state.value.products).isEqualTo(UiState.Empty)
+        runPendingCoroutines()
+
+        assertThat(viewModel.state.value.catalog).isEqualTo(UiState.Empty)
     }
 
     @Test
@@ -46,10 +55,123 @@ class ProductsViewModelTest {
         val viewModel = createViewModel()
 
         viewModel.onSearchQueryChange("Teh")
+        runPendingCoroutines()
 
         val items = itemsOf(viewModel.state.value)
-        assertThat(items.map { it.product.name }).containsExactly("Teh Manis")
+        assertThat(items.map { item -> item.product.name }).containsExactly("Teh Manis")
         assertThat(viewModel.state.value.searchQuery).isEqualTo("Teh")
+    }
+
+    @Test
+    fun catalogWithoutSearchMatchesReportsEmptyState() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(listOf(uiSampleProduct(id = 1L, name = "Kopi Susu")))
+        val viewModel = createViewModel()
+
+        viewModel.onSearchQueryChange("Teh")
+        runPendingCoroutines()
+
+        assertThat(viewModel.state.value.catalog).isEqualTo(UiState.Empty)
+        assertThat(viewModel.state.value.searchQuery).isEqualTo("Teh")
+    }
+
+    @Test
+    fun categoryFilterNarrowsTheCatalogToTheSelectedCategory() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu").copy(category = "Minuman"),
+                uiSampleProduct(id = 2L, name = "Roti Cokelat").copy(category = "Makanan"),
+                uiSampleProduct(id = 3L, name = "Air Mineral").copy(category = "Minuman"),
+                uiSampleProduct(id = 4L, name = "Sabun Cuci").copy(category = null),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        runPendingCoroutines()
+
+        assertThat(categoriesOf(viewModel.state.value)).containsExactly("Makanan", "Minuman").inOrder()
+
+        viewModel.onCategoryFilterChange("Minuman")
+        runPendingCoroutines()
+        assertThat(itemsOf(viewModel.state.value).map { item -> item.product.name })
+            .containsExactly("Kopi Susu", "Air Mineral")
+
+        viewModel.onCategoryFilterChange(null)
+        runPendingCoroutines()
+        assertThat(itemsOf(viewModel.state.value)).hasSize(4)
+        assertThat(viewModel.state.value.categoryFilter).isNull()
+    }
+
+    @Test
+    fun categoryFilterWithoutMatchesKeepsTheCatalogVisible() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(listOf(uiSampleProduct(id = 1L, name = "Kopi Susu").copy(category = "Minuman")))
+        val viewModel = createViewModel()
+
+        viewModel.onCategoryFilterChange("Peralatan")
+        runPendingCoroutines()
+
+        assertThat(itemsOf(viewModel.state.value)).isEmpty()
+        assertThat(viewModel.state.value.catalog.successDataOrNull()).isNotNull()
+        assertThat(categoriesOf(viewModel.state.value)).containsExactly("Minuman")
+        assertThat(viewModel.state.value.categoryFilter).isEqualTo("Peralatan")
+    }
+
+    @Test
+    fun sortOrderOrdersTheVisibleProducts() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 5L, name = "Teh Manis", stockBaseQty = 18.0),
+                uiSampleProduct(id = 1L, name = "Air Mineral", stockBaseQty = 2.0),
+                uiSampleProduct(id = 9L, name = "Kopi Susu", stockBaseQty = 40.0),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        runPendingCoroutines()
+
+        assertThat(itemsOf(viewModel.state.value).map { item -> item.product.name })
+            .containsExactly("Kopi Susu", "Teh Manis", "Air Mineral")
+            .inOrder()
+
+        viewModel.onSortOrderChange(ProductSortOrder.NAME_ASC)
+        runPendingCoroutines()
+        assertThat(itemsOf(viewModel.state.value).map { item -> item.product.name })
+            .containsExactly("Air Mineral", "Kopi Susu", "Teh Manis")
+            .inOrder()
+
+        viewModel.onSortOrderChange(ProductSortOrder.LOWEST_STOCK)
+        runPendingCoroutines()
+        assertThat(itemsOf(viewModel.state.value).map { item -> item.product.stockBaseQty })
+            .containsExactly(2.0, 18.0, 40.0)
+            .inOrder()
+
+        assertThat(viewModel.state.value.sortOrder).isEqualTo(ProductSortOrder.LOWEST_STOCK)
+    }
+
+    @Test
+    fun catalogStatsCountStockAlertsFromTheLoadedProducts() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu", stockBaseQty = 100.0, minStockAlert = 5.0)
+                    .copy(category = "Minuman"),
+                uiSampleProduct(id = 2L, name = "Teh Manis", stockBaseQty = 2.0, minStockAlert = 5.0)
+                    .copy(category = "Minuman"),
+                uiSampleProduct(id = 3L, name = "Gula Pasir", stockBaseQty = 0.0, minStockAlert = 5.0)
+                    .copy(category = "Bahan"),
+                uiSampleProduct(id = 4L, name = "Sabun Cuci", stockBaseQty = -1.0, minStockAlert = 5.0)
+                    .copy(category = null),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        runPendingCoroutines()
+
+        val stats = requireNotNull(viewModel.state.value.catalog.successDataOrNull()).stats
+
+        assertThat(stats.totalCount).isEqualTo(4)
+        assertThat(stats.categoryCount).isEqualTo(2)
+        assertThat(stats.lowStockCount).isEqualTo(1)
+        assertThat(stats.outOfStockCount).isEqualTo(2)
+        assertThat(stats.uncategorizedCount).isEqualTo(1)
     }
 
     @Test
@@ -86,42 +208,6 @@ class ProductsViewModelTest {
         assertThat(saved.sku).isEqualTo("SKU-10000")
         assertThat(viewModel.state.value.form).isNull()
         assertThat(viewModel.state.value.message).isEqualTo("Produk disimpan")
-    }
-
-    @Test
-    fun stockFilterNarrowsTheCatalogToTheMatchingStatus() = runTest(mainDispatcherRule.testDispatcher) {
-        products.setProducts(
-            listOf(
-                uiSampleProduct(id = 1L, name = "Kopi Susu", stockBaseQty = 100.0, minStockAlert = 5.0),
-                uiSampleProduct(id = 2L, name = "Teh Manis", stockBaseQty = 2.0, minStockAlert = 5.0),
-                uiSampleProduct(id = 3L, name = "Gula Pasir", stockBaseQty = 0.0, minStockAlert = 5.0),
-                uiSampleProduct(id = 4L, name = "Sabun Cuci", stockBaseQty = -1.0, minStockAlert = 5.0),
-            ),
-        )
-        val viewModel = createViewModel()
-
-        viewModel.onStockFilterChange(ProductStockFilter.IN_STOCK)
-        assertThat(itemsOf(viewModel.state.value).map { it.product.name }).containsExactly("Kopi Susu")
-
-        viewModel.onStockFilterChange(ProductStockFilter.LOW_STOCK)
-        assertThat(itemsOf(viewModel.state.value).map { it.product.name }).containsExactly("Teh Manis")
-
-        viewModel.onStockFilterChange(ProductStockFilter.OUT_OF_STOCK)
-        assertThat(itemsOf(viewModel.state.value).map { it.product.name }).containsExactly("Gula Pasir", "Sabun Cuci")
-
-        viewModel.onStockFilterChange(ProductStockFilter.ALL)
-        assertThat(itemsOf(viewModel.state.value)).hasSize(4)
-        assertThat(viewModel.state.value.stockFilter).isEqualTo(ProductStockFilter.ALL)
-    }
-
-    @Test
-    fun stockFilterWithoutMatchesReportsEmptyState() = runTest(mainDispatcherRule.testDispatcher) {
-        products.setProducts(listOf(uiSampleProduct(id = 1L, name = "Kopi Susu", stockBaseQty = 100.0)))
-        val viewModel = createViewModel()
-
-        viewModel.onStockFilterChange(ProductStockFilter.OUT_OF_STOCK)
-
-        assertThat(viewModel.state.value.products).isEqualTo(UiState.Empty)
     }
 
     @Test
