@@ -1,0 +1,3 @@
+-keepattributes *Annotation*
+-keep class id.umkm.pos.pro.core.model.** { *; }
+-keep class id.umkm.pos.pro.data.local.entity.** { *; }
