@@ -1,0 +1,91 @@
+package id.umkm.pos.pro.ui.products
+
+import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+
+class ProductFormValidationTest {
+
+    private fun validForm(): ProductFormState = ProductFormState(
+        name = "Kopi Susu",
+        sku = "SKU-1",
+        baseUnit = "pcs",
+        basePrice = "18000",
+        baseHpp = "9000",
+        stockQuantity = "12",
+        minStockAlert = "3",
+    )
+
+    @Test
+    fun acceptsACompleteForm() {
+        assertThat(validateProductForm(validForm())).isEmpty()
+    }
+
+    @Test
+    fun rejectsAMissingName() {
+        val errors = validateProductForm(validForm().copy(name = " "))
+
+        assertThat(errors).containsKey(ProductFormField.NAME)
+    }
+
+    @Test
+    fun rejectsNegativeAmounts() {
+        val errors = validateProductForm(validForm().copy(basePrice = "-1"))
+
+        assertThat(errors).containsKey(ProductFormField.BASE_PRICE)
+    }
+
+    @Test
+    fun rejectsUnparsableQuantities() {
+        val errors = validateProductForm(validForm().copy(stockQuantity = "abc"))
+
+        assertThat(errors).containsKey(ProductFormField.STOCK_QUANTITY)
+    }
+
+    @Test
+    fun ignoresAdvancedFieldsWhileCollapsed() {
+        val collapsed = validForm().copy(variantName = "Dus", conversionFactor = "", variantPrice = "")
+
+        assertThat(validateProductForm(collapsed)).isEmpty()
+    }
+
+    @Test
+    fun requiresAConversionFactorWhenAVariantIsNamed() {
+        val expanded = validForm().copy(
+            isAdvancedExpanded = true,
+            variantName = "Dus",
+            conversionFactor = "0",
+            variantPrice = "78000",
+        )
+
+        val errors = validateProductForm(expanded)
+
+        assertThat(errors).containsKey(ProductFormField.CONVERSION_FACTOR)
+        assertThat(errors).doesNotContainKey(ProductFormField.VARIANT_PRICE)
+    }
+
+    @Test
+    fun rejectsAWholesaleMinimumBelowOne() {
+        val expanded = validForm().copy(
+            isAdvancedExpanded = true,
+            wholesaleMinQty = "0",
+            wholesalePrice = "75000",
+        )
+
+        val errors = validateProductForm(expanded)
+
+        assertThat(errors).containsKey(ProductFormField.WHOLESALE_MIN_QTY)
+    }
+
+    @Test
+    fun rejectsAWholesalePriceWithoutAMinimumQuantity() {
+        val expanded = validForm().copy(
+            isAdvancedExpanded = true,
+            wholesaleMinQty = "",
+            wholesalePrice = "abc",
+        )
+
+        val errors = validateProductForm(expanded)
+
+        assertThat(errors).containsKey(ProductFormField.WHOLESALE_PRICE)
+    }
+}

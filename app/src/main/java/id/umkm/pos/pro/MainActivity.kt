@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
-import id.umkm.pos.pro.app.PosApp
+import id.umkm.pos.pro.ui.AppRoot
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 
@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             UmkmPosTheme {
                 CompositionLocalProvider(LocalAppContainer provides container) {
-                    PosApp()
+                    AppRoot()
                 }
             }
         }
