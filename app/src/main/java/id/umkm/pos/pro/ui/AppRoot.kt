@@ -74,6 +74,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
                         destination = selectedDestination,
                         onShareReceipt = shareReceipt,
                         onOpenCashier = { selectedDestination = PosDestination.KASIR },
+                        onOpenProducts = { selectedDestination = PosDestination.PRODUK },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -150,12 +151,14 @@ private fun DestinationHost(
     destination: PosDestination,
     onShareReceipt: (String) -> Unit,
     onOpenCashier: () -> Unit,
+    onOpenProducts: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (destination) {
         PosDestination.BERANDA -> DashboardRoute(
             modifier = modifier,
             onOpenCashier = onOpenCashier,
+            onOpenProducts = onOpenProducts,
         )
         PosDestination.KASIR -> CashierRoute(onShareReceipt = onShareReceipt, modifier = modifier)
         PosDestination.PRODUK -> ProductsRoute(modifier = modifier)

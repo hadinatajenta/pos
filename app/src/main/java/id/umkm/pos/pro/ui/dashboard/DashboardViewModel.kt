@@ -74,7 +74,7 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = state.asStateFlow()
 
     init {
-        load(DashboardRangePreset.LAST_7_DAYS)
+        load(DashboardRangePreset.TODAY)
     }
 
     fun selectPreset(preset: DashboardRangePreset) {
@@ -93,7 +93,8 @@ class DashboardViewModel(
                 val range = rangeFor(preset)
                 val settings = settingsRepository.getSettings()
                 val summary = reportRepository.salesSummary(range)
-                val daily = reportRepository.salesByDay(range)
+                val weekRange = rangeFactory.lastDays(7)
+                val daily = reportRepository.salesByDay(weekRange)
                 val transactions = reportRepository.transactionsInRange(range)
                 val previousRange = previousRangeOf(range)
                 val previousSummary = reportRepository.salesSummary(previousRange)
@@ -141,7 +142,7 @@ class DashboardViewModel(
                         0L
                     },
                     netProfit = summary.netProfit,
-                    dailyPoints = ChartBuckets.dailyZeroFilled(range, daily).map { day ->
+                    dailyPoints = ChartBuckets.dailyZeroFilled(weekRange, daily).map { day ->
                         ChartPoint(
                             label = if (daily.size <= 7) {
                                 ChartBuckets.weekdayLabel(day.epochDay)

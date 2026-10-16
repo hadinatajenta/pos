@@ -13,6 +13,7 @@ import id.umkm.pos.pro.ui.LocalAppContainer
 fun DashboardRoute(
     modifier: Modifier = Modifier,
     onOpenCashier: () -> Unit = {},
+    onOpenProducts: () -> Unit = {},
 ) {
     val container = LocalAppContainer.current
     val viewModel: DashboardViewModel = viewModel(
@@ -31,8 +32,8 @@ fun DashboardRoute(
     val state by viewModel.uiState.collectAsState()
     DashboardScreen(
         state = state,
-        onPresetSelected = viewModel::selectPreset,
         onOpenCashier = onOpenCashier,
+        onOpenProducts = onOpenProducts,
         onRetry = viewModel::refresh,
         modifier = modifier,
     )

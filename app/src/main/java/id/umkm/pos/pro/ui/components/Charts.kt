@@ -127,7 +127,7 @@ fun DailySalesBarChart(
                     val barHeight = (point.value / maxValue * size.height).toFloat()
                     val left = slot * index + (slot - barWidth) / 2f
                     drawRoundRect(
-                        color = if (index == points.lastIndex) palette.chartBar else palette.chartBarMuted,
+                        color = palette.chartBar,
                         topLeft = Offset(left, size.height - barHeight),
                         size = Size(barWidth, barHeight),
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),

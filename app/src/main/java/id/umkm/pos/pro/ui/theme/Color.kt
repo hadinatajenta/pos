@@ -37,8 +37,8 @@ object PosColors {
     val ChartGrid = Color(0xFFEEEDE8)
     val ChartLine = Color(0xFF082923)
     val ChartArea = Color(0x1F16845F)
-    val ChartBar = Color(0xFF245848)
-    val ChartBarMuted = Color(0xFFB9CFC6)
+    val ChartBar = Color(0xFF0F3B31)
+    val ChartBarMuted = Color(0xFFBFD3CB)
 }
 
 object PosColorsDark {
