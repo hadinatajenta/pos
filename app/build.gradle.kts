@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,14 +9,21 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val isReleaseSigningConfigured = keystorePropertiesFile.exists()
+if (isReleaseSigningConfigured) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "id.umkm.pos.pro"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "id.umkm.pos.pro"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
@@ -23,12 +33,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (isReleaseSigningConfigured) {
+                storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             isMinifyEnabled = false
         }
         release {
+            signingConfig = if (isReleaseSigningConfigured) signingConfigs.getByName("release") else null
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

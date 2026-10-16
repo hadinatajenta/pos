@@ -11,3 +11,6 @@
 *.apk
 *.aab
 *.log
+/keystore.properties
+*.jks
+*.keystore
