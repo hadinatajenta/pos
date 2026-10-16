@@ -98,7 +98,6 @@ private val VISIBLE_RANGE_PRESETS = listOf(
 )
 
 private const val DAILY_BREAKDOWN_COLUMNS = 2
-private const val TOTAL_METRIC_WEIGHT = 1.3f
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
 @Composable
@@ -120,12 +119,12 @@ internal fun ReportsScreen(
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= PosBreakpoints.twoPane
         Column(modifier = Modifier.fillMaxSize()) {
-            ReportsHeader(onExport = { isExportDialogVisible = true })
             RangeControlsCard(
                 uiState = uiState,
                 timeZone = timeZone,
                 onPresetSelected = onPresetSelected,
                 onCustomRangeSelected = onCustomRangeSelected,
+                onExport = { isExportDialogVisible = true },
             )
             ExportStatus(exportState = uiState.exportState, onDismissExport = onDismissExport)
             if (uiState.isLoading && uiState.summary != null) {
@@ -165,37 +164,6 @@ internal fun ReportsScreen(
     }
 }
 
-@Composable
-private fun ReportsHeader(onExport: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(PosColors.ForestGreen)
-            .padding(PosSpacing.md),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Laporan",
-                    style = LocalAppTextStyles.current.screenTitle,
-                    color = Color.White,
-                )
-                Text(
-                    text = "Ringkasan penjualan dan transaksi",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = Color.White.copy(alpha = 0.75f),
-                )
-            }
-            Spacer(modifier = Modifier.width(PosSpacing.sm))
-            HeaderAction(
-                label = "Ekspor",
-                icon = Icons.Filled.FileDownload,
-                onClick = onExport,
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun RangeControlsCard(
@@ -203,6 +171,7 @@ private fun RangeControlsCard(
     timeZone: TimeZone,
     onPresetSelected: (ReportsRangePreset) -> Unit,
     onCustomRangeSelected: (Long, Long) -> Unit,
+    onExport: () -> Unit,
 ) {
     var activePicker by remember { mutableStateOf<DatePickerTarget?>(null) }
     val startEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.startMillis, timeZone)
@@ -213,7 +182,10 @@ private fun RangeControlsCard(
             .fillMaxWidth()
             .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
     ) {
-        PosSectionHeader(title = "Rentang Tanggal")
+        PosSectionHeader(
+            title = "Rentang Tanggal",
+            action = { ExportAction(onClick = onExport) },
+        )
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
@@ -346,16 +318,11 @@ private fun ExportDialog(
 }
 
 @Composable
-private fun HeaderAction(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
+private fun ExportAction(onClick: () -> Unit) {
     Surface(
-        color = Color.White.copy(alpha = 0.14f),
+        color = PosColors.ForestGreen,
         contentColor = Color.White,
         shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
         modifier = Modifier.clickable(onClick = onClick),
     ) {
         Box(
@@ -367,8 +334,18 @@ private fun HeaderAction(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
             ) {
-                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(text = label, style = LocalAppTextStyles.current.buttonLabel, color = Color.White)
+                Icon(
+                    imageVector = Icons.Filled.FileDownload,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.White,
+                )
+                Text(
+                    text = "Ekspor",
+                    style = LocalAppTextStyles.current.buttonLabel,
+                    color = Color.White,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -600,8 +577,7 @@ private fun ReportTotals(
                 label = "Total Penjualan",
                 value = Rupiah.format(summary.totalSales),
                 icon = Icons.Filled.PointOfSale,
-                emphasized = true,
-                modifier = Modifier.weight(TOTAL_METRIC_WEIGHT),
+                modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
                 label = "Jumlah Transaksi",
@@ -662,6 +638,7 @@ private fun ReportMetricCard(
                     text = label,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 2,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

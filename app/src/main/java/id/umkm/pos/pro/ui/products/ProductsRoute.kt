@@ -1,8 +1,10 @@
 package id.umkm.pos.pro.ui.products
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -89,7 +91,6 @@ internal fun ProductsScreen(
                 .fillMaxSize()
                 .background(PosColors.ForestGreen),
         ) {
-            ProductsHeader(onCreateProduct = actions.onOpenCreateForm)
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
@@ -100,6 +101,14 @@ internal fun ProductsScreen(
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     OfflineNotice()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = PosSpacing.md, end = PosSpacing.md, top = PosSpacing.md),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        AddProductButton(onClick = actions.onOpenCreateForm)
+                    }
                     ProductsSearchField(state = state, actions = actions)
                     ProductsFilterRow(state = state, actions = actions)
                     ProductsCatalogPane(
