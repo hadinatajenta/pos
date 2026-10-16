@@ -102,6 +102,7 @@ private fun MoreMenu(
                     onClick = { if (entry.label == "Pelanggan & Kasbon") onOpenCustomers() },
                 )
             }
+            DemoDataSection()
         }
     }
 }

@@ -48,6 +48,9 @@ abstract class TransactionDao {
     @Query("UPDATE transactions SET remaining_debt = :remainingDebt, status = :status WHERE id = :transactionId")
     abstract suspend fun updateDebtState(transactionId: Long, remainingDebt: Long, status: TransactionStatus)
 
+    @Query("DELETE FROM transactions WHERE notes = :note")
+    abstract suspend fun deleteTransactionsByNote(note: String): Int
+
     @Transaction
     open suspend fun insertTransactionWithItems(
         transaction: TransactionEntity,

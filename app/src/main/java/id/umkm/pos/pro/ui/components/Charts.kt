@@ -82,13 +82,6 @@ fun SalesLineChart(
                         }
                     }
                     drawPath(path = linePath, color = palette.chartLine, style = Stroke(width = 2.5.dp.toPx()))
-                } else {
-                    drawLine(
-                        color = palette.chartLine,
-                        start = Offset(0f, offsets.first().y),
-                        end = Offset(size.width, offsets.first().y),
-                        strokeWidth = 2.5.dp.toPx(),
-                    )
                 }
                 offsets.forEach { offset ->
                     drawCircle(color = palette.chartLine, radius = 4.dp.toPx(), center = offset)

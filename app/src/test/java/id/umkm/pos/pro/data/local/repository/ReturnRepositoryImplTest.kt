@@ -124,6 +124,8 @@ private class FakeTransactionDao : TransactionDao() {
     override suspend fun updateDebtState(transactionId: Long, remainingDebt: Long, status: TransactionStatus) {
         unused()
     }
+
+    override suspend fun deleteTransactionsByNote(note: String): Int = unused()
 }
 
 private class FakeProductDao : ProductDao {
@@ -161,6 +163,8 @@ private class FakeProductDao : ProductDao {
     override suspend fun adjustStock(productId: Long, delta: Double) {
         unused()
     }
+
+    override suspend fun deleteProductsBySkuPattern(skuPattern: String): Int = unused()
 }
 
 private fun unused(): Nothing = error("fake repository dependency must not be used")

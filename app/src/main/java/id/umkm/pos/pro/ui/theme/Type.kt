@@ -4,67 +4,85 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import id.umkm.pos.pro.R
+
+val PosFontFamily = FontFamily(
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
+    Font(R.font.inter_bold, FontWeight.Bold),
+)
 
 val PosTypography = Typography(
     headlineMedium = TextStyle(
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
+        fontFamily = PosFontFamily,
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     headlineSmall = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 22.sp,
         lineHeight = 30.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     titleLarge = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 20.sp,
         lineHeight = 28.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     titleMedium = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     titleSmall = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.Medium,
     ),
     bodyLarge = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.Normal,
     ),
     bodyMedium = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 15.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
         fontWeight = FontWeight.Normal,
     ),
     bodySmall = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 13.sp,
-        lineHeight = 20.sp,
+        lineHeight = 18.sp,
         fontWeight = FontWeight.Normal,
     ),
     labelLarge = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.4.sp,
     ),
     labelMedium = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.9.sp,
     ),
     labelSmall = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
+        lineHeight = 15.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.9.sp,
     ),
 )
 
@@ -84,44 +102,51 @@ private const val TABULAR_NUMERALS = "tnum"
 
 val PosTextStyles = AppTextStyles(
     screenTitle = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 24.sp,
-        lineHeight = 32.sp,
+        lineHeight = 30.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     sectionHeading = TextStyle(
-        fontSize = 16.sp,
+        fontFamily = PosFontFamily,
+        fontSize = 17.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     body = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 15.sp,
-        lineHeight = 24.sp,
+        lineHeight = 22.sp,
         fontWeight = FontWeight.Normal,
     ),
     supportingLabel = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 13.sp,
-        lineHeight = 20.sp,
+        lineHeight = 18.sp,
         fontWeight = FontWeight.Normal,
     ),
     financialValue = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 20.sp,
         lineHeight = 26.sp,
         fontWeight = FontWeight.SemiBold,
         fontFeatureSettings = TABULAR_NUMERALS,
     ),
     financialValueLarge = TextStyle(
-        fontSize = 30.sp,
-        lineHeight = 36.sp,
+        fontFamily = PosFontFamily,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
         fontWeight = FontWeight.Bold,
         fontFeatureSettings = TABULAR_NUMERALS,
     ),
     tableHeader = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         fontWeight = FontWeight.Medium,
-        letterSpacing = 0.9.sp,
     ),
     buttonLabel = TextStyle(
+        fontFamily = PosFontFamily,
         fontSize = 15.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.SemiBold,

@@ -52,4 +52,7 @@ interface ProductDao {
 
     @Query("UPDATE products SET stock_base_qty = stock_base_qty + :delta WHERE id = :productId")
     suspend fun adjustStock(productId: Long, delta: Double)
+
+    @Query("DELETE FROM products WHERE sku LIKE :skuPattern")
+    suspend fun deleteProductsBySkuPattern(skuPattern: String): Int
 }

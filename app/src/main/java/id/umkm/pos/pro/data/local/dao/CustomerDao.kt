@@ -32,4 +32,7 @@ interface CustomerDao {
 
     @Query("UPDATE customers SET total_debt = MAX(0, total_debt + :delta) WHERE id = :customerId")
     suspend fun adjustTotalDebt(customerId: Long, delta: Long)
+
+    @Query("DELETE FROM customers WHERE notes = :note")
+    suspend fun deleteCustomersByNote(note: String): Int
 }

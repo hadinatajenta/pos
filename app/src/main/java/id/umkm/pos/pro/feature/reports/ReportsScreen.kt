@@ -6,13 +6,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,9 +56,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.PaymentMethod
+import id.umkm.pos.pro.core.model.ReportRange
+import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.ui.common.EmptyState
@@ -60,16 +71,19 @@ import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.ChartLegend
 import id.umkm.pos.pro.ui.components.ChartPoint
 import id.umkm.pos.pro.ui.components.ChartSlice
-import id.umkm.pos.pro.ui.components.CompactMetric
 import id.umkm.pos.pro.ui.components.MetricCard
 import id.umkm.pos.pro.ui.components.PaymentMethodDonut
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.SalesLineChart
 import id.umkm.pos.pro.ui.components.SecondaryTextAction
+import id.umkm.pos.pro.ui.components.paymentSliceColor
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosColors
+import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import java.util.TimeZone
 
 private enum class DatePickerTarget { START, END }
@@ -80,6 +94,9 @@ private val VISIBLE_RANGE_PRESETS = listOf(
     ReportsRangePreset.LAST_30_DAYS,
     ReportsRangePreset.THIS_MONTH,
 )
+
+private const val DAILY_BREAKDOWN_COLUMNS = 2
+private const val TOTAL_METRIC_WEIGHT = 1.3f
 
 @Composable
 internal fun ReportsScreen(
@@ -96,42 +113,46 @@ internal fun ReportsScreen(
     modifier: Modifier = Modifier,
 ) {
     val timeZone = remember { TimeZone.getDefault() }
-    Column(modifier = modifier.fillMaxSize()) {
-        ReportsHeader(
-            uiState = uiState,
-            timeZone = timeZone,
-            onPresetSelected = onPresetSelected,
-            onCustomRangeSelected = onCustomRangeSelected,
-            onExportCsv = onExportCsv,
-        )
-        ExportStatus(exportState = uiState.exportState, onDismissExport = onDismissExport)
-        if (uiState.isLoading && uiState.summary != null) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            val error = uiState.error
-            val drillDown = uiState.drillDown
-            when {
-                error != null -> ErrorState(error = error, onRetry = onRefresh)
-                drillDown != null -> DrillDownSection(
-                    drillDown = drillDown,
-                    timeZone = timeZone,
-                    onCloseDrillDown = onCloseDrillDown,
-                    onTransactionReturn = onTransactionReturn,
-                )
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isExpanded = maxWidth >= PosBreakpoints.twoPane
+        Column(modifier = Modifier.fillMaxSize()) {
+            ReportsHeader(
+                uiState = uiState,
+                timeZone = timeZone,
+                onPresetSelected = onPresetSelected,
+                onCustomRangeSelected = onCustomRangeSelected,
+                onExportCsv = onExportCsv,
+            )
+            ExportStatus(exportState = uiState.exportState, onDismissExport = onDismissExport)
+            if (uiState.isLoading && uiState.summary != null) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                val error = uiState.error
+                val drillDown = uiState.drillDown
+                when {
+                    error != null -> ErrorState(error = error, onRetry = onRefresh)
+                    drillDown != null -> DrillDownSection(
+                        drillDown = drillDown,
+                        timeZone = timeZone,
+                        onCloseDrillDown = onCloseDrillDown,
+                        onTransactionReturn = onTransactionReturn,
+                    )
 
-                uiState.summary == null -> LoadingState(label = "Memuat laporan")
-                else -> MainReportContent(
-                    uiState = uiState,
-                    onSummaryDrillDown = onSummaryDrillDown,
-                    onDayDrillDown = onDayDrillDown,
-                )
+                    uiState.summary == null -> LoadingState(label = "Memuat laporan")
+                    else -> MainReportContent(
+                        uiState = uiState,
+                        isExpanded = isExpanded,
+                        onSummaryDrillDown = onSummaryDrillDown,
+                        onDayDrillDown = onDayDrillDown,
+                    )
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun ReportsHeader(
     uiState: ReportsUiState,
@@ -180,22 +201,26 @@ private fun ReportsHeader(
                     label = preset.label,
                     selected = preset == uiState.preset,
                     onClick = { onPresetSelected(preset) },
+                    maxLines = 1,
                 )
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
             HeaderChip(
                 label = "Dari ${ReportDates.formatLocalDateShort(uiState.range.startMillis, timeZone)}",
                 selected = uiState.preset == ReportsRangePreset.CUSTOM,
                 onClick = { activePicker = DatePickerTarget.START },
+                maxLines = 2,
             )
             HeaderChip(
                 label = "Sampai ${ReportDates.formatLocalDateShort(uiState.range.endMillis, timeZone)}",
                 selected = uiState.preset == ReportsRangePreset.CUSTOM,
                 onClick = { activePicker = DatePickerTarget.END },
+                maxLines = 2,
             )
         }
     }
@@ -249,13 +274,18 @@ private fun HeaderAction(
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
         modifier = Modifier.clickable(onClick = onClick),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        Box(
+            modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = label, style = LocalAppTextStyles.current.buttonLabel, color = Color.White)
+            Row(
+                modifier = Modifier.padding(horizontal = PosSpacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            ) {
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(text = label, style = LocalAppTextStyles.current.buttonLabel, color = Color.White)
+            }
         }
     }
 }
@@ -265,6 +295,7 @@ private fun HeaderChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    maxLines: Int,
 ) {
     Surface(
         color = if (selected) Color.White.copy(alpha = 0.18f) else Color.Transparent,
@@ -273,14 +304,18 @@ private fun HeaderChip(
         border = BorderStroke(1.dp, Color.White.copy(alpha = if (selected) 0.9f else 0.35f)),
         modifier = Modifier.clickable(onClick = onClick),
     ) {
-        Text(
-            text = label,
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = Color.White,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
-        )
+        Box(
+            modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = Color.White,
+                maxLines = maxLines,
+                modifier = Modifier.padding(horizontal = PosSpacing.md),
+            )
+        }
     }
 }
 
@@ -335,6 +370,7 @@ private fun ExportStatusRow(content: @Composable RowScope.() -> Unit) {
 @Composable
 private fun MainReportContent(
     uiState: ReportsUiState,
+    isExpanded: Boolean,
     onSummaryDrillDown: () -> Unit,
     onDayDrillDown: (Long) -> Unit,
 ) {
@@ -348,29 +384,42 @@ private fun MainReportContent(
         return
     }
 
+    val breakdownDays = uiState.dailySales
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(PosSpacing.md),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
     ) {
         item {
-            MetricCard(
-                label = "Total Penjualan",
-                value = Rupiah.format(summary.totalSales),
-                icon = Icons.Filled.PointOfSale,
-                emphasized = true,
-                modifier = Modifier.fillMaxWidth(),
+            ReportTotals(
+                summary = summary,
+                averageTransaction = uiState.averageTransaction,
+                isExpanded = isExpanded,
             )
         }
-        item {
-            PosCard(modifier = Modifier.fillMaxWidth()) {
-                CompactMetric(label = "Jumlah Transaksi", value = summary.transactionCount.toString())
-                CompactMetric(label = "Rata-rata Transaksi", value = Rupiah.format(uiState.averageTransaction))
+        if (isExpanded && uiState.paymentShares.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
+                ) {
+                    SalesChartCard(
+                        points = uiState.salesChartPoints,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                    PaymentMethodsCard(
+                        shares = uiState.paymentShares,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
             }
-        }
-        item { SalesChartCard(days = uiState.dailySales) }
-        if (uiState.paymentShares.isNotEmpty()) {
-            item { PaymentMethodsCard(shares = uiState.paymentShares) }
+        } else {
+            item { SalesChartCard(points = uiState.salesChartPoints, modifier = Modifier.fillMaxWidth()) }
+            if (uiState.paymentShares.isNotEmpty()) {
+                item { PaymentMethodsCard(shares = uiState.paymentShares, modifier = Modifier.fillMaxWidth()) }
+            }
         }
         item {
             PosSectionHeader(
@@ -379,7 +428,7 @@ private fun MainReportContent(
                 action = { SecondaryTextAction(text = "Lihat Semua", onClick = onSummaryDrillDown) },
             )
         }
-        if (uiState.dailySales.isEmpty()) {
+        if (breakdownDays.isEmpty()) {
             item {
                 Text(
                     text = "Belum ada rincian harian pada rentang ini.",
@@ -387,32 +436,119 @@ private fun MainReportContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        } else if (isExpanded) {
+            items(
+                items = breakdownDays.chunked(DAILY_BREAKDOWN_COLUMNS),
+                key = { columns -> columns.first().epochDay },
+            ) { columns ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
+                ) {
+                    columns.forEach { day ->
+                        DailyRow(
+                            day = day,
+                            onDayDrillDown = onDayDrillDown,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    repeat(DAILY_BREAKDOWN_COLUMNS - columns.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
         } else {
-            items(items = uiState.dailySales, key = { day -> day.epochDay }) { day ->
-                DailyRow(day = day, onDayDrillDown = onDayDrillDown)
+            items(items = breakdownDays, key = { day -> day.epochDay }) { day ->
+                DailyRow(
+                    day = day,
+                    onDayDrillDown = onDayDrillDown,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun SalesChartCard(days: List<DailySales>) {
-    val hasChartData = days.any { day -> day.totalSales > 0L }
-    val points = if (hasChartData) {
-        days.map { day ->
-            ChartPoint(label = ReportDates.weekdayShortLabel(day.epochDay), value = day.totalSales.toDouble())
+private fun ReportTotals(
+    summary: SalesSummary,
+    averageTransaction: Long,
+    isExpanded: Boolean,
+) {
+    if (isExpanded) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
+        ) {
+            MetricCard(
+                label = "Total Penjualan",
+                value = Rupiah.format(summary.totalSales),
+                icon = Icons.Filled.PointOfSale,
+                emphasized = true,
+                modifier = Modifier.weight(TOTAL_METRIC_WEIGHT).fillMaxHeight(),
+            )
+            MetricCard(
+                label = "Jumlah Transaksi",
+                value = summary.transactionCount.toString(),
+                icon = Icons.Filled.Receipt,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+            MetricCard(
+                label = "Rata-rata Transaksi",
+                value = Rupiah.format(averageTransaction),
+                icon = Icons.Filled.Payments,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
         }
-    } else {
-        emptyList()
+        return
     }
-    PosCard(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
+    ) {
+        MetricCard(
+            label = "Total Penjualan",
+            value = Rupiah.format(summary.totalSales),
+            icon = Icons.Filled.PointOfSale,
+            emphasized = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            MetricCard(
+                label = "Jumlah Transaksi",
+                value = summary.transactionCount.toString(),
+                modifier = Modifier.weight(1f),
+            )
+            MetricCard(
+                label = "Rata-rata Transaksi",
+                value = Rupiah.format(averageTransaction),
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SalesChartCard(
+    points: List<ChartPoint>,
+    modifier: Modifier = Modifier,
+) {
+    PosCard(modifier = modifier) {
         PosSectionHeader(title = "Grafik Penjualan")
         SalesLineChart(points = points)
     }
 }
 
 @Composable
-private fun PaymentMethodsCard(shares: List<ReportsPaymentShare>) {
+private fun PaymentMethodsCard(
+    shares: List<ReportsPaymentShare>,
+    modifier: Modifier = Modifier,
+) {
     val slices = shares.map { share ->
         ChartSlice(
             label = paymentMethodLabel(share.paymentMethod),
@@ -420,7 +556,7 @@ private fun PaymentMethodsCard(shares: List<ReportsPaymentShare>) {
             color = paymentSliceColor(share.paymentMethod),
         )
     }
-    PosCard(modifier = Modifier.fillMaxWidth()) {
+    PosCard(modifier = modifier) {
         PosSectionHeader(title = "Metode Pembayaran")
         Row(verticalAlignment = Alignment.CenterVertically) {
             PaymentMethodDonut(
@@ -444,8 +580,9 @@ private fun PaymentMethodsCard(shares: List<ReportsPaymentShare>) {
 private fun DailyRow(
     day: DailySales,
     onDayDrillDown: (Long) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -457,6 +594,8 @@ private fun DailyRow(
                 Text(
                     text = "${ReportDates.weekdayShortLabel(day.epochDay)}, ${ReportDates.formatEpochDayShort(day.epochDay)}",
                     style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "${day.transactionCount} transaksi",
@@ -582,16 +721,82 @@ private fun TransactionRow(
     }
 }
 
-private fun paymentSliceColor(method: PaymentMethod): Color = when (method) {
-    PaymentMethod.CASH -> Color(0xFF1E6B54)
-    PaymentMethod.QRIS -> Color(0xFF21845D)
-    PaymentMethod.TRANSFER -> Color(0xFFE7C46A)
-    PaymentMethod.SPLIT -> Color(0xFF7C8A83)
-    PaymentMethod.KASBON -> Color(0xFFB87917)
-}
-
 private fun statusLabel(status: TransactionStatus): String = when (status) {
     TransactionStatus.COMPLETED -> "Lunas"
     TransactionStatus.PARTIAL_DEBT -> "Kasbon"
     TransactionStatus.RETURNED -> "Dikembalikan"
+}
+
+private fun previewReportsState(): ReportsUiState {
+    val dailySales = listOf(
+        DailySales(epochDay = 19_731L, totalSales = 512_000L, netProfit = 180_000L, transactionCount = 3),
+        DailySales(epochDay = 19_732L, totalSales = 740_000L, netProfit = 240_000L, transactionCount = 5),
+        DailySales(epochDay = 19_734L, totalSales = 610_000L, netProfit = 205_000L, transactionCount = 4),
+        DailySales(epochDay = 19_737L, totalSales = 1_180_000L, netProfit = 410_000L, transactionCount = 6),
+    )
+    return ReportsUiState(
+        range = ReportRange(startMillis = 1_704_758_400_000L, endMillis = 1_705_363_199_999L),
+        preset = ReportsRangePreset.LAST_7_DAYS,
+        summary = SalesSummary(
+            totalSales = 3_042_000L,
+            totalHpp = 1_995_000L,
+            netProfit = 1_035_000L,
+            transactionCount = 18,
+        ),
+        averageTransaction = 169_000L,
+        dailySales = dailySales,
+        salesChartPoints = listOf(
+            ChartPoint(label = "Sel", value = 512_000.0),
+            ChartPoint(label = "Rab", value = 740_000.0),
+            ChartPoint(label = "Kam", value = 0.0),
+            ChartPoint(label = "Jum", value = 610_000.0),
+            ChartPoint(label = "Sab", value = 0.0),
+            ChartPoint(label = "Min", value = 0.0),
+            ChartPoint(label = "Sen", value = 1_180_000.0),
+        ),
+        paymentShares = listOf(
+            ReportsPaymentShare(paymentMethod = PaymentMethod.CASH, amount = 1_825_200L, transactionCount = 11),
+            ReportsPaymentShare(paymentMethod = PaymentMethod.QRIS, amount = 760_500L, transactionCount = 4),
+            ReportsPaymentShare(paymentMethod = PaymentMethod.KASBON, amount = 456_300L, transactionCount = 3),
+        ),
+        isLoading = false,
+    )
+}
+
+@Preview(name = "Reports compact", widthDp = 360, heightDp = 800, showBackground = true)
+@Composable
+private fun ReportsCompactPreview() {
+    UmkmPosTheme {
+        ReportsScreen(
+            uiState = previewReportsState(),
+            onPresetSelected = {},
+            onCustomRangeSelected = { _, _ -> },
+            onRefresh = {},
+            onSummaryDrillDown = {},
+            onDayDrillDown = {},
+            onCloseDrillDown = {},
+            onTransactionReturn = {},
+            onExportCsv = {},
+            onDismissExport = {},
+        )
+    }
+}
+
+@Preview(name = "Reports expanded", widthDp = 960, heightDp = 720, showBackground = true)
+@Composable
+private fun ReportsExpandedPreview() {
+    UmkmPosTheme {
+        ReportsScreen(
+            uiState = previewReportsState(),
+            onPresetSelected = {},
+            onCustomRangeSelected = { _, _ -> },
+            onRefresh = {},
+            onSummaryDrillDown = {},
+            onDayDrillDown = {},
+            onCloseDrillDown = {},
+            onTransactionReturn = {},
+            onExportCsv = {},
+            onDismissExport = {},
+        )
+    }
 }

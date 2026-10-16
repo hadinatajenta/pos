@@ -13,7 +13,7 @@ import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.feature.reports.ReportRangeFactory
 import id.umkm.pos.pro.ui.components.ChartPoint
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
-import java.time.LocalDate
+import id.umkm.pos.pro.ui.components.ChartBuckets
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -141,8 +141,15 @@ class DashboardViewModel(
                         0L
                     },
                     netProfit = summary.netProfit,
-                    dailyPoints = daily.map { day ->
-                        ChartPoint(label = weekdayLabel(day.epochDay), value = day.totalSales.toDouble())
+                    dailyPoints = ChartBuckets.dailyZeroFilled(range, daily).map { day ->
+                        ChartPoint(
+                            label = if (daily.size <= 7) {
+                                ChartBuckets.weekdayLabel(day.epochDay)
+                            } else {
+                                ChartBuckets.dayOfMonthLabel(day.epochDay)
+                            },
+                            value = day.totalSales.toDouble(),
+                        )
                     },
                     bestSellers = bestSellers,
                     paymentShares = paymentShares(transactions),
@@ -192,15 +199,5 @@ class DashboardViewModel(
 
     private companion object {
         const val BEST_SELLER_LIMIT = 5
-
-        fun weekdayLabel(epochDay: Long): String = when (LocalDate.ofEpochDay(epochDay).dayOfWeek.value) {
-            1 -> "Sen"
-            2 -> "Sel"
-            3 -> "Rab"
-            4 -> "Kam"
-            5 -> "Jum"
-            6 -> "Sab"
-            else -> "Min"
-        }
     }
 }

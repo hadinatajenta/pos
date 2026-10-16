@@ -1,6 +1,7 @@
 package id.umkm.pos.pro.app
 
 import android.content.Context
+import id.umkm.pos.pro.BuildConfig
 import id.umkm.pos.pro.core.contract.AccountingService
 import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppContainer
@@ -26,6 +27,8 @@ import id.umkm.pos.pro.data.local.repository.SecurityRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.SettingsRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ShiftRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.TransactionRepositoryImpl
+import id.umkm.pos.pro.data.seed.DefaultDemoDataSeeder
+import id.umkm.pos.pro.data.seed.DemoDataSeeder
 import id.umkm.pos.pro.domain.accounting.DefaultAccountingService
 import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
 import id.umkm.pos.pro.hardware.printer.BluetoothReceiptPrinter
@@ -88,4 +91,19 @@ class DefaultAppContainer(
     override val scannerInput: ScannerInput = HardwareScannerInput()
 
     override val adController: AdController = NoAdsController()
+
+    val demoDataSeeder: DemoDataSeeder? =
+        if (BuildConfig.DEBUG) {
+            DefaultDemoDataSeeder(
+                database = database,
+                productRepository = productRepository,
+                customerRepository = customerRepository,
+                transactionRepository = transactionRepository,
+                returnRepository = returnRepository,
+                priceEngine = priceEngine,
+                anchorClock = clock,
+            )
+        } else {
+            null
+        }
 }

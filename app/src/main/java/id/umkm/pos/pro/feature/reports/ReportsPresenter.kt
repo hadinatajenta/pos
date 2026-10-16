@@ -4,9 +4,12 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.components.ChartBuckets
+import id.umkm.pos.pro.ui.components.ChartPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.ZoneId
 import java.util.TimeZone
 
 class ReportsPresenter(
@@ -28,6 +32,7 @@ class ReportsPresenter(
 ) {
 
     private val rangeFactory = ReportRangeFactory(clock, timeZone)
+    private val zoneId: ZoneId = timeZone.toZoneId()
 
     private val mutableState = MutableStateFlow(
         ReportsUiState(
@@ -143,6 +148,7 @@ class ReportsPresenter(
                         summary = summary,
                         averageTransaction = averageTransactionOf(summary),
                         dailySales = dailySales,
+                        salesChartPoints = chartPointsFor(range, dailySales),
                         paymentShares = paymentShares(transactions),
                         isLoading = false,
                         error = null,
@@ -163,6 +169,22 @@ class ReportsPresenter(
 
     private fun averageTransactionOf(summary: SalesSummary): Long =
         if (summary.transactionCount > 0) summary.totalSales / summary.transactionCount else 0L
+
+    private fun chartPointsFor(range: ReportRange, dailySales: List<DailySales>): List<ChartPoint> {
+        if (dailySales.none { day -> day.totalSales > 0L }) return emptyList()
+        val buckets = ChartBuckets.dailyZeroFilled(range, dailySales, zoneId)
+        val isWeekdayLabel = buckets.size <= WEEKDAY_LABEL_MAX_BUCKETS
+        return buckets.map { day ->
+            ChartPoint(
+                label = if (isWeekdayLabel) {
+                    ChartBuckets.weekdayLabel(day.epochDay)
+                } else {
+                    ChartBuckets.dayOfMonthLabel(day.epochDay)
+                },
+                value = day.totalSales.toDouble(),
+            )
+        }
+    }
 
     private fun paymentShares(transactions: List<Transaction>): List<ReportsPaymentShare> =
         transactions.groupBy { transaction -> transaction.paymentMethod }
@@ -200,5 +222,9 @@ class ReportsPresenter(
                 }
             }
         }
+    }
+
+    private companion object {
+        const val WEEKDAY_LABEL_MAX_BUCKETS = 7
     }
 }

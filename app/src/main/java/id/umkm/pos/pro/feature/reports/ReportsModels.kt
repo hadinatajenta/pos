@@ -6,11 +6,12 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.components.ChartPoint
 
 enum class ReportsRangePreset(val label: String) {
     TODAY("Hari Ini"),
-    LAST_7_DAYS("7 Hari"),
-    LAST_30_DAYS("30 Hari"),
+    LAST_7_DAYS("7 Hari Terakhir"),
+    LAST_30_DAYS("30 Hari Terakhir"),
     THIS_MONTH("Bulan Ini"),
     THIS_YEAR("Tahun Ini"),
     ALL_TIME("Semua"),
@@ -50,6 +51,7 @@ data class ReportsUiState(
     val summary: SalesSummary? = null,
     val averageTransaction: Long = 0L,
     val dailySales: List<DailySales> = emptyList(),
+    val salesChartPoints: List<ChartPoint> = emptyList(),
     val paymentShares: List<ReportsPaymentShare> = emptyList(),
     val isLoading: Boolean = true,
     val error: AppError? = null,

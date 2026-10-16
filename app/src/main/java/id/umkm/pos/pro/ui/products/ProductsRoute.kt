@@ -1,22 +1,25 @@
 package id.umkm.pos.pro.ui.products
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyColumnItems
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -29,7 +32,6 @@ import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,6 +85,7 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 
 private val PRODUCT_ROW_THUMBNAIL_SIZE = 44.dp
+private val FILTER_INDICATOR_HEIGHT = 2.dp
 private const val FORM_SHEET_HEIGHT_FRACTION = 0.92f
 
 @Composable
@@ -126,7 +130,7 @@ internal fun ProductsScreen(
             )
             OfflineNotice()
             ProductsSearchField(state = state, actions = actions)
-            ProductsStockFilterRow(selected = state.stockFilter, onSelect = actions.onStockFilterChange)
+            ProductsStockFilterTabs(selected = state.stockFilter, onSelect = actions.onStockFilterChange)
             Row(modifier = Modifier.weight(1f)) {
                 ProductsListPane(state = state, actions = actions, modifier = Modifier.weight(1f))
                 if (isTwoPane && form != null) {
@@ -198,26 +202,67 @@ private fun ProductsSearchField(
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ProductsStockFilterRow(
+private fun ProductsStockFilterTabs(
     selected: ProductStockFilter,
     onSelect: (ProductStockFilter) -> Unit,
 ) {
-    FlowRow(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            .padding(horizontal = PosSpacing.md)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.lg),
     ) {
         ProductStockFilter.entries.forEach { filter ->
-            FilterChip(
-                selected = filter == selected,
+            ProductsStockFilterTab(
+                filter = filter,
+                isSelected = filter == selected,
                 onClick = { onSelect(filter) },
-                label = { Text(filter.label) },
             )
         }
+    }
+}
+
+@Composable
+private fun ProductsStockFilterTab(
+    filter: ProductStockFilter,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .heightIn(min = PosSizes.touchTarget),
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        Text(
+            text = filter.label,
+            style = if (isSelected) {
+                LocalAppTextStyles.current.buttonLabel
+            } else {
+                LocalAppTextStyles.current.body
+            },
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            maxLines = 1,
+            modifier = Modifier.padding(bottom = PosSpacing.sm),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(FILTER_INDICATOR_HEIGHT)
+                .background(
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        Color.Transparent
+                    },
+                ),
+        )
     }
 }
 
