@@ -23,8 +23,17 @@ contain `platform-tools`, `platforms;android-35`, and `build-tools;35.0.0`.
 export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
 ./gradlew testDebugUnitTest
 ./gradlew assembleDebug
+./gradlew assembleRelease
 ./gradlew installDebug
 ```
+
+## AAPT2 daemon constraint
+
+On this machine, AGP 8.7.3's AAPT2 daemon fails during parallel resource
+compilation with `Unexpected standard output: Ready`. The failure appears once
+more than two parallel resource workers start, so `gradle.properties` pins
+`org.gradle.workers.max=2`. Do not raise this without re-verifying
+`./gradlew assembleRelease`.
 
 ## Responsive verification
 
