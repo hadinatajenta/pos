@@ -33,10 +33,17 @@ class TransactionRepositoryImpl(
             return AppResult.Failure(AppError.Validation("transaction requires at least one item"))
         }
         return runCatching {
-            transactionDao.insertTransactionWithItems(
-                transaction = TransactionMapper.toEntity(transaction),
-                items = items.map(TransactionMapper::toEntity),
-            )
+            database.withTransaction {
+                val transactionId = transactionDao.insertTransactionWithItems(
+                    transaction = TransactionMapper.toEntity(transaction),
+                    items = items.map(TransactionMapper::toEntity),
+                )
+                val customerId = transaction.customerId
+                if (customerId != null && transaction.remainingDebt > 0L) {
+                    customerDao.adjustTotalDebt(customerId, transaction.remainingDebt)
+                }
+                transactionId
+            }
         }.fold(
             onSuccess = { AppResult.Success(it) },
             onFailure = { AppResult.Failure(AppError.Storage(it.message ?: SAVE_FAILURE_MESSAGE)) },

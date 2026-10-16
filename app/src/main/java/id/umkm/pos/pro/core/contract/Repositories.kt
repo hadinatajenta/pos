@@ -8,6 +8,8 @@ import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.ReportRange
+import id.umkm.pos.pro.core.model.ReturnLine
+import id.umkm.pos.pro.core.model.ReturnRecord
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
@@ -66,4 +68,10 @@ interface ReportRepository {
     suspend fun salesSummary(range: ReportRange): SalesSummary
     suspend fun salesByDay(range: ReportRange): List<DailySales>
     suspend fun transactionsInRange(range: ReportRange): List<Transaction>
+}
+
+interface ReturnRepository {
+    suspend fun recordReturn(record: ReturnRecord, lines: List<ReturnLine>): AppResult<Long>
+    suspend fun getReturns(transactionId: Long): List<ReturnRecord>
+    suspend fun returnsInRange(range: ReportRange): List<ReturnRecord>
 }

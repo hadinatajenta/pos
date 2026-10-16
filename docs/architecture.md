@@ -44,6 +44,29 @@ Android and Room types.
   cashier name, PIN-enabled flag, printer address, and QRIS image path.
 - **D7** — `transactions.subtotal` is the sum of item subtotals, after item
   discounts and before the invoice discount.
+- **D8** — `SalesSummary.totalSales` is invoice net, pre-tax
+  (`SUM(subtotal − invoice_discount)`), so `totalSales − totalHpp = netProfit`.
+- **D9** — Returns are persisted in a `returns` / `return_lines` ledger. Reports
+  subtract refunds and reversed HPP; the original transaction is left intact.
+  `ReturnRepository.recordReturn` restocks products, records the ledger, and
+  marks the transaction `RETURNED` in one atomic database transaction.
+
+## Application layer
+
+`domain/usecase/` is orchestrator-owned and coordinates domain rules with the
+repository contracts:
+
+- `CheckoutUseCase` — loads products/units, prices the cart, allocates payment,
+  and persists the sale atomically (a kasbon/partial sale increments customer
+  debt inside the same transaction).
+- `RecordDebtPaymentUseCase` — applies a kasbon payment through
+  `TransactionRepository.recordDebtPayment`.
+- `ProcessReturnUseCase` — corrects returns and persists them through
+  `ReturnRepository`.
+
+`AppContainer` lists only dependencies that have implementations. Deferred
+services (backup, import/export, AdMob) are added to the container when their
+implementations land.
 
 ## Calculation order
 

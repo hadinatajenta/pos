@@ -11,6 +11,7 @@ import id.umkm.pos.pro.data.local.dao.CustomerDao
 import id.umkm.pos.pro.data.local.dao.DebtPaymentDao
 import id.umkm.pos.pro.data.local.dao.ProductDao
 import id.umkm.pos.pro.data.local.dao.ReportDao
+import id.umkm.pos.pro.data.local.dao.ReturnDao
 import id.umkm.pos.pro.data.local.dao.SecurityDao
 import id.umkm.pos.pro.data.local.dao.SettingsDao
 import id.umkm.pos.pro.data.local.dao.ShiftDao
@@ -20,6 +21,8 @@ import id.umkm.pos.pro.data.local.entity.CustomerEntity
 import id.umkm.pos.pro.data.local.entity.DebtPaymentEntity
 import id.umkm.pos.pro.data.local.entity.ProductEntity
 import id.umkm.pos.pro.data.local.entity.ProductUnitEntity
+import id.umkm.pos.pro.data.local.entity.ReturnEntity
+import id.umkm.pos.pro.data.local.entity.ReturnLineEntity
 import id.umkm.pos.pro.data.local.entity.SecurityStoreEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
 import id.umkm.pos.pro.data.local.entity.TransactionEntity
@@ -36,6 +39,8 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         CashierShiftEntity::class,
         SecurityStoreEntity::class,
         SettingsEntity::class,
+        ReturnEntity::class,
+        ReturnLineEntity::class,
     ],
     version = 1,
     exportSchema = true,
@@ -58,6 +63,8 @@ abstract class UmkmDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
 
     abstract fun reportDao(): ReportDao
+
+    abstract fun returnDao(): ReturnDao
 
     companion object {
         const val DATABASE_NAME: String = "umkm_pos.db"

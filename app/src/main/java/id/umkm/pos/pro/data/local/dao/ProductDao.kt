@@ -49,4 +49,7 @@ interface ProductDao {
 
     @Query("DELETE FROM product_variants_units WHERE id = :unitId")
     suspend fun deleteUnit(unitId: Long)
+
+    @Query("UPDATE products SET stock_base_qty = stock_base_qty + :delta WHERE id = :productId")
+    suspend fun adjustStock(productId: Long, delta: Double)
 }
