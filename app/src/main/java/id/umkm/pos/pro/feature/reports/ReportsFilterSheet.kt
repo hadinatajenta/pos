@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -48,6 +49,19 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import java.util.TimeZone
 
 private enum class FilterPickerTarget { START, END }
+
+internal fun periodLabel(
+    preset: ReportsRangePreset,
+    range: ReportRange,
+    timeZone: TimeZone,
+): String = when (preset) {
+    ReportsRangePreset.TODAY -> "Hari ini"
+    ReportsRangePreset.LAST_7_DAYS -> "7 hari terakhir"
+    ReportsRangePreset.LAST_28_DAYS -> "28 hari terakhir"
+    ReportsRangePreset.CUSTOM ->
+        "${ReportDates.formatLocalDateShort(range.startMillis, timeZone)} - " +
+            ReportDates.formatLocalDateShort(range.endMillis, timeZone)
+}
 
 private val FILTER_PRESETS = listOf(
     ReportsRangePreset.TODAY,
@@ -58,18 +72,19 @@ private val FILTER_PRESETS = listOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun ReportsFilterSheet(
-    uiState: ReportsUiState,
+    preset: ReportsRangePreset,
+    range: ReportRange,
     timeZone: TimeZone,
     onDismiss: () -> Unit,
     onPresetSelected: (ReportsRangePreset) -> Unit,
     onCustomRangeSelected: (Long, Long) -> Unit,
 ) {
-    var isCustomEditing by remember { mutableStateOf(uiState.preset == ReportsRangePreset.CUSTOM) }
+    var isCustomEditing by remember { mutableStateOf(preset == ReportsRangePreset.CUSTOM) }
     var draftStartEpochDay by remember {
-        mutableStateOf(ReportDates.epochDayForLocalMillis(uiState.range.startMillis, timeZone))
+        mutableStateOf(ReportDates.epochDayForLocalMillis(range.startMillis, timeZone))
     }
     var draftEndEpochDay by remember {
-        mutableStateOf(ReportDates.epochDayForLocalMillis(uiState.range.endMillis, timeZone))
+        mutableStateOf(ReportDates.epochDayForLocalMillis(range.endMillis, timeZone))
     }
     var activePicker by remember { mutableStateOf<FilterPickerTarget?>(null) }
 
@@ -91,12 +106,12 @@ internal fun ReportsFilterSheet(
                 horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
             ) {
-                FILTER_PRESETS.forEach { preset ->
+                FILTER_PRESETS.forEach { option ->
                     RangeChip(
-                        label = preset.label,
-                        selected = preset == uiState.preset,
+                        label = option.label,
+                        selected = option == preset,
                         onClick = {
-                            onPresetSelected(preset)
+                            onPresetSelected(option)
                             onDismiss()
                         },
                     )
@@ -104,7 +119,7 @@ internal fun ReportsFilterSheet(
             }
             RangeChip(
                 label = ReportsRangePreset.CUSTOM.label,
-                selected = uiState.preset == ReportsRangePreset.CUSTOM,
+                selected = preset == ReportsRangePreset.CUSTOM,
                 onClick = { isCustomEditing = true },
             )
             if (isCustomEditing) {

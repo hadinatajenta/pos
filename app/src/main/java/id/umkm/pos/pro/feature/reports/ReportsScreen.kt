@@ -1,6 +1,6 @@
 package id.umkm.pos.pro.feature.reports
 
-import androidx.compose.foundation.clickable
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,33 +14,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AppError
-import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
-import id.umkm.pos.pro.core.model.Transaction
-import id.umkm.pos.pro.core.model.TransactionStatus
-import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
@@ -57,19 +53,9 @@ import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.components.paymentSliceColor
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
-import id.umkm.pos.pro.ui.theme.PosColors
-import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import java.util.TimeZone
-import androidx.compose.ui.res.painterResource
-import id.umkm.pos.pro.R
-import androidx.annotation.DrawableRes
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-
-private const val DAILY_BREAKDOWN_COLUMNS = 2
-private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
 @Composable
 internal fun ReportsScreen(
@@ -77,10 +63,6 @@ internal fun ReportsScreen(
     onPresetSelected: (ReportsRangePreset) -> Unit,
     onCustomRangeSelected: (Long, Long) -> Unit,
     onRefresh: () -> Unit,
-    onSummaryDrillDown: () -> Unit,
-    onDayDrillDown: (Long) -> Unit,
-    onCloseDrillDown: () -> Unit,
-    onTransactionReturn: (Long) -> Unit,
     onExport: (ReportExportFormat) -> Unit,
     onDismissExport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -97,23 +79,13 @@ internal fun ReportsScreen(
             }
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 val error = uiState.error
-                val drillDown = uiState.drillDown
                 when {
                     error != null -> ErrorState(error = error, onRetry = onRefresh)
-                    drillDown != null -> DrillDownSection(
-                        drillDown = drillDown,
-                        timeZone = timeZone,
-                        onCloseDrillDown = onCloseDrillDown,
-                        onTransactionReturn = onTransactionReturn,
-                    )
-
                     uiState.summary == null -> LoadingState(label = "Memuat laporan")
                     else -> MainReportContent(
                         uiState = uiState,
                         timeZone = timeZone,
                         isExpanded = isExpanded,
-                        onSummaryDrillDown = onSummaryDrillDown,
-                        onDayDrillDown = onDayDrillDown,
                         onFilter = { isFilterSheetVisible = true },
                         onExport = { isExportDialogVisible = true },
                     )
@@ -123,7 +95,8 @@ internal fun ReportsScreen(
     }
     if (isFilterSheetVisible) {
         ReportsFilterSheet(
-            uiState = uiState,
+            preset = uiState.preset,
+            range = uiState.range,
             timeZone = timeZone,
             onDismiss = { isFilterSheetVisible = false },
             onPresetSelected = onPresetSelected,
@@ -141,133 +114,45 @@ internal fun ReportsScreen(
     }
 }
 
-private fun periodLabel(uiState: ReportsUiState, timeZone: TimeZone): String = when (uiState.preset) {
-    ReportsRangePreset.TODAY -> "Hari ini"
-    ReportsRangePreset.LAST_7_DAYS -> "7 hari terakhir"
-    ReportsRangePreset.LAST_28_DAYS -> "28 hari terakhir"
-    ReportsRangePreset.CUSTOM ->
-        "${ReportDates.formatLocalDateShort(uiState.range.startMillis, timeZone)} - " +
-            ReportDates.formatLocalDateShort(uiState.range.endMillis, timeZone)
-}
-
-@Composable
-private fun ExportStatus(
-    exportState: ReportsExportState,
-    onDismissExport: () -> Unit,
-) {
-    when (exportState) {
-        ReportsExportState.Idle -> Unit
-        ReportsExportState.Running -> ExportStatusRow {
-            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            Spacer(modifier = Modifier.width(PosSpacing.sm))
-            Text(text = "Mengekspor laporan…", style = LocalAppTextStyles.current.supportingLabel)
-        }
-
-        is ReportsExportState.Succeeded -> ExportStatusRow {
-            Text(
-                text = "Tersimpan di ${DownloadsReportSink.DESTINATION_LABEL}/${exportState.artifactPath}",
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
-        }
-
-        is ReportsExportState.Failed -> ExportStatusRow {
-            Text(
-                text = exportErrorMessage(exportState.error),
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
-        }
-
-        ReportsExportState.PermissionDenied -> ExportStatusRow {
-            Text(
-                text = "Izin penyimpanan diperlukan untuk menyimpan laporan ke folder " +
-                    "${DownloadsReportSink.DESTINATION_LABEL}. Aktifkan izin lalu coba lagi.",
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
-        }
-    }
-}
-
-private fun exportErrorMessage(error: AppError): String = when (error) {
-    is AppError.Validation -> "Rentang tanggal tidak valid untuk diekspor."
-    is AppError.Storage -> "Ekspor gagal menyimpan berkas. Periksa ruang penyimpanan lalu coba lagi."
-    is AppError.NotFound -> "Data laporan tidak ditemukan."
-    is AppError.Hardware -> "Perangkat tidak mendukung ekspor saat ini."
-    is AppError.Network -> "Ekspor gagal. Coba lagi."
-    is AppError.Unexpected -> "Ekspor gagal. Coba lagi."
-}
-
-@Composable
-private fun ExportStatusRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
-}
-
-@Composable
-private fun TransaksiSectionHeader(
-    transactionCount: Int,
-    uiState: ReportsUiState,
-    timeZone: TimeZone,
-    onFilter: () -> Unit,
-    onExport: () -> Unit,
-) {
-    PosSectionHeader(
-        title = "Transaksi",
-        supportingText = "$transactionCount transaksi · ${periodLabel(uiState, timeZone)}",
-        action = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onExport) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_download),
-                        contentDescription = "Ekspor laporan",
-                    )
-                }
-                IconButton(onClick = onFilter) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_settings),
-                        contentDescription = "Filter periode",
-                    )
-                }
-            }
-        },
-    )
-}
-
 @Composable
 private fun MainReportContent(
     uiState: ReportsUiState,
     timeZone: TimeZone,
     isExpanded: Boolean,
-    onSummaryDrillDown: () -> Unit,
-    onDayDrillDown: (Long) -> Unit,
     onFilter: () -> Unit,
     onExport: () -> Unit,
 ) {
     val summary = uiState.summary ?: return
-    val breakdownDays = uiState.dailySales
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(PosSpacing.md),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
     ) {
+        item {
+            PosSectionHeader(
+                title = "Laporan",
+                supportingText = periodLabel(uiState.preset, uiState.range, timeZone),
+                action = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = onExport) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_download),
+                                contentDescription = "Ekspor laporan",
+                            )
+                        }
+                        IconButton(onClick = onFilter) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_settings),
+                                contentDescription = "Filter periode",
+                            )
+                        }
+                    }
+                },
+            )
+        }
         item {
             ReportTotals(
                 summary = summary,
@@ -297,64 +182,6 @@ private fun MainReportContent(
             if (uiState.paymentShares.isNotEmpty()) {
                 item { PaymentMethodsCard(shares = uiState.paymentShares, modifier = Modifier.fillMaxWidth()) }
             }
-        }
-        item {
-            TransaksiSectionHeader(
-                transactionCount = summary.transactionCount,
-                uiState = uiState,
-                timeZone = timeZone,
-                onFilter = onFilter,
-                onExport = onExport,
-            )
-        }
-        if (summary.transactionCount == 0) {
-            item {
-                EmptyState(
-                    iconRes = R.drawable.ic_chart_column,
-                    title = "Belum ada penjualan",
-                    supportingText = "Laporan akan terisi setelah ada transaksi selesai di Kasir pada periode ini.",
-                )
-            }
-        } else if (breakdownDays.isEmpty()) {
-            item {
-                Text(
-                    text = "Belum ada rincian harian pada periode ini.",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else if (isExpanded) {
-            items(
-                items = breakdownDays.chunked(DAILY_BREAKDOWN_COLUMNS),
-                key = { columns -> columns.first().epochDay },
-            ) { columns ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
-                ) {
-                    columns.forEach { day ->
-                        DailyRow(
-                            day = day,
-                            onDayDrillDown = onDayDrillDown,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    repeat(DAILY_BREAKDOWN_COLUMNS - columns.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        } else {
-            items(items = breakdownDays, key = { day -> day.epochDay }) { day ->
-                DailyRow(
-                    day = day,
-                    onDayDrillDown = onDayDrillDown,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        item {
-            SecondaryTextAction(text = "Lihat semua", onClick = onSummaryDrillDown)
         }
     }
 }
@@ -503,163 +330,74 @@ private fun PaymentMethodsCard(
 }
 
 @Composable
-private fun DailyRow(
-    day: DailySales,
-    onDayDrillDown: (Long) -> Unit,
-    modifier: Modifier = Modifier,
+private fun ExportStatus(
+    exportState: ReportsExportState,
+    onDismissExport: () -> Unit,
 ) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onDayDrillDown(day.epochDay) }
-                .padding(vertical = PosSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${ReportDates.weekdayShortLabel(day.epochDay)}, ${ReportDates.formatEpochDayShort(day.epochDay)}",
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${day.transactionCount} transaksi",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                AutoSizeNumberText(
-                    text = Rupiah.format(day.totalSales),
-                    style = LocalAppTextStyles.current.financialValue,
-                    modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
-                )
-                AutoSizeNumberText(
-                    text = "Laba ${Rupiah.format(day.netProfit)}",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
-                )
-            }
+    when (exportState) {
+        ReportsExportState.Idle -> Unit
+        ReportsExportState.Running -> ExportStatusRow {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            Spacer(modifier = Modifier.width(PosSpacing.sm))
+            Text(text = "Mengekspor laporan…", style = LocalAppTextStyles.current.supportingLabel)
         }
-        HorizontalDivider()
-    }
-}
 
-@Composable
-private fun DrillDownSection(
-    drillDown: ReportsDrillDown,
-    timeZone: TimeZone,
-    onCloseDrillDown: () -> Unit,
-    onTransactionReturn: (Long) -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = PosSpacing.sm, end = PosSpacing.md, top = PosSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onCloseDrillDown) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = "Kembali",
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Transaksi",
-                    style = LocalAppTextStyles.current.sectionHeading,
-                )
-                Text(
-                    text = "${drillDown.transactions.size} transaksi",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        HorizontalDivider()
-        if (drillDown.transactions.isEmpty()) {
-            EmptyState(
-                iconRes = R.drawable.ic_receipt,
-                title = "Belum ada transaksi",
-                supportingText = "Tidak ada transaksi pada periode ini.",
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = PosSpacing.md),
-            ) {
-                items(items = drillDown.transactions, key = { transaction -> transaction.id }) { transaction ->
-                    TransactionRow(
-                        transaction = transaction,
-                        timeZone = timeZone,
-                        onReturn = { onTransactionReturn(transaction.id) },
-                    )
-                    HorizontalDivider()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TransactionRow(
-    transaction: Transaction,
-    timeZone: TimeZone,
-    onReturn: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = PosSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = transaction.invoiceNo,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(modifier = Modifier.width(PosSpacing.sm))
-                AutoSizeNumberText(
-                    text = Rupiah.format(transaction.grandTotal),
-                    style = LocalAppTextStyles.current.financialValue,
-                    modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
-                )
-            }
+        is ReportsExportState.Succeeded -> ExportStatusRow {
             Text(
-                text = "${ReportDates.formatTimestamp(transaction.createdAt, timeZone)} · " +
-                    "${paymentMethodLabel(transaction.paymentMethod)} · ${statusLabel(transaction.status)}",
+                text = "Tersimpan di ${DownloadsReportSink.DESTINATION_LABEL}/${exportState.artifactPath}",
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
+            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
         }
-        Spacer(modifier = Modifier.width(PosSpacing.sm))
-        SecondaryTextAction(text = "Retur", onClick = onReturn)
+
+        is ReportsExportState.Failed -> ExportStatusRow {
+            Text(
+                text = exportErrorMessage(exportState.error),
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
+        }
+
+        ReportsExportState.PermissionDenied -> ExportStatusRow {
+            Text(
+                text = "Izin penyimpanan diperlukan untuk menyimpan laporan ke folder " +
+                    "${DownloadsReportSink.DESTINATION_LABEL}. Aktifkan izin lalu coba lagi.",
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.weight(1f),
+            )
+            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
+        }
     }
 }
 
-private fun statusLabel(status: TransactionStatus): String = when (status) {
-    TransactionStatus.COMPLETED -> "Lunas"
-    TransactionStatus.PARTIAL_DEBT -> "Kasbon"
-    TransactionStatus.RETURNED -> "Dikembalikan"
+private fun exportErrorMessage(error: AppError): String = when (error) {
+    is AppError.Validation -> "Rentang tanggal tidak valid untuk diekspor."
+    is AppError.Storage -> "Ekspor gagal menyimpan berkas. Periksa ruang penyimpanan lalu coba lagi."
+    is AppError.NotFound -> "Data laporan tidak ditemukan."
+    is AppError.Hardware -> "Perangkat tidak mendukung ekspor saat ini."
+    is AppError.Network -> "Ekspor gagal. Coba lagi."
+    is AppError.Unexpected -> "Ekspor gagal. Coba lagi."
+}
+
+@Composable
+private fun ExportStatusRow(content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
 }
 
 private fun previewReportsState(): ReportsUiState {
-    val dailySales = listOf(
-        DailySales(epochDay = 19_731L, totalSales = 512_000L, netProfit = 180_000L, transactionCount = 3),
-        DailySales(epochDay = 19_732L, totalSales = 740_000L, netProfit = 240_000L, transactionCount = 5),
-        DailySales(epochDay = 19_734L, totalSales = 610_000L, netProfit = 205_000L, transactionCount = 4),
-        DailySales(epochDay = 19_737L, totalSales = 1_180_000L, netProfit = 410_000L, transactionCount = 6),
-    )
     return ReportsUiState(
         range = ReportRange(startMillis = 1_704_758_400_000L, endMillis = 1_705_363_199_999L),
         preset = ReportsRangePreset.LAST_7_DAYS,
@@ -670,7 +408,6 @@ private fun previewReportsState(): ReportsUiState {
             transactionCount = 18,
         ),
         averageTransaction = 169_000L,
-        dailySales = dailySales,
         salesChartPoints = listOf(
             ChartPoint(label = "Sel", value = 512_000.0),
             ChartPoint(label = "Rab", value = 740_000.0),
@@ -689,7 +426,7 @@ private fun previewReportsState(): ReportsUiState {
     )
 }
 
-@Preview(name = "Reports compact", widthDp = 360, heightDp = 800, showBackground = true)
+@Preview(name = "Laporan compact", widthDp = 360, heightDp = 800, showBackground = true)
 @Composable
 private fun ReportsCompactPreview() {
     UmkmPosTheme {
@@ -698,17 +435,13 @@ private fun ReportsCompactPreview() {
             onPresetSelected = {},
             onCustomRangeSelected = { _, _ -> },
             onRefresh = {},
-            onSummaryDrillDown = {},
-            onDayDrillDown = {},
-            onCloseDrillDown = {},
-            onTransactionReturn = {},
             onExport = {},
             onDismissExport = {},
         )
     }
 }
 
-@Preview(name = "Reports expanded", widthDp = 960, heightDp = 720, showBackground = true)
+@Preview(name = "Laporan expanded", widthDp = 960, heightDp = 720, showBackground = true)
 @Composable
 private fun ReportsExpandedPreview() {
     UmkmPosTheme {
@@ -717,10 +450,6 @@ private fun ReportsExpandedPreview() {
             onPresetSelected = {},
             onCustomRangeSelected = { _, _ -> },
             onRefresh = {},
-            onSummaryDrillDown = {},
-            onDayDrillDown = {},
-            onCloseDrillDown = {},
-            onTransactionReturn = {},
             onExport = {},
             onDismissExport = {},
         )

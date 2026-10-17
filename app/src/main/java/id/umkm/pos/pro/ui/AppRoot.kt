@@ -1,7 +1,6 @@
 package id.umkm.pos.pro.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,18 +35,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.umkm.pos.pro.feature.reports.DownloadsReportSink
+import id.umkm.pos.pro.feature.reports.ReportsPresenter
 import id.umkm.pos.pro.feature.reports.ReportsRoute
+import id.umkm.pos.pro.feature.reports.SalesCsvExporter
+import id.umkm.pos.pro.feature.reports.XlsxReportExporter
+import id.umkm.pos.pro.feature.transactions.TransactionsRoute
 import id.umkm.pos.pro.ui.cashier.CashierRoute
 import id.umkm.pos.pro.ui.common.LocalConnectivityMonitor
 import id.umkm.pos.pro.ui.common.rememberAndroidConnectivityMonitor
@@ -79,7 +86,8 @@ private val NavigationRailItemMinHeight = 64.dp
 
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
-    val onboardingStore = LocalAppContainer.current.onboardingStore
+    val container = LocalAppContainer.current
+    val onboardingStore = container.onboardingStore
     var hasCompletedOnboarding by rememberSaveable {
         mutableStateOf(onboardingStore.hasCompletedOnboarding())
     }
@@ -96,6 +104,21 @@ fun AppRoot(modifier: Modifier = Modifier) {
     var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.BERANDA) }
     val connectivityMonitor = rememberAndroidConnectivityMonitor()
     val shareReceipt = rememberReceiptSharer()
+    val context = LocalContext.current
+    val salesScope = rememberCoroutineScope()
+    val downloadsSink = remember(context) { DownloadsReportSink(context.applicationContext) }
+    val salesPresenter = remember(container, downloadsSink, salesScope) {
+        ReportsPresenter(
+            reportRepository = container.reportRepository,
+            transactionRepository = container.transactionRepository,
+            productRepository = container.productRepository,
+            csvExporter = SalesCsvExporter(container.reportRepository, downloadsSink),
+            xlsxExporter = XlsxReportExporter(downloadsSink),
+            adController = container.adController,
+            coroutineScope = salesScope,
+            clock = container.clock,
+        )
+    }
     CompositionLocalProvider(LocalConnectivityMonitor provides connectivityMonitor) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
             val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
@@ -121,6 +144,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
                     }
                     DestinationHost(
                         destination = selectedDestination,
+                        salesPresenter = salesPresenter,
                         onShareReceipt = shareReceipt,
                         onOpenCashier = { selectedDestination = PosDestination.KASIR },
                         onOpenProducts = { selectedDestination = PosDestination.PRODUK },
@@ -264,11 +288,6 @@ private fun RailNavItem(
             .widthIn(min = NavigationRailItemMinWidth)
             .heightIn(min = NavigationRailItemMinHeight)
             .clip(MaterialTheme.shapes.large)
-            .border(
-                width = if (isSelected) 3.dp else 1.dp,
-                color = Color.White,
-                shape = MaterialTheme.shapes.large,
-            )
             .selectable(
                 selected = isSelected,
                 role = Role.Tab,
@@ -276,6 +295,16 @@ private fun RailNavItem(
             ),
         contentAlignment = Alignment.Center,
     ) {
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(4.dp)
+                    .height(28.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(Color.White),
+            )
+        }
         Column(
             modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -301,6 +330,7 @@ private fun RailNavItem(
 @Composable
 private fun DestinationHost(
     destination: PosDestination,
+    salesPresenter: ReportsPresenter,
     onShareReceipt: (String) -> Unit,
     onOpenCashier: () -> Unit,
     onOpenProducts: () -> Unit,
@@ -314,7 +344,8 @@ private fun DestinationHost(
         )
         PosDestination.KASIR -> CashierRoute(onShareReceipt = onShareReceipt, modifier = modifier)
         PosDestination.PRODUK -> ProductsRoute(modifier = modifier)
-        PosDestination.LAPORAN -> ReportsRoute(modifier = modifier)
+        PosDestination.TRANSAKSI -> TransactionsRoute(presenter = salesPresenter, modifier = modifier)
+        PosDestination.LAPORAN -> ReportsRoute(presenter = salesPresenter, modifier = modifier)
         PosDestination.LAINNYA -> MoreRoute(modifier = modifier)
     }
 }
