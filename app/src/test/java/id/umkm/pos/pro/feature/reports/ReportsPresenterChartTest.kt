@@ -48,19 +48,19 @@ class ReportsPresenterChartTest {
         val presenter = createPresenter(
             FakeReportRepository(
                 dailySales = listOf(
-                    DailySales(epochDay = 19_708L, totalSales = 240_000L, netProfit = 90_000L, transactionCount = 2),
+                    DailySales(epochDay = 19_710L, totalSales = 240_000L, netProfit = 90_000L, transactionCount = 2),
                     DailySales(epochDay = 19_737L, totalSales = 1_180_000L, netProfit = 410_000L, transactionCount = 6),
                 ),
             ),
             this,
         )
 
-        presenter.selectPreset(ReportsRangePreset.LAST_30_DAYS)
+        presenter.selectPreset(ReportsRangePreset.LAST_28_DAYS)
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
 
         val points = presenter.uiState.value.salesChartPoints
-        assertThat(points).hasSize(30)
-        assertThat(points.first().label).isEqualTo("17")
+        assertThat(points).hasSize(28)
+        assertThat(points.first().label).isEqualTo("19")
         assertThat(points.first().value).isEqualTo(240_000.0)
         assertThat(points.last().label).isEqualTo("15")
         assertThat(points.last().value).isEqualTo(1_180_000.0)

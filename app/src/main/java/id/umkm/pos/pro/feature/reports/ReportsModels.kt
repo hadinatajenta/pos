@@ -10,12 +10,9 @@ import id.umkm.pos.pro.ui.components.ChartPoint
 
 enum class ReportsRangePreset(val label: String) {
     TODAY("Hari Ini"),
-    LAST_7_DAYS("7 Hari Terakhir"),
-    LAST_30_DAYS("30 Hari Terakhir"),
-    THIS_MONTH("Bulan Ini"),
-    THIS_YEAR("Tahun Ini"),
-    ALL_TIME("Semua"),
-    CUSTOM("Kustom"),
+    LAST_7_DAYS("7 Hari"),
+    LAST_28_DAYS("28 Hari"),
+    CUSTOM("Pilih Tanggal"),
 }
 
 data class ReportsPaymentShare(

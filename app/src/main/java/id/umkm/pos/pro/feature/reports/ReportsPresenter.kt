@@ -65,10 +65,7 @@ class ReportsPresenter(
         val range = when (preset) {
             ReportsRangePreset.TODAY -> rangeFactory.today()
             ReportsRangePreset.LAST_7_DAYS -> rangeFactory.lastDays(7)
-            ReportsRangePreset.LAST_30_DAYS -> rangeFactory.lastDays(30)
-            ReportsRangePreset.THIS_MONTH -> rangeFactory.thisMonth()
-            ReportsRangePreset.THIS_YEAR -> rangeFactory.thisYear()
-            ReportsRangePreset.ALL_TIME -> rangeFactory.allTime()
+            ReportsRangePreset.LAST_28_DAYS -> rangeFactory.lastDays(28)
             ReportsRangePreset.CUSTOM -> return
         }
         loadReports(range, preset)

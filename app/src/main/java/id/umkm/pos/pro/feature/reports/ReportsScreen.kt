@@ -1,49 +1,35 @@
 package id.umkm.pos.pro.feature.reports
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -82,15 +68,6 @@ import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
-private enum class DatePickerTarget { START, END }
-
-private val VISIBLE_RANGE_PRESETS = listOf(
-    ReportsRangePreset.TODAY,
-    ReportsRangePreset.LAST_7_DAYS,
-    ReportsRangePreset.LAST_30_DAYS,
-    ReportsRangePreset.THIS_MONTH,
-)
-
 private const val DAILY_BREAKDOWN_COLUMNS = 2
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
@@ -110,16 +87,10 @@ internal fun ReportsScreen(
 ) {
     val timeZone = remember { TimeZone.getDefault() }
     var isExportDialogVisible by remember { mutableStateOf(false) }
+    var isFilterSheetVisible by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= PosBreakpoints.twoPane
         Column(modifier = Modifier.fillMaxSize()) {
-            RangeControlsCard(
-                uiState = uiState,
-                timeZone = timeZone,
-                onPresetSelected = onPresetSelected,
-                onCustomRangeSelected = onCustomRangeSelected,
-                onExport = { isExportDialogVisible = true },
-            )
             ExportStatus(exportState = uiState.exportState, onDismissExport = onDismissExport)
             if (uiState.isLoading && uiState.summary != null) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -139,13 +110,25 @@ internal fun ReportsScreen(
                     uiState.summary == null -> LoadingState(label = "Memuat laporan")
                     else -> MainReportContent(
                         uiState = uiState,
+                        timeZone = timeZone,
                         isExpanded = isExpanded,
                         onSummaryDrillDown = onSummaryDrillDown,
                         onDayDrillDown = onDayDrillDown,
+                        onFilter = { isFilterSheetVisible = true },
+                        onExport = { isExportDialogVisible = true },
                     )
                 }
             }
         }
+    }
+    if (isFilterSheetVisible) {
+        ReportsFilterSheet(
+            uiState = uiState,
+            timeZone = timeZone,
+            onDismiss = { isFilterSheetVisible = false },
+            onPresetSelected = onPresetSelected,
+            onCustomRangeSelected = onCustomRangeSelected,
+        )
     }
     if (isExportDialogVisible) {
         ExportDialog(
@@ -158,232 +141,13 @@ internal fun ReportsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun RangeControlsCard(
-    uiState: ReportsUiState,
-    timeZone: TimeZone,
-    onPresetSelected: (ReportsRangePreset) -> Unit,
-    onCustomRangeSelected: (Long, Long) -> Unit,
-    onExport: () -> Unit,
-) {
-    var activePicker by remember { mutableStateOf<DatePickerTarget?>(null) }
-    val startEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.startMillis, timeZone)
-    val endEpochDay = ReportDates.epochDayForLocalMillis(uiState.range.endMillis, timeZone)
-
-    PosCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-    ) {
-        PosSectionHeader(
-            title = "Rentang Tanggal",
-            action = { ExportAction(onClick = onExport) },
-        )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        ) {
-            VISIBLE_RANGE_PRESETS.forEach { preset ->
-                RangeChip(
-                    label = preset.label,
-                    selected = preset == uiState.preset,
-                    onClick = { onPresetSelected(preset) },
-                )
-            }
-        }
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        ) {
-            RangeChip(
-                label = "Dari ${ReportDates.formatLocalDateShort(uiState.range.startMillis, timeZone)}",
-                selected = uiState.preset == ReportsRangePreset.CUSTOM,
-                onClick = { activePicker = DatePickerTarget.START },
-            )
-            RangeChip(
-                label = "Sampai ${ReportDates.formatLocalDateShort(uiState.range.endMillis, timeZone)}",
-                selected = uiState.preset == ReportsRangePreset.CUSTOM,
-                onClick = { activePicker = DatePickerTarget.END },
-            )
-        }
-    }
-
-    activePicker?.let { target ->
-        val initialEpochDay = if (target == DatePickerTarget.START) startEpochDay else endEpochDay
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initialEpochDay * ReportDates.MILLIS_PER_DAY,
-        )
-        DatePickerDialog(
-            onDismissRequest = { activePicker = null },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val selectedMillis = datePickerState.selectedDateMillis
-                        if (selectedMillis != null) {
-                            val selectedEpochDay = selectedMillis / ReportDates.MILLIS_PER_DAY
-                            if (target == DatePickerTarget.START) {
-                                onCustomRangeSelected(selectedEpochDay, endEpochDay)
-                            } else {
-                                onCustomRangeSelected(startEpochDay, selectedEpochDay)
-                            }
-                        }
-                        activePicker = null
-                    },
-                ) {
-                    Text(text = "Terapkan")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { activePicker = null }) {
-                    Text(text = "Batal")
-                }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-}
-
-@Composable
-private fun ExportDialog(
-    onConfirm: (ReportExportFormat) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var selectedFormat by remember { mutableStateOf(ReportExportFormat.CSV) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Ekspor Laporan") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
-                Text(
-                    text = "Tonton iklan singkat untuk mengekspor laporan.",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "File akan disimpan di folder ${DownloadsReportSink.DESTINATION_LABEL}.",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Format",
-                    style = LocalAppTextStyles.current.tableHeader,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                ReportExportFormat.entries.forEach { format ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = PosSizes.touchTarget)
-                            .selectable(
-                                selected = format == selectedFormat,
-                                role = Role.RadioButton,
-                                onClick = { selectedFormat = format },
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = format == selectedFormat, onClick = null)
-                        Spacer(modifier = Modifier.width(PosSpacing.sm))
-                        Text(text = format.label, style = LocalAppTextStyles.current.body)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(selectedFormat) },
-                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
-            ) {
-                Text(text = "Tonton & Ekspor")
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
-            ) {
-                Text(text = "Batal")
-            }
-        },
-    )
-}
-
-@Composable
-private fun ExportAction(onClick: () -> Unit) {
-    Surface(
-        color = PosColors.ForestGreen,
-        contentColor = Color.White,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Box(
-            modifier = Modifier.heightIn(min = PosSizes.touchTarget),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = PosSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_download),
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = Color.White,
-                )
-                Text(
-                    text = "Ekspor",
-                    style = LocalAppTextStyles.current.buttonLabel,
-                    color = Color.White,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RangeChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        contentColor = if (selected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        shape = MaterialTheme.shapes.small,
-        border = BorderStroke(
-            1.dp,
-            if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
-            },
-        ),
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Box(
-            modifier = Modifier.heightIn(min = PosSizes.touchTarget),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = label,
-                style = LocalAppTextStyles.current.supportingLabel,
-                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
-            )
-        }
-    }
+private fun periodLabel(uiState: ReportsUiState, timeZone: TimeZone): String = when (uiState.preset) {
+    ReportsRangePreset.TODAY -> "Hari ini"
+    ReportsRangePreset.LAST_7_DAYS -> "7 hari terakhir"
+    ReportsRangePreset.LAST_28_DAYS -> "28 hari terakhir"
+    ReportsRangePreset.CUSTOM ->
+        "${ReportDates.formatLocalDateShort(uiState.range.startMillis, timeZone)} - " +
+            ReportDates.formatLocalDateShort(uiState.range.endMillis, timeZone)
 }
 
 @Composable
@@ -455,22 +219,49 @@ private fun ExportStatusRow(content: @Composable RowScope.() -> Unit) {
 }
 
 @Composable
+private fun TransaksiSectionHeader(
+    transactionCount: Int,
+    uiState: ReportsUiState,
+    timeZone: TimeZone,
+    onFilter: () -> Unit,
+    onExport: () -> Unit,
+) {
+    PosSectionHeader(
+        title = "Transaksi",
+        supportingText = "$transactionCount transaksi · ${periodLabel(uiState, timeZone)}",
+        action = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onExport) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_download),
+                        contentDescription = "Ekspor laporan",
+                    )
+                }
+                IconButton(onClick = onFilter) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_settings),
+                        contentDescription = "Filter periode",
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
 private fun MainReportContent(
     uiState: ReportsUiState,
+    timeZone: TimeZone,
     isExpanded: Boolean,
     onSummaryDrillDown: () -> Unit,
     onDayDrillDown: (Long) -> Unit,
+    onFilter: () -> Unit,
+    onExport: () -> Unit,
 ) {
     val summary = uiState.summary ?: return
-    if (summary.transactionCount == 0) {
-        EmptyState(
-            iconRes = R.drawable.ic_chart_column,
-            title = "Belum ada penjualan",
-            supportingText = "Laporan akan terisi setelah ada transaksi selesai di Kasir pada rentang ini.",
-        )
-        return
-    }
-
     val breakdownDays = uiState.dailySales
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -508,16 +299,26 @@ private fun MainReportContent(
             }
         }
         item {
-            PosSectionHeader(
-                title = "Rincian Penjualan",
-                supportingText = "${summary.transactionCount} transaksi",
-                action = { SecondaryTextAction(text = "Lihat Semua", onClick = onSummaryDrillDown) },
+            TransaksiSectionHeader(
+                transactionCount = summary.transactionCount,
+                uiState = uiState,
+                timeZone = timeZone,
+                onFilter = onFilter,
+                onExport = onExport,
             )
         }
-        if (breakdownDays.isEmpty()) {
+        if (summary.transactionCount == 0) {
+            item {
+                EmptyState(
+                    iconRes = R.drawable.ic_chart_column,
+                    title = "Belum ada penjualan",
+                    supportingText = "Laporan akan terisi setelah ada transaksi selesai di Kasir pada periode ini.",
+                )
+            }
+        } else if (breakdownDays.isEmpty()) {
             item {
                 Text(
-                    text = "Belum ada rincian harian pada rentang ini.",
+                    text = "Belum ada rincian harian pada periode ini.",
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -551,6 +352,9 @@ private fun MainReportContent(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
+        item {
+            SecondaryTextAction(text = "Lihat semua", onClick = onSummaryDrillDown)
         }
     }
 }
@@ -765,10 +569,7 @@ private fun DrillDownSection(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = when (drillDown) {
-                        is ReportsDrillDown.Summary -> "Rincian Penjualan"
-                        is ReportsDrillDown.Day -> ReportDates.formatEpochDayShort(drillDown.epochDay)
-                    },
+                    text = "Transaksi",
                     style = LocalAppTextStyles.current.sectionHeading,
                 )
                 Text(
@@ -783,7 +584,7 @@ private fun DrillDownSection(
             EmptyState(
                 iconRes = R.drawable.ic_receipt,
                 title = "Belum ada transaksi",
-                supportingText = "Tidak ada transaksi pada rentang ini.",
+                supportingText = "Tidak ada transaksi pada periode ini.",
             )
         } else {
             LazyColumn(
