@@ -1,6 +1,7 @@
 package id.umkm.pos.pro.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -263,6 +264,11 @@ private fun RailNavItem(
             .widthIn(min = NavigationRailItemMinWidth)
             .heightIn(min = NavigationRailItemMinHeight)
             .clip(MaterialTheme.shapes.large)
+            .border(
+                width = if (isSelected) 3.dp else 1.dp,
+                color = Color.White,
+                shape = MaterialTheme.shapes.large,
+            )
             .selectable(
                 selected = isSelected,
                 role = Role.Tab,
@@ -270,16 +276,6 @@ private fun RailNavItem(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(3.dp)
-                    .height(26.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(PosColors.GreenElevated),
-            )
-        }
         Column(
             modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
