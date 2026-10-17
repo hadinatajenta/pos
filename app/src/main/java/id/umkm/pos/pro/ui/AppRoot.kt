@@ -69,9 +69,9 @@ private val FloatingNavigationShape = RoundedCornerShape(28.dp)
 private val FloatingNavigationMinHeight = 56.dp
 private val FloatingNavigationIndicatorWidth = 26.dp
 private val FloatingNavigationIndicatorHeight = 3.dp
-private val FloatingRailLaneWidth = 96.dp
-private val FloatingRailItemMinWidth = 72.dp
-private val FloatingRailItemMinHeight = 64.dp
+private val NavigationRailLaneWidth = 96.dp
+private val NavigationRailItemMinWidth = 72.dp
+private val NavigationRailItemMinHeight = 64.dp
 
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
@@ -220,38 +220,34 @@ private fun PrimaryNavigationRail(
     selectedDestination: PosDestination,
     onDestinationSelected: (PosDestination) -> Unit,
 ) {
-    Box(
+    Surface(
+        color = Color.White,
+        contentColor = PosColors.TextPrimary,
         modifier = Modifier
             .fillMaxHeight()
-            .width(FloatingRailLaneWidth)
-            .padding(horizontal = PosSpacing.sm, vertical = PosSpacing.md),
-        contentAlignment = Alignment.Center,
+            .width(NavigationRailLaneWidth)
+            .testTag(EXPANDED_NAVIGATION_TEST_TAG),
     ) {
-        Surface(
-            color = Color.White,
-            contentColor = PosColors.TextPrimary,
-            shape = FloatingNavigationShape,
-            shadowElevation = FLOATING_NAVIGATION_ELEVATION.dp,
-            modifier = Modifier.testTag(EXPANDED_NAVIGATION_TEST_TAG),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = PosSpacing.md)
+                .selectableGroup(),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                modifier = Modifier.padding(vertical = PosSpacing.sm).selectableGroup(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                PosDestination.entries.forEach { destination ->
-                    FloatingRailItem(
-                        destination = destination,
-                        isSelected = destination == selectedDestination,
-                        onClick = { onDestinationSelected(destination) },
-                    )
-                }
+            PosDestination.entries.forEach { destination ->
+                RailNavItem(
+                    destination = destination,
+                    isSelected = destination == selectedDestination,
+                    onClick = { onDestinationSelected(destination) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FloatingRailItem(
+private fun RailNavItem(
     destination: PosDestination,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -259,8 +255,8 @@ private fun FloatingRailItem(
     val contentColor = if (isSelected) PosColors.Accent else PosColors.TextPrimary
     Box(
         modifier = Modifier
-            .widthIn(min = FloatingRailItemMinWidth)
-            .heightIn(min = FloatingRailItemMinHeight)
+            .widthIn(min = NavigationRailItemMinWidth)
+            .heightIn(min = NavigationRailItemMinHeight)
             .clip(MaterialTheme.shapes.large)
             .selectable(
                 selected = isSelected,
