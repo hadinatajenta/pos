@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -98,7 +101,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = MaterialTheme.colorScheme.background,
-                contentWindowInsets = WindowInsets.safeDrawing,
+                contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
                 bottomBar = {
                     if (!isExpandedWindow) {
                         PrimaryNavigationBar(
@@ -120,7 +123,9 @@ fun AppRoot(modifier: Modifier = Modifier) {
                         onShareReceipt = shareReceipt,
                         onOpenCashier = { selectedDestination = PosDestination.KASIR },
                         onOpenProducts = { selectedDestination = PosDestination.PRODUK },
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .imePadding(),
                     )
                 }
             }
