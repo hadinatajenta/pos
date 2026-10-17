@@ -230,10 +230,10 @@ private fun PrimaryNavigationRail(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = PosSpacing.md)
+                .fillMaxHeight()
                 .selectableGroup(),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             PosDestination.entries.forEach { destination ->
                 RailNavItem(

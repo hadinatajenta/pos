@@ -10,7 +10,7 @@ class PosDestinationTest {
         val names = PosDestination.entries.map { it.name }
 
         assertThat(names)
-            .containsExactly("BERANDA", "KASIR", "PRODUK", "LAPORAN", "LAINNYA")
+            .containsExactly("BERANDA", "PRODUK", "KASIR", "LAPORAN", "LAINNYA")
             .inOrder()
     }
 
@@ -24,7 +24,7 @@ class PosDestinationTest {
         val labels = PosDestination.entries.map { it.label }
 
         assertThat(labels)
-            .containsExactly("Beranda", "Kasir", "Produk", "Laporan", "Lainnya")
+            .containsExactly("Beranda", "Produk", "Kasir", "Laporan", "Lainnya")
             .inOrder()
     }
 

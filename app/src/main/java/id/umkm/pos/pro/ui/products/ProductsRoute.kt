@@ -84,11 +84,7 @@ internal fun ProductsScreen(
         actions.onMessageConsumed()
     }
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(PosColors.ForestGreen),
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
