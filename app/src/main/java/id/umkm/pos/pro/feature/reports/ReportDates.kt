@@ -33,6 +33,9 @@ object ReportDates {
     fun formatTimestamp(millis: Long, timeZone: TimeZone): String =
         newFormatter("yyyy-MM-dd HH:mm:ss", timeZone).format(Date(millis))
 
+    fun formatLocalDateTimeShort(millis: Long, timeZone: TimeZone): String =
+        newFormatter("dd MMM yyyy HH:mm", timeZone).format(Date(millis))
+
     fun epochDayForLocalMillis(millis: Long, timeZone: TimeZone): Long {
         val local = Calendar.getInstance(timeZone).apply { timeInMillis = millis }
         val utc = Calendar.getInstance(UTC).apply {

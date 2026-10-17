@@ -23,17 +23,16 @@ class ReportsPresenterReturnTest {
     private val clock = FixedClock(1_705_320_000_000L)
 
     @Test
-    fun drillDownExposesTransactionIdForReturn() = runTest(mainDispatcherRule.testDispatcher) {
+    fun transactionListExposesTransactionIdForReturn() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = RecordingReportRepository(
             transactions = listOf(sampleTransaction(id = 42L, invoiceNo = "INV-42")),
         )
         val presenter = createPresenter(repository, this)
 
         presenter.start()
-        presenter.openSummaryDrillDown()
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
 
-        assertThat(presenter.uiState.value.drillDown?.transactions?.map { transaction -> transaction.id })
+        assertThat(presenter.uiState.value.visibleTransactions.map { transaction -> transaction.id })
             .containsExactly(42L)
 
         presenter.requestReturn(42L)
@@ -66,7 +65,6 @@ class ReportsPresenterReturnTest {
         val presenter = createPresenter(repository, this)
 
         presenter.start()
-        presenter.openSummaryDrillDown()
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
         presenter.requestReturn(42L)
 
@@ -85,12 +83,11 @@ class ReportsPresenterReturnTest {
 
         val state = presenter.uiState.value
         assertThat(state.pendingReturnTransactionId).isNull()
-        assertThat(state.drillDown).isNull()
         assertThat(state.summary).isEqualTo(repository.summary)
         assertThat(state.dailySales).isEqualTo(repository.dailySales)
         assertThat(repository.summaryReadCount).isEqualTo(2)
         assertThat(repository.dailySalesReadCount).isEqualTo(2)
-        assertThat(repository.transactionsReadCount).isEqualTo(3)
+        assertThat(repository.transactionsReadCount).isEqualTo(2)
     }
 
     @Test
@@ -142,6 +139,8 @@ class ReportsPresenterReturnTest {
         reportRepository = repository,
         transactionRepository = FakeTransactionRepository(),
         productRepository = FakeProductRepository(),
+        customerRepository = FakeCustomerRepository(),
+        settingsRepository = FakeSettingsRepository(),
         csvExporter = SalesCsvExporter(repository, RecordingCsvSink(), utc),
         xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),
         adController = RecordingAdController(),

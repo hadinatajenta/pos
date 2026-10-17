@@ -91,6 +91,7 @@ fun PrimaryActionButton(
     loading: Boolean = false,
     @DrawableRes iconRes: Int? = null,
     shape: Shape = PosShapes.medium,
+    shouldFillWidth: Boolean = true,
 ) {
     Button(
         onClick = onClick,
@@ -101,7 +102,7 @@ fun PrimaryActionButton(
             contentColor = MaterialTheme.colorScheme.onPrimary,
         ),
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (shouldFillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = POS_PRIMARY_ACTION_HEIGHT),
     ) {
         if (loading) {

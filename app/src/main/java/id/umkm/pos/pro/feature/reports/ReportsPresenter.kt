@@ -1,20 +1,21 @@
 package id.umkm.pos.pro.feature.reports
 
 import id.umkm.pos.pro.core.contract.AdController
-import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
-import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.ReportRange
-import id.umkm.pos.pro.core.model.SalesSummary
-import id.umkm.pos.pro.core.model.Transaction
-import id.umkm.pos.pro.ui.components.ChartBuckets
-import id.umkm.pos.pro.ui.components.ChartPoint
+import id.umkm.pos.pro.feature.receipt.ReceiptShareText
+import id.umkm.pos.pro.feature.receipt.StoredReceipt
+import id.umkm.pos.pro.feature.receipt.StoredReceiptBuilder
+import id.umkm.pos.pro.feature.receipt.StoredReceiptLoader
+import id.umkm.pos.pro.ui.common.ReceiptPrintRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -30,6 +31,8 @@ class ReportsPresenter(
     private val reportRepository: ReportRepository,
     private val transactionRepository: TransactionRepository,
     private val productRepository: ProductRepository,
+    private val customerRepository: CustomerRepository,
+    private val settingsRepository: SettingsRepository,
     private val csvExporter: SalesCsvExporter,
     private val xlsxExporter: XlsxReportExporter,
     private val adController: AdController,
@@ -52,6 +55,8 @@ class ReportsPresenter(
 
     private var loadJob: Job? = null
     private var exportJob: Job? = null
+    private var detailJob: Job? = null
+    private var receiptJob: Job? = null
 
     fun start() {
         refresh()
@@ -75,17 +80,76 @@ class ReportsPresenter(
         loadReports(rangeFactory.forEpochDayRange(startEpochDay, endEpochDay), ReportsRangePreset.CUSTOM)
     }
 
-    fun openSummaryDrillDown() {
-        val currentRange = mutableState.value.range
-        loadDrillDown(day = null, range = currentRange)
+    fun toggleStatusFilter(statusFilter: TransactionStatusFilter) {
+        mutableState.update { current ->
+            val updatedFilter = if (current.statusFilter == statusFilter) null else statusFilter
+            current.copy(
+                statusFilter = updatedFilter,
+                visibleTransactions = current.transactions.matchingStatusFilter(updatedFilter),
+            )
+        }
     }
 
-    fun openDayDrillDown(epochDay: Long) {
-        loadDrillDown(day = epochDay, range = rangeFactory.forEpochDay(epochDay))
+    fun openDetail(transactionId: Long) {
+        detailJob?.cancel()
+        detailJob = coroutineScope.launch {
+            mutableState.update { current -> current.copy(isDetailLoading = true, detail = null, message = null) }
+            try {
+                val detail = TransactionDetailLoader.load(
+                    transactionId = transactionId,
+                    transactionRepository = transactionRepository,
+                    productRepository = productRepository,
+                    customerRepository = customerRepository,
+                    settingsRepository = settingsRepository,
+                )
+                mutableState.update { current ->
+                    if (detail == null) {
+                        current.copy(isDetailLoading = false, message = "Transaksi tidak ditemukan.")
+                    } else {
+                        current.copy(isDetailLoading = false, detail = detail)
+                    }
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                mutableState.update { current ->
+                    current.copy(isDetailLoading = false, message = "Detail transaksi gagal dimuat.")
+                }
+            }
+        }
     }
 
-    fun closeDrillDown() {
-        mutableState.update { current -> current.copy(drillDown = null) }
+    fun closeDetail() {
+        mutableState.update { current -> current.copy(detail = null, isDetailLoading = false) }
+    }
+
+    fun shareReceipt(transactionId: Long) {
+        prepareStoredReceipt(transactionId) { current, receipt ->
+            current.copy(pendingReceiptShare = ReceiptShareText.build(receipt.shareData))
+        }
+    }
+
+    fun printReceipt(transactionId: Long) {
+        prepareStoredReceipt(transactionId) { current, receipt ->
+            current.copy(
+                pendingReceiptPrint = ReceiptPrintRequest(
+                    documentName = "Struk ${receipt.shareData.invoiceNo}",
+                    content = StoredReceiptBuilder.toPrintText(receipt),
+                ),
+            )
+        }
+    }
+
+    fun onReceiptShared() {
+        mutableState.update { current -> current.copy(pendingReceiptShare = null) }
+    }
+
+    fun onReceiptPrinted() {
+        mutableState.update { current -> current.copy(pendingReceiptPrint = null) }
+    }
+
+    fun onMessageConsumed() {
+        mutableState.update { current -> current.copy(message = null) }
     }
 
     fun requestReturn(transactionId: Long) {
@@ -107,8 +171,13 @@ class ReportsPresenter(
             val currentRange = mutableState.value.range
             mutableState.update { current -> current.copy(exportState = ReportsExportState.Running) }
             try {
-                requestRewardedAd()
-                val content = loadReportContent(currentRange)
+                requestExportRewardedAd(adController)
+                val content = ReportContentLoader.load(
+                    range = currentRange,
+                    reportRepository = reportRepository,
+                    transactionRepository = transactionRepository,
+                    productRepository = productRepository,
+                )
                 val fileName = ReportExportFileName.forRange(currentRange, format, timeZone)
                 val result = when (format) {
                     ReportExportFormat.CSV -> csvExporter.exportReport(content, fileName)
@@ -137,40 +206,33 @@ class ReportsPresenter(
         mutableState.update { current -> current.copy(exportState = ReportsExportState.PermissionDenied) }
     }
 
-    private suspend fun requestRewardedAd(): AppResult<Unit> =
-        try {
-            adController.showRewarded(AdPlacement.EXCEL_EXPORT)
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (error: Exception) {
-            AppResult.Failure(AppError.Network(error.message ?: "rewarded ad unavailable"))
-        }
-
-    private suspend fun loadReportContent(range: ReportRange): ReportContent {
-        val transactions = reportRepository.transactionsInRange(range)
-        val quantityByProduct = LinkedHashMap<Long, Double>()
-        val salesValueByProduct = LinkedHashMap<Long, Long>()
-        transactions.forEach { transaction ->
-            transactionRepository.getItems(transaction.id).forEach { item ->
-                quantityByProduct[item.productId] =
-                    (quantityByProduct[item.productId] ?: 0.0) + item.qty
-                salesValueByProduct[item.productId] =
-                    (salesValueByProduct[item.productId] ?: 0L) + item.subtotal
-            }
-        }
-        val summaries = quantityByProduct.entries
-            .mapNotNull { entry ->
-                productRepository.getProductById(entry.key)?.let { product ->
-                    ReportProductSummary(
-                        productId = product.id,
-                        name = product.name,
-                        quantitySold = entry.value,
-                        salesValue = salesValueByProduct[entry.key] ?: 0L,
-                    )
+    private fun prepareStoredReceipt(
+        transactionId: Long,
+        onReady: (ReportsUiState, StoredReceipt) -> ReportsUiState,
+    ) {
+        receiptJob?.cancel()
+        receiptJob = coroutineScope.launch {
+            try {
+                val receipt = StoredReceiptLoader.load(
+                    transactionId = transactionId,
+                    transactionRepository = transactionRepository,
+                    productRepository = productRepository,
+                    customerRepository = customerRepository,
+                    settingsRepository = settingsRepository,
+                )
+                mutableState.update { current ->
+                    if (receipt == null) {
+                        current.copy(message = "Transaksi tidak ditemukan.")
+                    } else {
+                        onReady(current, receipt)
+                    }
                 }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                mutableState.update { current -> current.copy(message = "Struk gagal disiapkan.") }
             }
-            .sortedByDescending { summary -> summary.salesValue }
-        return ReportContent(transactions = transactions, productSummaries = summaries)
+        }
     }
 
     private fun ReportsUiState.withExportResult(result: AppResult<BackupArtifact>): ReportsUiState =
@@ -194,20 +256,22 @@ class ReportsPresenter(
                     preset = preset,
                     isLoading = true,
                     error = null,
-                    drillDown = null,
                 )
             }
             try {
                 val summary = reportRepository.salesSummary(range)
                 val dailySales = reportRepository.salesByDay(range)
                 val transactions = reportRepository.transactionsInRange(range)
+                    .sortedByDescending { transaction -> transaction.createdAt }
                 mutableState.update { current ->
                     current.copy(
                         summary = summary,
                         averageTransaction = averageTransactionOf(summary),
                         dailySales = dailySales,
-                        salesChartPoints = chartPointsFor(range, dailySales),
+                        salesChartPoints = chartPointsFor(range, dailySales, zoneId),
                         paymentShares = paymentShares(transactions),
+                        transactions = transactions,
+                        visibleTransactions = transactions.matchingStatusFilter(current.statusFilter),
                         isLoading = false,
                         error = null,
                     )
@@ -223,66 +287,5 @@ class ReportsPresenter(
                 }
             }
         }
-    }
-
-    private fun averageTransactionOf(summary: SalesSummary): Long =
-        if (summary.transactionCount > 0) summary.totalSales / summary.transactionCount else 0L
-
-    private fun chartPointsFor(range: ReportRange, dailySales: List<DailySales>): List<ChartPoint> {
-        if (dailySales.none { day -> day.totalSales > 0L }) return emptyList()
-        val buckets = ChartBuckets.dailyZeroFilled(range, dailySales, zoneId)
-        val isWeekdayLabel = buckets.size <= WEEKDAY_LABEL_MAX_BUCKETS
-        return buckets.map { day ->
-            ChartPoint(
-                label = if (isWeekdayLabel) {
-                    ChartBuckets.weekdayLabel(day.epochDay)
-                } else {
-                    ChartBuckets.dayOfMonthLabel(day.epochDay)
-                },
-                value = day.totalSales.toDouble(),
-            )
-        }
-    }
-
-    private fun paymentShares(transactions: List<Transaction>): List<ReportsPaymentShare> =
-        transactions.groupBy { transaction -> transaction.paymentMethod }
-            .map { (method, group) ->
-                ReportsPaymentShare(
-                    paymentMethod = method,
-                    amount = group.sumOf { transaction -> transaction.grandTotal },
-                    transactionCount = group.size,
-                )
-            }
-            .sortedByDescending { share -> share.amount }
-
-    private fun loadDrillDown(day: Long?, range: ReportRange) {
-        loadJob?.cancel()
-        loadJob = coroutineScope.launch {
-            mutableState.update { current -> current.copy(isLoading = true, drillDown = null) }
-            try {
-                val transactions = reportRepository.transactionsInRange(range)
-                val drillDown = if (day == null) {
-                    ReportsDrillDown.Summary(transactions)
-                } else {
-                    ReportsDrillDown.Day(epochDay = day, transactions = transactions)
-                }
-                mutableState.update { current ->
-                    current.copy(isLoading = false, drillDown = drillDown)
-                }
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (error: Exception) {
-                mutableState.update { current ->
-                    current.copy(
-                        isLoading = false,
-                        error = AppError.Unexpected(error.message ?: "failed to load transactions"),
-                    )
-                }
-            }
-        }
-    }
-
-    private companion object {
-        const val WEEKDAY_LABEL_MAX_BUCKETS = 7
     }
 }

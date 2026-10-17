@@ -226,6 +226,8 @@ class ReportsPresenterExportTest {
         reportRepository = reportRepository,
         transactionRepository = transactionRepository,
         productRepository = productRepository,
+        customerRepository = FakeCustomerRepository(),
+        settingsRepository = FakeSettingsRepository(),
         csvExporter = SalesCsvExporter(reportRepository, csvSink, utc),
         xlsxExporter = XlsxReportExporter(binarySink, utc),
         adController = adController,

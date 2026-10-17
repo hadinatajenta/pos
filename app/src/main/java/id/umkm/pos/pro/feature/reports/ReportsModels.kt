@@ -6,7 +6,9 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.ui.components.ChartPoint
+import id.umkm.pos.pro.ui.common.ReceiptPrintRequest
 
 enum class ReportsRangePreset(val label: String) {
     TODAY("Hari Ini"),
@@ -14,6 +16,36 @@ enum class ReportsRangePreset(val label: String) {
     LAST_28_DAYS("28 Hari"),
     CUSTOM("Pilih Tanggal"),
 }
+
+enum class TransactionStatusFilter(
+    val label: String,
+    val statuses: Set<TransactionStatus>,
+) {
+    COMPLETED("Berhasil", setOf(TransactionStatus.COMPLETED, TransactionStatus.PARTIAL_DEBT)),
+    REFUND("Refund", setOf(TransactionStatus.RETURNED)),
+}
+
+internal fun List<Transaction>.matchingStatusFilter(statusFilter: TransactionStatusFilter?): List<Transaction> =
+    if (statusFilter == null) {
+        this
+    } else {
+        filter { transaction -> transaction.status in statusFilter.statuses }
+    }
+
+data class TransactionDetailLine(
+    val name: String,
+    val quantityLabel: String,
+    val unitPrice: Long,
+    val itemDiscount: Long,
+    val lineTotal: Long,
+)
+
+data class TransactionDetail(
+    val transaction: Transaction,
+    val customerName: String?,
+    val cashierName: String?,
+    val lines: List<TransactionDetailLine>,
+)
 
 data class ReportsPaymentShare(
     val paymentMethod: PaymentMethod,
@@ -32,17 +64,6 @@ data class ReportContent(
     val transactions: List<Transaction>,
     val productSummaries: List<ReportProductSummary>,
 )
-
-sealed interface ReportsDrillDown {
-    val transactions: List<Transaction>
-
-    data class Summary(override val transactions: List<Transaction>) : ReportsDrillDown
-
-    data class Day(
-        val epochDay: Long,
-        override val transactions: List<Transaction>,
-    ) : ReportsDrillDown
-}
 
 sealed interface ReportsExportState {
     data object Idle : ReportsExportState
@@ -64,9 +85,16 @@ data class ReportsUiState(
     val dailySales: List<DailySales> = emptyList(),
     val salesChartPoints: List<ChartPoint> = emptyList(),
     val paymentShares: List<ReportsPaymentShare> = emptyList(),
+    val transactions: List<Transaction> = emptyList(),
+    val visibleTransactions: List<Transaction> = emptyList(),
+    val statusFilter: TransactionStatusFilter? = null,
     val isLoading: Boolean = true,
     val error: AppError? = null,
-    val drillDown: ReportsDrillDown? = null,
+    val detail: TransactionDetail? = null,
+    val isDetailLoading: Boolean = false,
     val pendingReturnTransactionId: Long? = null,
+    val pendingReceiptShare: String? = null,
+    val pendingReceiptPrint: ReceiptPrintRequest? = null,
+    val message: String? = null,
     val exportState: ReportsExportState = ReportsExportState.Idle,
 )

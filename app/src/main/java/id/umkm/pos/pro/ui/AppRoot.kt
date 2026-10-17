@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -75,6 +76,8 @@ const val COMPACT_NAVIGATION_TEST_TAG = "compact-navigation-bar"
 const val EXPANDED_NAVIGATION_TEST_TAG = "expanded-navigation-rail"
 
 private const val FLOATING_NAVIGATION_ELEVATION = 4
+private const val FLOATING_NAVIGATION_LABEL_SP = 10f
+private const val FLOATING_NAVIGATION_LABEL_MAX_SP = 12f
 
 private val FloatingNavigationShape = RoundedCornerShape(28.dp)
 private val FloatingNavigationMinHeight = 56.dp
@@ -112,6 +115,8 @@ fun AppRoot(modifier: Modifier = Modifier) {
             reportRepository = container.reportRepository,
             transactionRepository = container.transactionRepository,
             productRepository = container.productRepository,
+            customerRepository = container.customerRepository,
+            settingsRepository = container.settingsRepository,
             csvExporter = SalesCsvExporter(container.reportRepository, downloadsSink),
             xlsxExporter = XlsxReportExporter(downloadsSink),
             adController = container.adController,
@@ -202,6 +207,8 @@ private fun FloatingNavigationItem(
     modifier: Modifier = Modifier,
 ) {
     val contentColor = if (isSelected) PosColors.Accent else PosColors.TextPrimary
+    val fontScale = LocalDensity.current.fontScale
+    val labelFontSize = minOf(FLOATING_NAVIGATION_LABEL_SP, FLOATING_NAVIGATION_LABEL_MAX_SP / fontScale)
     Box(
         modifier = modifier
             .heightIn(min = FloatingNavigationMinHeight)
@@ -239,7 +246,10 @@ private fun FloatingNavigationItem(
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = labelFontSize.sp,
+                    letterSpacing = 0.sp,
+                ),
             )
         }
     }
@@ -344,7 +354,12 @@ private fun DestinationHost(
         )
         PosDestination.KASIR -> CashierRoute(onShareReceipt = onShareReceipt, modifier = modifier)
         PosDestination.PRODUK -> ProductsRoute(modifier = modifier)
-        PosDestination.TRANSAKSI -> TransactionsRoute(presenter = salesPresenter, modifier = modifier)
+        PosDestination.TRANSAKSI -> TransactionsRoute(
+            presenter = salesPresenter,
+            onStartSale = onOpenCashier,
+            onShareReceiptText = onShareReceipt,
+            modifier = modifier,
+        )
         PosDestination.LAPORAN -> ReportsRoute(presenter = salesPresenter, modifier = modifier)
         PosDestination.LAINNYA -> MoreRoute(modifier = modifier)
     }

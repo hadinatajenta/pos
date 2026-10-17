@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import id.umkm.pos.pro.feature.receipt.ReceiptShareData
 import id.umkm.pos.pro.feature.receipt.ReceiptShareItem
 import id.umkm.pos.pro.feature.receipt.ReceiptShareText
+import id.umkm.pos.pro.feature.receipt.twoColumnLine
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.formatDateTime
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
@@ -687,11 +688,8 @@ class CashierViewModel(
         )
     }
 
-    private fun twoColumn(label: String, value: String): String {
-        val available = RECEIPT_WIDTH_CHARS - value.length
-        if (available <= label.length) return "$label $value"
-        return label + " ".repeat(available - label.length) + value
-    }
+    private fun twoColumn(label: String, value: String): String =
+        twoColumnLine(label = label, value = value, widthChars = RECEIPT_WIDTH_CHARS)
 
     private fun updateLineEditorValidation(message: String) {
         _state.update { current ->

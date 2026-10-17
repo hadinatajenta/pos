@@ -1,0 +1,128 @@
+package id.umkm.pos.pro.feature.receipt
+
+import id.umkm.pos.pro.core.contract.ReceiptAlignment
+import id.umkm.pos.pro.core.contract.ReceiptDocument
+import id.umkm.pos.pro.core.contract.ReceiptLine
+import id.umkm.pos.pro.core.model.Product
+import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.core.model.TransactionItem
+import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.formatQuantity
+import id.umkm.pos.pro.ui.common.paymentMethodLabel
+
+internal data class StoredReceipt(
+    val shareData: ReceiptShareData,
+    val document: ReceiptDocument,
+)
+
+internal object StoredReceiptBuilder {
+
+    private const val RECEIPT_WIDTH_CHARS = 32
+    private const val FALLBACK_STORE_NAME = "POS UMKM Pro"
+
+    fun build(
+        transaction: Transaction,
+        items: List<TransactionItem>,
+        productsById: Map<Long, Product>,
+        storeName: String,
+        cashierName: String?,
+        customerName: String?,
+        createdAtLabel: String,
+        dueDateLabel: String?,
+    ): StoredReceipt {
+        val receiptItems = items.map { item ->
+            val product = productsById[item.productId]
+            val unitLabel = item.variantName ?: product?.baseUnit.orEmpty()
+            StoredReceiptItem(
+                name = product?.name ?: "Item ${item.productId}",
+                quantityLabel = "${formatQuantity(item.qty)} $unitLabel".trim(),
+                unitPrice = item.appliedUnitPrice,
+                lineTotal = item.subtotal,
+                itemDiscount = item.itemDiscount,
+            )
+        }
+        val shareData = ReceiptShareData(
+            storeName = storeName,
+            invoiceNo = transaction.invoiceNo,
+            createdAtLabel = createdAtLabel,
+            cashierName = cashierName,
+            customerName = customerName,
+            paymentMethodLabel = paymentMethodLabel(transaction.paymentMethod),
+            items = receiptItems.map { item ->
+                ReceiptShareItem(
+                    name = item.name,
+                    quantityLabel = item.quantityLabel,
+                    unitPrice = item.unitPrice,
+                    lineTotal = item.lineTotal,
+                    itemDiscount = item.itemDiscount,
+                )
+            },
+            subtotal = transaction.subtotal,
+            invoiceDiscount = transaction.invoiceDiscount,
+            taxTotal = transaction.taxTotal,
+            rounding = transaction.rounding,
+            grandTotal = transaction.grandTotal,
+            paidAmount = transaction.paidAmount,
+            changeAmount = transaction.changeAmount,
+            remainingDebt = transaction.remainingDebt,
+            dueDateLabel = dueDateLabel,
+        )
+        val document = ReceiptDocument(
+            storeName = storeName,
+            lines = documentLines(transaction, receiptItems),
+        )
+        return StoredReceipt(shareData = shareData, document = document)
+    }
+
+    fun toPrintText(receipt: StoredReceipt): String = buildString {
+        appendLine(receipt.shareData.storeName.ifBlank { FALLBACK_STORE_NAME })
+        appendLine()
+        receipt.document.lines.forEach { line -> appendLine(line.text) }
+    }
+
+    private fun documentLines(
+        transaction: Transaction,
+        receiptItems: List<StoredReceiptItem>,
+    ): List<ReceiptLine> {
+        val lines = mutableListOf<ReceiptLine>()
+        lines += ReceiptLine("Invoice ${transaction.invoiceNo}", alignment = ReceiptAlignment.CENTER)
+        lines += ReceiptLine("")
+        receiptItems.forEach { item ->
+            lines += ReceiptLine("${item.quantityLabel} x ${item.name}")
+            lines += ReceiptLine(twoColumnLine("", Rupiah.format(item.lineTotal), RECEIPT_WIDTH_CHARS))
+        }
+        lines += ReceiptLine("")
+        lines += ReceiptLine(twoColumnLine("Subtotal", Rupiah.format(transaction.subtotal), RECEIPT_WIDTH_CHARS))
+        if (transaction.invoiceDiscount > 0L) {
+            lines += ReceiptLine(
+                twoColumnLine("Diskon", "-${Rupiah.format(transaction.invoiceDiscount)}", RECEIPT_WIDTH_CHARS),
+            )
+        }
+        if (transaction.taxTotal > 0L) {
+            lines += ReceiptLine(twoColumnLine("Pajak", Rupiah.format(transaction.taxTotal), RECEIPT_WIDTH_CHARS))
+        }
+        if (transaction.rounding != 0L) {
+            lines += ReceiptLine(twoColumnLine("Pembulatan", Rupiah.format(transaction.rounding), RECEIPT_WIDTH_CHARS))
+        }
+        lines += ReceiptLine(
+            twoColumnLine("TOTAL", Rupiah.format(transaction.grandTotal), RECEIPT_WIDTH_CHARS),
+            isBold = true,
+        )
+        lines += ReceiptLine(twoColumnLine("Dibayar", Rupiah.format(transaction.paidAmount), RECEIPT_WIDTH_CHARS))
+        if (transaction.changeAmount > 0L) {
+            lines += ReceiptLine(twoColumnLine("Kembalian", Rupiah.format(transaction.changeAmount), RECEIPT_WIDTH_CHARS))
+        }
+        if (transaction.remainingDebt > 0L) {
+            lines += ReceiptLine(twoColumnLine("Sisa", Rupiah.format(transaction.remainingDebt), RECEIPT_WIDTH_CHARS))
+        }
+        return lines
+    }
+}
+
+private data class StoredReceiptItem(
+    val name: String,
+    val quantityLabel: String,
+    val unitPrice: Long,
+    val lineTotal: Long,
+    val itemDiscount: Long,
+)
