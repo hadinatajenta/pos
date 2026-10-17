@@ -17,5 +17,6 @@ interface AppContainer {
     val scannerInput: ScannerInput
     val adController: AdController
     val onboardingStore: OnboardingStore
+    val qrisService: QrisService
     val clock: Clock
 }

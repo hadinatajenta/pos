@@ -83,6 +83,31 @@ class UmkmDatabaseMigrationTest {
         versionThree.close()
     }
 
+    @Test
+    fun migration3To4KeepsSettingsAndAddsNullableQrisPayload() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_3_4, 3).use { versionThree ->
+            versionThree.execSQL(INSERT_VERSION_THREE_SETTINGS)
+        }
+
+        val versionFour = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_3_4,
+            4,
+            true,
+            UmkmDatabase.MIGRATION_3_4,
+        )
+
+        versionFour.query(
+            "SELECT store_name, qris_image_path, qris_payload FROM app_settings",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.count)
+            assertEquals("Toko Lama", cursor.getString(0))
+            assertEquals("/data/qris.jpg", cursor.getString(1))
+            assertTrue(cursor.isNull(2))
+        }
+        versionFour.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -98,6 +123,14 @@ class UmkmDatabaseMigrationTest {
         const val TEST_DATABASE_NAME = "umkm-migration-1-2.db"
 
         const val TEST_DATABASE_NAME_2_3 = "umkm-migration-2-3.db"
+
+        const val TEST_DATABASE_NAME_3_4 = "umkm-migration-3-4.db"
+
+        const val INSERT_VERSION_THREE_SETTINGS =
+            "INSERT INTO app_settings " +
+                "(id, store_name, cashier_name, tax_rate_percent, rounding_increment, " +
+                "is_pin_enabled, printer_address, qris_image_path) " +
+                "VALUES (1, 'Toko Lama', NULL, 0, 0, 0, NULL, '/data/qris.jpg')"
 
         const val INSERT_LEGACY_TRANSACTION =
             "INSERT INTO transactions " +

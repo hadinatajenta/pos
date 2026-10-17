@@ -3,6 +3,7 @@ package id.umkm.pos.pro.ui
 import id.umkm.pos.pro.core.contract.AccountingService
 import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppResult
+import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
@@ -12,6 +13,8 @@ import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
 import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
+import id.umkm.pos.pro.core.contract.QrisImport
+import id.umkm.pos.pro.core.contract.QrisService
 import id.umkm.pos.pro.core.contract.ReceiptDocument
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
@@ -202,6 +205,13 @@ internal object AppRootFakeContainer : AppContainer {
         override fun markOnboardingCompleted() {
             isOnboardingCompleted = true
         }
+    }
+
+    override val qrisService: QrisService = object : QrisService {
+        override suspend fun importStaticQris(sourceUri: String): AppResult<QrisImport> =
+            AppResult.Failure(AppError.Validation("test"))
+
+        override suspend fun deleteQrisImage(imagePath: String?) = Unit
     }
 
     override val clock: Clock = object : Clock {

@@ -23,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.common.ScreenHeader
+import id.umkm.pos.pro.ui.customers.CustomersRoute
+import id.umkm.pos.pro.ui.settings.SettingsRoute
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
@@ -30,52 +32,82 @@ import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
+private enum class MoreDestination { CUSTOMERS, SETTINGS }
+
 private data class MoreEntry(
     val label: String,
     val supportingText: String,
     @DrawableRes val iconRes: Int,
     val isAvailable: Boolean,
+    val destination: MoreDestination? = null,
 )
 
 private val moreEntries = listOf(
-    MoreEntry("Pelanggan & Kasbon", "Catat utang dan pembayaran pelanggan", R.drawable.ic_users, isAvailable = true),
+    MoreEntry("Pelanggan & Kasbon", "Catat utang dan pembayaran pelanggan", R.drawable.ic_users, isAvailable = true, destination = MoreDestination.CUSTOMERS),
     MoreEntry("Printer Struk", "Sambungkan printer termal", R.drawable.ic_printer, isAvailable = false),
     MoreEntry("Scanner Barcode", "Kamera atau pemindai USB/Bluetooth", R.drawable.ic_scan_barcode, isAvailable = false),
     MoreEntry("Cadangkan & Pulihkan", "Salinan lokal dan Google Drive", R.drawable.ic_cloud_upload, isAvailable = false),
     MoreEntry("Keamanan & PIN", "Lindungi tindakan sensitif", R.drawable.ic_lock, isAvailable = false),
-    MoreEntry("Pengaturan", "Identitas toko dan preferensi", R.drawable.ic_settings, isAvailable = false),
+    MoreEntry("Pengaturan", "QRIS, toko, dan preferensi", R.drawable.ic_settings, isAvailable = true, destination = MoreDestination.SETTINGS),
 )
 
 @Composable
 fun MoreRoute(modifier: Modifier = Modifier) {
-    var showCustomers by rememberSaveable { mutableStateOf(false) }
-    if (showCustomers) {
-        BackHandler { showCustomers = false }
-        Column(modifier = modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PosSpacing.sm, vertical = PosSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = { showCustomers = false }) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_arrow_left),
-                        contentDescription = "Kembali",
-                    )
-                }
-                Text(text = "Pelanggan & Kasbon", style = MaterialTheme.typography.titleLarge)
-            }
-            id.umkm.pos.pro.ui.customers.CustomersRoute(modifier = Modifier.fillMaxSize())
+    var activeDetail by rememberSaveable { mutableStateOf<MoreDestination?>(null) }
+    when (activeDetail) {
+        MoreDestination.CUSTOMERS -> MoreDetailScreen(
+            title = "Pelanggan & Kasbon",
+            onBack = { activeDetail = null },
+            modifier = modifier,
+        ) {
+            CustomersRoute(modifier = Modifier.fillMaxSize())
         }
-    } else {
-        MoreMenu(modifier = modifier, onOpenCustomers = { showCustomers = true })
+
+        MoreDestination.SETTINGS -> MoreDetailScreen(
+            title = "Pengaturan",
+            onBack = { activeDetail = null },
+            modifier = modifier,
+        ) {
+            SettingsRoute(modifier = Modifier.fillMaxSize())
+        }
+
+        null -> MoreMenu(
+            modifier = modifier,
+            onOpenDetail = { destination -> activeDetail = destination },
+        )
+    }
+}
+
+@Composable
+private fun MoreDetailScreen(
+    title: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    BackHandler(onBack = onBack)
+    Column(modifier = modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PosSpacing.sm, vertical = PosSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_arrow_left),
+                    contentDescription = "Kembali",
+                )
+            }
+            Text(text = title, style = MaterialTheme.typography.titleLarge)
+        }
+        content()
     }
 }
 
 @Composable
 private fun MoreMenu(
-    onOpenCustomers: () -> Unit,
+    onOpenDetail: (MoreDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -94,7 +126,7 @@ private fun MoreMenu(
             moreEntries.forEach { entry ->
                 MoreEntryRow(
                     entry = entry,
-                    onClick = { if (entry.label == "Pelanggan & Kasbon") onOpenCustomers() },
+                    onClick = { entry.destination?.let(onOpenDetail) },
                 )
             }
             DemoDataSection()

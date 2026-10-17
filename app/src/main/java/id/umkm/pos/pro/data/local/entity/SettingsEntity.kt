@@ -14,6 +14,7 @@ data class SettingsEntity(
     @ColumnInfo(name = "is_pin_enabled") val isPinEnabled: Boolean,
     @ColumnInfo(name = "printer_address") val printerAddress: String?,
     @ColumnInfo(name = "qris_image_path") val qrisImagePath: String?,
+    @ColumnInfo(name = "qris_payload") val qrisPayload: String?,
 ) {
     companion object {
         const val SINGLETON_ID: Int = 1

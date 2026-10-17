@@ -13,6 +13,7 @@ object SettingsMapper {
         isPinEnabled = settings.isPinEnabled,
         printerAddress = settings.printerAddress,
         qrisImagePath = settings.qrisImagePath,
+        qrisPayload = settings.qrisPayload,
     )
 
     fun toModel(entity: SettingsEntity): AppSettings = AppSettings(
@@ -23,6 +24,7 @@ object SettingsMapper {
         isPinEnabled = entity.isPinEnabled,
         printerAddress = entity.printerAddress,
         qrisImagePath = entity.qrisImagePath,
+        qrisPayload = entity.qrisPayload,
     )
 
     fun defaultModel(): AppSettings = AppSettings(
@@ -33,5 +35,6 @@ object SettingsMapper {
         isPinEnabled = false,
         printerAddress = null,
         qrisImagePath = null,
+        qrisPayload = null,
     )
 }

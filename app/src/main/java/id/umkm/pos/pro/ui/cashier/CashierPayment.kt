@@ -54,6 +54,18 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import id.umkm.pos.pro.domain.qris.QrisPayload
+import id.umkm.pos.pro.ui.common.renderQrBitmap
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 
 private const val CUSTOMER_LIST_MAX_HEIGHT_DP = 320
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
@@ -85,6 +97,7 @@ internal fun CashierPaymentSheet(
                 PaymentMethodChips(
                     selectedMethod = state.paymentDraft.method,
                     onSelect = actions.onPaymentMethodChange,
+                    isQrisAvailable = state.qrisPayload != null,
                 )
                 PaymentConditionalFields(state = state, actions = actions)
                 PaymentSummary(state = state)
@@ -127,6 +140,7 @@ private fun PaymentTotal(grandTotal: Long) {
 private fun PaymentMethodChips(
     selectedMethod: PaymentMethod,
     onSelect: (PaymentMethod) -> Unit,
+    isQrisAvailable: Boolean,
 ) {
     Text(
         text = "Metode pembayaran",
@@ -141,6 +155,7 @@ private fun PaymentMethodChips(
             FilterChip(
                 selected = method == selectedMethod,
                 onClick = { onSelect(method) },
+                enabled = method != PaymentMethod.QRIS || isQrisAvailable,
                 label = { Text(paymentMethodLabel(method)) },
                 leadingIcon = if (method == selectedMethod) {
                     {
@@ -189,7 +204,70 @@ private fun PaymentConditionalFields(
             }
         }
 
-        PaymentMethod.QRIS, PaymentMethod.TRANSFER -> Unit
+        PaymentMethod.QRIS -> QrisPaymentSection(
+            payload = state.qrisPayload,
+            amountRupiah = state.grandTotal,
+        )
+
+        PaymentMethod.TRANSFER -> Unit
+    }
+}
+
+private val QR_PAYMENT_SIZE = 220.dp
+private const val QR_RENDER_SIZE_PX = 720
+
+@Composable
+private fun QrisPaymentSection(
+    payload: String?,
+    amountRupiah: Long,
+) {
+    val palette = LocalPosSemanticPalette.current
+    if (payload == null) {
+        Text(
+            text = "QRIS belum diatur. Unggah foto QRIS statis di Pengaturan terlebih dahulu.",
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = palette.danger,
+        )
+        return
+    }
+    val qrImage by produceState<ImageBitmap?>(initialValue = null, payload, amountRupiah) {
+        value = withContext(Dispatchers.Default) {
+            QrisPayload.withAmount(payload, amountRupiah)
+                ?.let { dynamicPayload -> renderQrBitmap(dynamicPayload, QR_RENDER_SIZE_PX)?.asImageBitmap() }
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+    ) {
+        PosCard(modifier = Modifier.size(QR_PAYMENT_SIZE)) {
+            val image = qrImage
+            if (image == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Menyiapkan QRIS...",
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                Image(
+                    bitmap = image,
+                    contentDescription = "QRIS pembayaran",
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        Text(
+            text = Rupiah.format(amountRupiah),
+            style = LocalAppTextStyles.current.financialValue,
+        )
+        Text(
+            text = "Nominal sudah terisi otomatis",
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

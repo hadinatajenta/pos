@@ -46,7 +46,7 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -92,10 +92,16 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE app_settings ADD COLUMN qris_payload TEXT")
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .addCallback(SingletonRowsCallback)
                 .build()
 
@@ -104,8 +110,8 @@ abstract class UmkmDatabase : RoomDatabase() {
                 db.execSQL(
                     "INSERT INTO app_settings " +
                         "(id, store_name, cashier_name, tax_rate_percent, rounding_increment, " +
-                        "is_pin_enabled, printer_address, qris_image_path) " +
-                        "VALUES (1, '', NULL, 0, 0, 0, NULL, NULL)",
+                        "is_pin_enabled, printer_address, qris_image_path, qris_payload) " +
+                        "VALUES (1, '', NULL, 0, 0, 0, NULL, NULL, NULL)",
                 )
                 db.execSQL(
                     "INSERT INTO security_store " +

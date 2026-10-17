@@ -5,12 +5,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import id.umkm.pos.pro.core.contract.AccountingService
 import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppContainer
+import id.umkm.pos.pro.core.contract.AppError
+import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
+import id.umkm.pos.pro.core.contract.QrisImport
+import id.umkm.pos.pro.core.contract.QrisService
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ReportRepository
@@ -31,6 +35,13 @@ internal object PreviewAppContainer : AppContainer {
         override fun hasCompletedOnboarding(): Boolean = true
 
         override fun markOnboardingCompleted() = Unit
+    }
+
+    override val qrisService: QrisService = object : QrisService {
+        override suspend fun importStaticQris(sourceUri: String): AppResult<QrisImport> =
+            AppResult.Failure(AppError.Validation("preview"))
+
+        override suspend fun deleteQrisImage(imagePath: String?) = Unit
     }
 
     override val productRepository: ProductRepository get() = previewUnavailable("productRepository")

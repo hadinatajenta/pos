@@ -380,6 +380,7 @@ class CashierViewModel(
                     taxRatePercent = settings.taxRatePercent,
                     roundingIncrement = settings.roundingIncrement,
                 )
+                _state.update { current -> current.copy(qrisPayload = settings.qrisPayload) }
                 refreshCart()
             }
         }

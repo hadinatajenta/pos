@@ -11,6 +11,7 @@ import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
+import id.umkm.pos.pro.core.contract.QrisService
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ReportRepository
@@ -31,6 +32,7 @@ import id.umkm.pos.pro.data.local.repository.SecurityRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.SettingsRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ShiftRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.TransactionRepositoryImpl
+import id.umkm.pos.pro.data.qris.AndroidQrisService
 import id.umkm.pos.pro.data.seed.DefaultDemoDataSeeder
 import id.umkm.pos.pro.data.seed.DemoDataSeeder
 import id.umkm.pos.pro.domain.accounting.DefaultAccountingService
@@ -99,6 +101,8 @@ class DefaultAppContainer(
     override val adController: AdController = NoAdsController()
 
     override val onboardingStore: OnboardingStore = OnboardingPreferences(applicationContext)
+
+    override val qrisService: QrisService = AndroidQrisService(applicationContext)
 
     val demoDataSeeder: DemoDataSeeder? =
         if (BuildConfig.DEBUG) {

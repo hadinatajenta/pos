@@ -8,4 +8,5 @@ data class AppSettings(
     val isPinEnabled: Boolean,
     val printerAddress: String?,
     val qrisImagePath: String?,
+    val qrisPayload: String? = null,
 )

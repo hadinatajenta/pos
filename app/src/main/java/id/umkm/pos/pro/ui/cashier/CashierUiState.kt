@@ -97,6 +97,7 @@ data class CashierUiState(
     val isPrintingReceipt: Boolean = false,
     val receiptMessage: String? = null,
     val message: String? = null,
+    val qrisPayload: String? = null,
 ) {
     val lineCount: Int get() = cartLines.size
 
