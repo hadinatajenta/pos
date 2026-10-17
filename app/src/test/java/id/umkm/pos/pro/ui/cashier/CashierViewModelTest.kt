@@ -238,7 +238,13 @@ class CashierViewModelTest {
         assertThat(receipt?.remainingDebt).isEqualTo(0L)
         assertThat(state.cartLines).isEmpty()
         assertThat(state.isPaymentSheetVisible).isFalse()
-        assertThat(renderer.lastWidthChars).isEqualTo(32)
+        val shareText = receipt?.shareText.orEmpty()
+        assertThat(shareText).contains("INV-")
+        assertThat(shareText).contains("Rincian pesanan")
+        assertThat(shareText).contains("Kopi Susu")
+        assertThat(shareText).contains("TOTAL")
+        assertThat(shareText).contains("Kembalian")
+        assertThat(shareText).doesNotContain("Sisa utang")
         assertThat(transactions.savedTransactions().single().status).isEqualTo(TransactionStatus.COMPLETED)
     }
 

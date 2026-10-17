@@ -28,6 +28,22 @@ import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.core.content.ContextCompat
+import id.umkm.pos.pro.R
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +52,39 @@ internal fun CustomerFormSheet(
     isSubmitting: Boolean,
     actions: CustomersActions,
 ) {
+    val context = LocalContext.current
+    var contactMessage by remember { mutableStateOf<String?>(null) }
+    val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { contactUri ->
+        if (contactUri == null) return@rememberLauncherForActivityResult
+        val contact = readPickedContact(context, contactUri)
+        if (contact == null) {
+            contactMessage = "Kontak tidak dapat dibaca. Isi nama secara manual."
+        } else {
+            contactMessage = null
+            actions.onCustomerNameChange(contact.name)
+            contact.whatsappNumber?.let { number -> actions.onCustomerWhatsappChange(number) }
+        }
+    }
+    val permissionRequester = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { isGranted ->
+        if (isGranted) {
+            contactPicker.launch(null)
+        } else {
+            contactMessage = "Izin kontak ditolak. Isi nama secara manual."
+        }
+    }
+    val onPickContact: () -> Unit = {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_CONTACTS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            contactPicker.launch(null)
+        } else {
+            permissionRequester.launch(Manifest.permission.READ_CONTACTS)
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = actions.onCloseCustomerForm,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -51,6 +100,25 @@ internal fun CustomerFormSheet(
         ) {
             PosSectionHeader(title = "Pelanggan baru")
             PosCard(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onPickContact,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_users),
+                        contentDescription = null,
+                        modifier = Modifier.size(PosSizes.iconSmall),
+                    )
+                    Spacer(modifier = Modifier.width(PosSpacing.xs))
+                    Text(text = "Pilih dari kontak")
+                }
+                contactMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = LocalPosSemanticPalette.current.danger,
+                    )
+                }
                 OutlinedTextField(
                     value = form.name,
                     onValueChange = actions.onCustomerNameChange,

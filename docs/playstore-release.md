@@ -75,7 +75,7 @@ Category: **Business**. Tags: point of sale, cashier, inventory, small business.
 | Content rating | Fill the IARC questionnaire as a business/utility app: no violence, no user-generated content, no gambling, no location sharing. The app records business transactions only |
 | Target audience | 18 and over (business tool) |
 | News app | No |
-| Data safety | No data collected, no data shared. The app has no `INTERNET` permission; everything is stored on the device |
+| Data safety | No data collected, no data shared. The app has no `INTERNET` permission; everything is stored on the device. Contacts are read on the device only when the merchant taps "Pilih dari kontak" for one specific contact (`READ_CONTACTS`), and nothing leaves the device |
 | Government app | No |
 | Financial features | None of the listed features apply. The app records sales locally, it does not process payments or offer lending, banking, or investment services |
 | Account deletion | Not applicable, the app has no accounts |

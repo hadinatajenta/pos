@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,9 +26,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,6 +69,9 @@ private val FloatingNavigationShape = RoundedCornerShape(28.dp)
 private val FloatingNavigationMinHeight = 56.dp
 private val FloatingNavigationIndicatorWidth = 26.dp
 private val FloatingNavigationIndicatorHeight = 3.dp
+private val FloatingRailLaneWidth = 96.dp
+private val FloatingRailItemMinWidth = 72.dp
+private val FloatingRailItemMinHeight = 64.dp
 
 @Composable
 fun AppRoot(modifier: Modifier = Modifier) {
@@ -218,24 +220,82 @@ private fun PrimaryNavigationRail(
     selectedDestination: PosDestination,
     onDestinationSelected: (PosDestination) -> Unit,
 ) {
-    NavigationRail(
-        containerColor = PosColors.ForestGreen,
-        contentColor = Color.White,
-        modifier = Modifier.testTag(EXPANDED_NAVIGATION_TEST_TAG),
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(FloatingRailLaneWidth)
+            .padding(horizontal = PosSpacing.sm, vertical = PosSpacing.md),
+        contentAlignment = Alignment.Center,
     ) {
-        PosDestination.entries.forEach { destination ->
-            NavigationRailItem(
-                selected = destination == selectedDestination,
-                onClick = { onDestinationSelected(destination) },
-                icon = { Icon(painter = painterResource(destination.iconRes), contentDescription = null) },
-                label = { Text(text = destination.label, maxLines = 1) },
-                colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = Color.White,
-                    selectedTextColor = Color.White,
-                    indicatorColor = PosColors.GreenElevated,
-                    unselectedIconColor = Color.White.copy(alpha = 0.62f),
-                    unselectedTextColor = Color.White.copy(alpha = 0.62f),
-                ),
+        Surface(
+            color = Color.White,
+            contentColor = PosColors.TextPrimary,
+            shape = FloatingNavigationShape,
+            shadowElevation = FLOATING_NAVIGATION_ELEVATION.dp,
+            modifier = Modifier.testTag(EXPANDED_NAVIGATION_TEST_TAG),
+        ) {
+            Column(
+                modifier = Modifier.padding(vertical = PosSpacing.sm).selectableGroup(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                PosDestination.entries.forEach { destination ->
+                    FloatingRailItem(
+                        destination = destination,
+                        isSelected = destination == selectedDestination,
+                        onClick = { onDestinationSelected(destination) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingRailItem(
+    destination: PosDestination,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val contentColor = if (isSelected) PosColors.Accent else PosColors.TextPrimary
+    Box(
+        modifier = Modifier
+            .widthIn(min = FloatingRailItemMinWidth)
+            .heightIn(min = FloatingRailItemMinHeight)
+            .clip(MaterialTheme.shapes.large)
+            .selectable(
+                selected = isSelected,
+                role = Role.Tab,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .width(FloatingNavigationIndicatorHeight)
+                    .height(FloatingNavigationIndicatorWidth)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(PosColors.Accent),
+            )
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+        ) {
+            Icon(
+                painter = painterResource(destination.iconRes),
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(PosSizes.iconMedium),
+            )
+            Text(
+                text = destination.label,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp),
             )
         }
     }

@@ -39,6 +39,14 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import id.umkm.pos.pro.feature.receipt.ReceiptShareData
+import id.umkm.pos.pro.feature.receipt.ReceiptShareItem
+import id.umkm.pos.pro.feature.receipt.ReceiptShareText
+import id.umkm.pos.pro.ui.common.formatDate
+import id.umkm.pos.pro.ui.common.formatDateTime
+import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.app.SystemClock
+import id.umkm.pos.pro.core.contract.Clock
 
 private sealed interface PaidAmountResolution {
     data class Resolved(val paidAmount: Long) : PaidAmountResolution
@@ -56,6 +64,7 @@ class CashierViewModel(
     private val receiptPrinter: ReceiptPrinter,
     private val receiptRenderer: ReceiptRenderer,
     private val scannerInput: ScannerInput,
+    private val clock: Clock = SystemClock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CashierUiState())
@@ -72,6 +81,7 @@ class CashierViewModel(
 
     private var pricingContext = PricingContext()
     private var storeName = ""
+    private var cashierName: String? = null
     private var nextLineNumber = 1
     private var pendingReceiptDocument: ReceiptDocument? = null
 
@@ -375,6 +385,7 @@ class CashierViewModel(
         viewModelScope.launch {
             settingsRepository.observeSettings().collect { settings ->
                 storeName = settings.storeName
+                cashierName = settings.cashierName
                 pricingContext = PricingContext(
                     invoiceDiscount = 0L,
                     taxRatePercent = settings.taxRatePercent,
@@ -595,7 +606,7 @@ class CashierViewModel(
             paidAmount = result.allocation.paidAmount,
             changeAmount = result.allocation.changeAmount,
             remainingDebt = result.allocation.remainingDebt,
-            shareText = receiptRenderer.renderText(document, RECEIPT_WIDTH_CHARS),
+            shareText = ReceiptShareText.build(buildReceiptShareData(result)),
         )
         _state.update { current ->
             current.copy(
@@ -642,6 +653,38 @@ class CashierViewModel(
             lines += ReceiptLine(twoColumn("Sisa", Rupiah.format(result.allocation.remainingDebt)))
         }
         return ReceiptDocument(storeName = storeName, lines = lines)
+    }
+
+    private fun buildReceiptShareData(result: CheckoutResult): ReceiptShareData {
+        val state = _state.value
+        val pricedCart = result.pricedCart
+        return ReceiptShareData(
+            storeName = storeName,
+            invoiceNo = result.invoiceNo,
+            createdAtLabel = formatDateTime(clock.nowMillis()),
+            cashierName = cashierName,
+            customerName = state.selectedCustomerName,
+            paymentMethodLabel = paymentMethodLabel(result.allocation.paymentMethod),
+            items = pricedCart.lines.map { pricedLine ->
+                ReceiptShareItem(
+                    name = pricedLine.product.name,
+                    quantityLabel = formatQuantity(pricedLine.line.qty) + " " +
+                        (pricedLine.line.variantName ?: pricedLine.product.baseUnit),
+                    unitPrice = pricedLine.unitPrice,
+                    lineTotal = pricedLine.itemSubtotal,
+                    itemDiscount = pricedLine.line.itemDiscount,
+                )
+            },
+            subtotal = pricedCart.subtotal,
+            invoiceDiscount = pricedCart.invoiceDiscount,
+            taxTotal = pricedCart.taxTotal,
+            rounding = pricedCart.rounding,
+            grandTotal = pricedCart.grandTotal,
+            paidAmount = result.allocation.paidAmount,
+            changeAmount = result.allocation.changeAmount,
+            remainingDebt = result.allocation.remainingDebt,
+            dueDateLabel = state.paymentDraft.dueDateMillis?.let(::formatDate),
+        )
     }
 
     private fun twoColumn(label: String, value: String): String {

@@ -42,7 +42,7 @@ removes this data permanently, so keep your own backups.</p>
 <ul>
   <li>No account, email address, phone number, or password</li>
   <li>No location data</li>
-  <li>No contacts, calendar, SMS, or call logs</li>
+  <li>No access to contacts beyond the single contact you choose to import into a customer form</li>
   <li>No advertising identifiers and no analytics or crash reporting</li>
   <li>No usage tracking of any kind</li>
 </ul>
@@ -55,6 +55,9 @@ removes this data permanently, so keep your own backups.</p>
   or stored today.</li>
   <li><code>ACCESS_NETWORK_STATE</code> — used only to show an offline notice inside the app. It
   reads the connection state; it does not send anything.</li>
+  <li><code>READ_CONTACTS</code> — requested only when you tap <strong>Pilih dari kontak</strong>
+  while adding a customer. The app reads the name and phone number of the single contact you pick,
+  to fill the form. Contacts are never uploaded, scanned in bulk, or shared.</li>
   <li><code>WRITE_EXTERNAL_STORAGE</code> (Android 9 and older only) — used to save a report export
   file when you choose to export a report. On Android 10 and newer, exports use the system
   download storage and no permission is required.</li>
