@@ -14,8 +14,10 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
 
 ## Android SDK
 
-`local.properties` points `sdk.dir` at `~/Library/Android/sdk`. The SDK must
-contain `platform-tools`, `platforms;android-35`, and `build-tools;35.0.0`.
+`local.properties` points `sdk.dir` at `~/Library/Android/sdk`. With `compileSdk 36`
+the SDK must contain `platform-tools`, `platforms;android-36`, and a build-tools
+version supported by AGP 8.7.3 (`build-tools;35.0.0` or newer; this machine has
+34.0.0, 35.0.0, and 36.0.0).
 
 ## Commands
 
@@ -24,8 +26,14 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
 ./gradlew testDebugUnitTest
 ./gradlew assembleDebug
 ./gradlew assembleRelease
+./gradlew bundleRelease
 ./gradlew installDebug
+ANDROID_SERIAL=<serial> ./gradlew connectedDebugAndroidTest
+./gradlew lintRelease
 ```
+
+`lintRelease` currently fails with 11 errors (9 guarded `NewApi` calls and 2
+`ProduceStateDoesNotAssignValue`). The fixes are listed in `docs/prd-gaps.md`.
 
 ## AAPT2 daemon constraint
 

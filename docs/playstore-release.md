@@ -17,14 +17,34 @@ Owner labels used below:
 | Indonesia participates in Android developer verification (deadline was 30 September 2026) | Check the Play Console home page for a registration prompt for your developer account and package name |
 | The app does not request `INTERNET` and collects nothing | The Data Safety form is the simple "no data collected, no data shared" path |
 
-## Phase 0 — already done
+## Phase 0 — build artifacts
 
-- Signed release build: `app/build/outputs/bundle/release/app-release.aab` (versionCode 1, versionName 1.0.0)
+- Signed release bundle: `app/build/outputs/bundle/release/app-release.aab`
+  (versionCode 1, versionName 1.0.0, ~5.7 MB)
 - Signed release APK for direct install: `app/build/outputs/apk/release/app-release.apk`
-- Upload keystore and `keystore.properties`
+  (~3.1 MB)
+- Upload keystore and `keystore.properties` (gitignored). The signing certificate is
+  `CN=UMKM POS Pro`.
 - `targetSdk`/`compileSdk` 36, launcher icon, adaptive icon, round icon
-- GitHub release `v1.0.0` with the APK and AAB attached
 - Privacy policy published at <https://hadinatajenta.github.io/pos/privacy-policy.html>
+
+The artifacts above were rebuilt on 19 October 2026 from commit `5f1bc73`. The earlier GitHub
+release `v1.0.0` predates the localization and settings work and should not be uploaded; rebuild
+and re-tag before publishing.
+
+## Current verification status (19 October 2026)
+
+| Check | Result |
+| --- | --- |
+| Unit tests | 469 pass |
+| Instrumented tests | 40 pass on a physical tablet, including the JSON export/import round trip |
+| Release build | R8 and resource shrinking succeed |
+| `lintRelease` | **Fails: 11 errors, 38 warnings** |
+| Hardware | Bluetooth printer and HID scanner not yet exercised on physical hardware |
+
+Do not upload until `lintRelease` is green and the printer and scanner paths are verified on real
+hardware. See `docs/prd-gaps.md` for the exact fixes and the remaining feature gaps (backup,
+PIN, camera scanning).
 
 ## Phase 1 — Account setup (only you)
 
@@ -80,7 +100,9 @@ Category: **Business**. Tags: point of sale, cashier, inventory, small business.
 | Financial features | None of the listed features apply. The app records sales locally, it does not process payments or offer lending, banking, or investment services |
 | Account deletion | Not applicable, the app has no accounts |
 
-Once the Settings screen exists, add an in-app link to the privacy policy there as well.
+The Settings screen now exists and contains an in-app link to the privacy policy (**Pengaturan →
+Tentang & Privasi**). Republish `docs/privacy-policy.html` to GitHub Pages so the hosted page
+matches the current effective date and content.
 
 ## Phase 4 — Upload and tracks
 

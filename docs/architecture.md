@@ -4,25 +4,30 @@ Source of truth for product behavior is `docs/prd.md`. This document records the
 structural decisions the orchestrator froze during Phase 0. Agents build against
 these shapes and do not change them without orchestrator approval.
 
+Current state recorded at commit `5f1bc73`, 19 October 2026.
+
 ## Layout
 
 - Single Gradle module `:app`.
 - Base package and applicationId: `id.umkm.pos.pro`.
-- `minSdk 23`, `targetSdk 35`, `compileSdk 35`.
+- `minSdk 23`, `targetSdk 36`, `compileSdk 36`.
 - Money is always whole Rupiah in `Long`. Quantities and unit conversion factors
   are `Double`. `Long` is never used for quantities and `Double` is never used
   for money.
 
 ## Ownership
 
+The table below records the Phase 0 allocation for parallel agents. It is
+historical: not every planned directory exists yet.
+
 | Owner | Paths under `app/src/main/java/id/umkm/pos/pro/` |
 | --- | --- |
 | Orchestrator | `app/`, `core/model/`, `core/contract/`, all `*.gradle.kts`, `gradle/libs.versions.toml` |
-| Agent 1 — Data & Storage | `data/local/`, `data/backup/` |
-| Agent 2 — POS & Accounting | `domain/pos/`, `domain/accounting/` |
+| Agent 1 — Data & Storage | `data/local/`, `data/backup/`, `data/file/` |
+| Agent 2 — POS & Accounting | `domain/pos/`, `domain/accounting/`, `domain/qris/`, `domain/usecase/` |
 | Agent 3 — Hardware & Receipts | `hardware/printer/`, `hardware/scanner/`, `hardware/receipt/` |
 | Agent 4 — Reports & Ads | `feature/reports/`, `monetization/admob/` |
-| Agent 5 — UI & Accessibility | `ui/theme/`, `ui/cashier/`, `ui/tablet/`, `ui/security/` |
+| Agent 5 — UI & Accessibility | `ui/theme/`, `ui/cashier/`, `ui/settings/`, `ui/common/`, `ui/security/` (not created), `ui/tablet/` (not created) |
 
 `core/model/` and `core/contract/` are frozen. Only the orchestrator edits them.
 The Room annotations live only in `data/local/`; `core/model/` stays free of
@@ -36,7 +41,9 @@ Android and Room types.
   `sum(qty × conversionFactor × baseHpp)`, floored once. `unit_hpp` is stored per
   line as `round(conversionFactor × baseHpp)` for audit and display.
 - **D3** — PIN and recovery answer live in a dedicated security store behind
-  `SecurityRepository`. `cashier_shifts` does not carry PIN fields.
+  `SecurityRepository`. `cashier_shifts` does not carry PIN fields. As of
+  19 October 2026 only the table and repository exist: no PIN hashing, setup UI,
+  biometric prompt, or recovery code has been implemented.
 - **D4** — `min_stock_alert` is `Double`, expressed in base units.
 - **D5** — Rounding increment is configurable and defaults to `0`; amounts round
   half-up to the nearest increment. `PricingContext.roundingIncrement` drives it.
@@ -78,9 +85,83 @@ repository contracts:
 - `ProcessReturnUseCase` — corrects returns and persists them through
   `ReturnRepository`.
 
-`AppContainer` lists only dependencies that have implementations. Deferred
-services (backup, import/export, AdMob) are added to the container when their
-implementations land.
+`AppContainer` lists only dependencies that have implementations. Local JSON
+backup is wired through `DataBackupService`. Google Drive backup and the
+`ImportExportService` CSV/XLSX/JSON façade are still absent. Ads are represented
+by `NoAdsController` until a real provider lands.
+
+## Files and backup export
+
+Writing a file to the public `Download` folder is a data-layer concern:
+
+- `data/file/BinarySink.kt` and `data/file/CsvSink.kt` are the write contracts
+  (`BinarySink` for bytes, `CsvSink` for text).
+- `data/file/DownloadsFileSink.kt` implements both, using `MediaStore` on API 29+
+  and public storage below it. `DESTINATION_LABEL` is `Download`.
+- `data/file/FileNames.kt` normalizes file names and maps extensions to MIME
+  types (`csv`, `xlsx`, `json`).
+
+JSON backup lives in `data/backup/`:
+
+- `BackupTables` fixes the table order: parents first for inserts, reversed for
+  deletes, and marks the supported tables.
+- `BackupPayload` and `BackupJsonCodec` read and write a versioned document
+  (`formatVersion`, `schemaVersion`, `exportedAt`, and one row list per table
+  with `JsonElement` values).
+- `JsonDataBackupService` exports every table and restores them inside one Room
+  transaction. Import validates the format version, rejects a newer schema,
+  requires every table to be present, and rejects unknown columns before it
+  deletes anything.
+- `BackupFileNames` produces deterministic `umkm-pos-backup-yyyyMMdd-HHmmss.json`
+  names.
+
+`ui/common/DownloadedFileActions.kt` resolves a saved file back to a URI (via
+`MediaStore` on API 29+, otherwise a `FileProvider` declared in the manifest as
+`${applicationId}.fileprovider`) and opens or shares it. `ui/components/ExportFeedback.kt`
+renders the shared running, failed, and completed-with-actions states used by
+both the report export and the backup screen.
+
+## Localization
+
+User-facing text is resolved through one contract:
+
+- `ui/common/PosStrings.kt` declares one member per user-facing string (575
+  members). `IdStrings`, `EnStrings`, and `ZhStrings` implement it for
+  Indonesian, English, and Simplified Chinese.
+- `stringsFor(AppLanguage)` selects a catalogue. `LocalPosStrings` and
+  `LocalCurrentLanguage` expose it to Compose; the selected code is persisted in
+  `app_settings.language_code` through migration 4→5.
+- ViewModels never hold rendered text. They emit `UiText` (`UiText.from { strings
+  -> ... }` or `UiText.literal`), resolved at the Compose boundary with
+  `asText()`. `AppError` is mapped by type through `toUiText()`; the raw
+  `AppError.message` is technical diagnostic text and is never rendered.
+- Non-Compose output (receipt text, ESC/POS, CSV/XLSX headers and file names)
+  takes an explicit `PosStrings` parameter.
+- Helpers that produce text (`paymentMethodLabel`, `stockStatusLabel`,
+  `debtStatusLabel`, `transactionStatusLabel`, `formatDate`, `formatDateTime`,
+  `ReportDates`, `compactRupiah`) take the catalogue as an argument.
+- Previews, sample/demo data, product and customer names, invoice numbers, and
+  language endonyms are intentionally not translated.
+
+## Settings navigation
+
+`ui/settings/SettingsScreen.kt` is a hub, not a long scrolling page. A private
+`SettingsDestination` enum selects one of six sub-screens:
+
+- `SettingsLanguageScreen` — ordered radio list of the three languages.
+- `SettingsPrinterScreen` — device list, paper width, connect/disconnect, test
+  print, and receipt preview dialog.
+- `SettingsQrisScreen` — QRIS image upload, replacement, and removal.
+- `SettingsStoreScreen` — store name, cashier name, tax, and rounding.
+- `SettingsBackupScreen` — JSON backup export, import with a confirmation
+  dialog, and the shared export result card.
+- `SettingsAboutScreen` — app name and version, plus the privacy policy link.
+
+`ui/components/MenuListRow.kt` is shared with the More hub, so both use the same
+row component. On wide windows the screen is master-detail
+(`PosBreakpoints.twoPane`, 840dp); on compact windows it pushes a sub-screen with
+a back action. Feedback messages are scoped to the page that produced them and
+are consumed on navigation.
 
 ## Calculation order
 
