@@ -69,7 +69,23 @@ fun SalesLineChart(
                     val x = if (points.size == 1) size.width / 2f else stepX * index
                     Offset(x = x, y = size.height - (point.value / maxValue * size.height).toFloat())
                 }
-                if (offsets.size >= 2) {
+                if (offsets.size == 1) {
+                    val singleOffset = offsets.first()
+                    val barWidth = 44.dp.toPx().coerceAtMost(size.width * 0.35f)
+                    val barHeight = (size.height - singleOffset.y).coerceAtLeast(4.dp.toPx())
+                    drawRoundRect(
+                        color = palette.chartArea,
+                        topLeft = Offset(singleOffset.x - barWidth / 2f, singleOffset.y),
+                        size = Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(10.dp.toPx()),
+                    )
+                    drawLine(
+                        color = palette.chartLine,
+                        start = Offset(singleOffset.x - barWidth / 2f + 4.dp.toPx(), singleOffset.y),
+                        end = Offset(singleOffset.x + barWidth / 2f - 4.dp.toPx(), singleOffset.y),
+                        strokeWidth = 3.dp.toPx(),
+                    )
+                } else if (offsets.size >= 2) {
                     val areaPath = Path().apply {
                         moveTo(offsets.first().x, size.height)
                         offsets.forEach { lineTo(it.x, it.y) }
@@ -85,7 +101,7 @@ fun SalesLineChart(
                     drawPath(path = linePath, color = palette.chartLine, style = Stroke(width = 2.5.dp.toPx()))
                 }
                 offsets.forEach { offset ->
-                    drawCircle(color = palette.chartLine, radius = 4.dp.toPx(), center = offset)
+                    drawCircle(color = palette.chartLine, radius = 4.5.dp.toPx(), center = offset)
                 }
             }
         }
@@ -203,27 +219,38 @@ fun ChartLegend(
     modifier: Modifier = Modifier,
 ) {
     val total = slices.sumOf { it.value }
-    Column(modifier = modifier, verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(PosSpacing.sm)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(PosSpacing.sm),
+    ) {
         slices.forEach { slice ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .background(color = slice.color, shape = MaterialTheme.shapes.small),
+                        .background(color = slice.color, shape = androidx.compose.foundation.shape.CircleShape),
                 )
-                Text(
-                    text = slice.label,
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurface,
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = PosSpacing.sm),
-                )
-                Text(
-                    text = valueFormatter(slice.value, total),
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                ) {
+                    Text(
+                        text = slice.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = valueFormatter(slice.value, total),
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

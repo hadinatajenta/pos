@@ -226,28 +226,20 @@ internal fun RangeChip(
 ) {
     Surface(
         color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
+            MaterialTheme.colorScheme.primary
         } else {
-            MaterialTheme.colorScheme.surface
+            MaterialTheme.colorScheme.surfaceVariant
         },
         contentColor = if (selected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
+            MaterialTheme.colorScheme.onPrimary
         } else {
-            MaterialTheme.colorScheme.onSurface
+            MaterialTheme.colorScheme.onSurfaceVariant
         },
-        shape = MaterialTheme.shapes.small,
-        border = BorderStroke(
-            1.dp,
-            if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
-            },
-        ),
+        shape = androidx.compose.foundation.shape.CircleShape,
         modifier = Modifier.clickable(onClick = onClick),
     ) {
         Box(
-            modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            modifier = Modifier.heightIn(min = 38.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(

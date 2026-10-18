@@ -1,6 +1,7 @@
 package id.umkm.pos.pro.ui.cashier
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,11 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,10 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
@@ -83,9 +89,10 @@ internal fun CashierCatalogPane(
     Column(modifier = modifier.fillMaxSize()) {
         ScreenHeader(
             title = "Kasir",
-            supportingText = "Cari produk dan proses pembayaran",
+            supportingText = catalogSupportingText(state),
         )
         CashierSearchField(state = state, actions = actions)
+        CashierCategoryChips(state = state, actions = actions)
         OfflineNotice()
         UiStateContent(
             state = state.catalog,
@@ -103,6 +110,62 @@ internal fun CashierCatalogPane(
     }
 }
 
+private fun catalogSupportingText(state: CashierUiState): String? {
+    val items = (state.catalog as? UiState.Success)?.data ?: return null
+    return buildString {
+        append("${items.size} produk")
+        state.catalogFilter.category?.let { append(" · $it") }
+        if (state.catalogFilter.isAvailableOnly) {
+            append(" · Stok tersedia")
+        }
+    }
+}
+
+@Composable
+private fun CashierCategoryChips(
+    state: CashierUiState,
+    actions: CashierActions,
+) {
+    if (state.catalogCategories.isEmpty()) return
+    val chipColors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        selectedContainerColor = MaterialTheme.colorScheme.primary,
+        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+    )
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = PosSpacing.xs),
+        contentPadding = PaddingValues(horizontal = PosSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
+        item(key = "__all_categories__") {
+            FilterChip(
+                selected = state.catalogFilter.category == null,
+                onClick = { actions.onCatalogCategoryChange(null) },
+                label = { Text("Semua") },
+                shape = CircleShape,
+                border = null,
+                colors = chipColors,
+            )
+        }
+        lazyColumnItems(items = state.catalogCategories, key = { it }) { category ->
+            val isSelected = state.catalogFilter.category == category
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    actions.onCatalogCategoryChange(if (isSelected) null else category)
+                },
+                label = { Text(category) },
+                shape = CircleShape,
+                border = null,
+                colors = chipColors,
+            )
+        }
+    }
+}
+
 @Composable
 private fun CashierSearchField(
     state: CashierUiState,
@@ -111,7 +174,7 @@ private fun CashierSearchField(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+            .padding(start = PosSpacing.md, end = PosSpacing.md, bottom = PosSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
@@ -132,15 +195,21 @@ private fun CashierFilterButton(
 ) {
     var isMenuVisible by remember { mutableStateOf(false) }
     val isFilterActive = state.catalogFilter.isActive
+    val containerColor = if (isFilterActive) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val contentColor = if (isFilterActive) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Box {
         Surface(
-            color = Color.White,
-            contentColor = if (isFilterActive) PosColors.ForestGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = containerColor,
+            contentColor = contentColor,
             shape = PosShapes.large,
-            border = BorderStroke(
-                1.dp,
-                if (isFilterActive) PosColors.ForestGreen else MaterialTheme.colorScheme.outlineVariant,
-            ),
             modifier = Modifier
                 .size(CATALOG_FILTER_BUTTON_SIZE)
                 .clickable(onClickLabel = "Filter produk", onClick = { isMenuVisible = true }),
@@ -149,7 +218,7 @@ private fun CashierFilterButton(
                 Icon(
                     painter = painterResource(R.drawable.ic_list_filter),
                     contentDescription = "Filter produk",
-                    tint = if (isFilterActive) PosColors.ForestGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = contentColor,
                     modifier = Modifier.size(PosSizes.iconMedium),
                 )
             }
@@ -194,6 +263,17 @@ private fun CashierFilterButton(
                     }
                 },
             )
+            if (isFilterActive) {
+                HorizontalDivider()
+                DropdownMenuItem(
+                    text = { Text("Reset filter") },
+                    onClick = {
+                        actions.onCatalogCategoryChange(null)
+                        actions.onCatalogAvailableOnlyChange(false)
+                        isMenuVisible = false
+                    },
+                )
+            }
         }
     }
 }
@@ -270,9 +350,12 @@ private fun CashierProductRow(
     item: CashierProductItem,
     actions: CashierActions,
 ) {
+    val isDepleted = (item.stockStatus == StockStatus.OUT_OF_STOCK || item.stockStatus == StockStatus.OVERSOLD) &&
+        item.quantityInCart <= 0.0
     PosCard(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (isDepleted) Modifier.graphicsLayer(alpha = 0.65f) else Modifier)
             .clickable(
                 onClickLabel = "Tambah ${item.product.name}",
                 onClick = { actions.onAddProduct(item.product.id) },
@@ -289,6 +372,7 @@ private fun CashierProductRow(
                 category = item.product.category,
                 size = CATALOG_THUMBNAIL_SIZE,
                 imagePath = item.product.imagePath,
+                productName = item.product.name,
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -296,17 +380,19 @@ private fun CashierProductRow(
             ) {
                 Text(
                     text = item.product.name,
-                    style = LocalAppTextStyles.current.supportingLabel,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = Rupiah.format(item.product.basePrice),
                     style = LocalAppTextStyles.current.catalogItemPrice,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 CashierStockBadge(status = item.stockStatus)
             }
-            CatalogQuantityControl(item = item, actions = actions)
+            CatalogQuantityControl(item = item, actions = actions, isMuted = isDepleted)
         }
     }
 }
@@ -316,12 +402,16 @@ private fun CashierProductTile(
     item: CashierProductItem,
     actions: CashierActions,
 ) {
+    val product = item.product
+    val isDepleted = (item.stockStatus == StockStatus.OUT_OF_STOCK || item.stockStatus == StockStatus.OVERSOLD) &&
+        item.quantityInCart <= 0.0
     PosCard(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (isDepleted) Modifier.graphicsLayer(alpha = 0.65f) else Modifier)
             .clickable(
-                onClickLabel = "Tambah ${item.product.name}",
-                onClick = { actions.onAddProduct(item.product.id) },
+                onClickLabel = "Tambah ${product.name}",
+                onClick = { actions.onAddProduct(product.id) },
             ),
         contentPadding = PosSpacing.sm,
         border = catalogItemBorder(isSelected = item.quantityInCart > 0.0),
@@ -332,33 +422,86 @@ private fun CashierProductTile(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             ProductThumbnail(
-                category = item.product.category,
+                category = product.category,
                 size = CATALOG_TILE_THUMBNAIL_SIZE,
-                imagePath = item.product.imagePath,
+                imagePath = product.imagePath,
+                productName = product.name,
             )
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = item.product.name,
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    maxLines = 2,
+                    text = product.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = Rupiah.format(item.product.basePrice),
-                    style = LocalAppTextStyles.current.catalogItemPrice,
+                    text = Rupiah.format(product.basePrice),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                CashierStockBadge(status = item.stockStatus)
+            }
+            if (item.quantityInCart <= 0.0) {
+                CatalogCircleButton(
+                    iconRes = R.drawable.ic_plus,
+                    contentDescription = "Tambah ${product.name}",
+                    onClick = { actions.onAddProduct(product.id) },
+                    isMuted = isDepleted,
+                )
             }
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            CatalogQuantityControl(item = item, actions = actions)
+            Text(
+                text = product.category ?: "Tanpa kategori",
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (item.quantityInCart > 0.0) {
+                    CatalogQuantityControl(item = item, actions = actions)
+                } else {
+                    ProductStockPill(status = item.stockStatus, stockBaseQty = product.stockBaseQty)
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun ProductStockPill(
+    status: StockStatus,
+    stockBaseQty: Double,
+) {
+    if (status != StockStatus.IN_STOCK) {
+        StockStatusBadge(status = status)
+        return
+    }
+    Box(
+        modifier = Modifier
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(horizontal = PosSpacing.xs, vertical = 2.dp),
+    ) {
+        Text(
+            text = "Stok ${formatQuantity(stockBaseQty)}",
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -378,12 +521,15 @@ private fun catalogItemBorder(isSelected: Boolean): BorderStroke = BorderStroke(
 private fun CatalogQuantityControl(
     item: CashierProductItem,
     actions: CashierActions,
+    isMuted: Boolean = false,
 ) {
     if (item.quantityInCart <= 0.0) {
         CatalogCircleButton(
             iconRes = R.drawable.ic_plus,
             contentDescription = "Tambah ${item.product.name}",
             onClick = { actions.onAddProduct(item.product.id) },
+            isPrimary = false,
+            isMuted = isMuted,
         )
         return
     }
@@ -395,6 +541,7 @@ private fun CatalogQuantityControl(
             iconRes = R.drawable.ic_minus,
             contentDescription = "Kurangi ${item.product.name}",
             onClick = { actions.onDecreaseProductQuantity(item.product.id) },
+            isPrimary = false,
         )
         Text(
             text = formatQuantity(item.quantityInCart),
@@ -406,6 +553,7 @@ private fun CatalogQuantityControl(
             iconRes = R.drawable.ic_plus,
             contentDescription = "Tambah ${item.product.name}",
             onClick = { actions.onAddProduct(item.product.id) },
+            isPrimary = true,
         )
     }
 }
@@ -415,7 +563,19 @@ private fun CatalogCircleButton(
     @DrawableRes iconRes: Int,
     contentDescription: String,
     onClick: () -> Unit,
+    isPrimary: Boolean = false,
+    isMuted: Boolean = false,
 ) {
+    val containerColor = when {
+        isPrimary -> MaterialTheme.colorScheme.primary
+        isMuted -> MaterialTheme.colorScheme.surfaceContainer
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val contentColor = when {
+        isPrimary -> MaterialTheme.colorScheme.onPrimary
+        isMuted -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.primary
+    }
     Box(
         modifier = Modifier
             .size(CATALOG_CONTROL_TOUCH_SIZE)
@@ -427,13 +587,13 @@ private fun CatalogCircleButton(
             modifier = Modifier
                 .size(CATALOG_CONTROL_SIZE)
                 .clip(CircleShape)
-                .border(CATALOG_CONTROL_BORDER_WIDTH.dp, PosColors.ForestGreen, CircleShape),
+                .background(containerColor, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                tint = PosColors.ForestGreen,
+                tint = contentColor,
                 modifier = Modifier.size(CATALOG_CONTROL_ICON_SIZE),
             )
         }

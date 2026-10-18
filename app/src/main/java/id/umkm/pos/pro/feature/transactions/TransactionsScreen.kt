@@ -4,26 +4,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
@@ -33,14 +37,14 @@ import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.feature.reports.ReportsFilterSheet
 import id.umkm.pos.pro.feature.reports.ReportsRangePreset
 import id.umkm.pos.pro.feature.reports.ReportsUiState
-import id.umkm.pos.pro.feature.reports.RangeChip
 import id.umkm.pos.pro.feature.reports.TransactionStatusFilter
 import id.umkm.pos.pro.feature.reports.periodLabel
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
+import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
-import id.umkm.pos.pro.ui.components.PosSectionHeader
-import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.common.ScreenHeader
+import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
@@ -53,27 +57,57 @@ internal fun TransactionsScreen(
     onPresetSelected: (ReportsRangePreset) -> Unit,
     onCustomRangeSelected: (Long, Long) -> Unit,
     onToggleStatusFilter: (TransactionStatusFilter) -> Unit,
+    onSelectStatusFilter: (TransactionStatusFilter?) -> Unit = {},
+    onSearchQueryChange: (String) -> Unit = {},
     onAddTransaction: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val timeZone = remember { TimeZone.getDefault() }
     var isFilterSheetVisible by remember { mutableStateOf(false) }
+    val activePeriodLabel = periodLabel(uiState.preset, uiState.range, timeZone)
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= PosBreakpoints.twoPane
+        val horizontalPadding = if (isExpanded) PosSpacing.lg else PosSpacing.md
         Column(modifier = Modifier.fillMaxSize()) {
-            PosSectionHeader(
+            ScreenHeader(
                 title = "Transaksi",
-                supportingText = "${uiState.visibleTransactions.size} transaksi · " +
-                    periodLabel(uiState.preset, uiState.range, timeZone),
-                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+                supportingText = "${uiState.visibleTransactions.size} transaksi · $activePeriodLabel",
+                actions = {
+                    IconButton(onClick = { isFilterSheetVisible = true }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_calendar),
+                            contentDescription = "Filter periode",
+                        )
+                    }
+                    HeaderActionButton(
+                        text = "Transaksi",
+                        iconRes = R.drawable.ic_plus,
+                        contentDescription = "Tambah transaksi",
+                        onClick = onAddTransaction,
+                    )
+                },
+            )
+            PosSearchField(
+                value = uiState.searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = "Cari nomor nota atau nominal",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = horizontalPadding,
+                        end = horizontalPadding,
+                        bottom = PosSpacing.xs,
+                    ),
             )
             TransactionsFilterRow(
-                isExpanded = isExpanded,
+                transactions = uiState.transactions,
                 statusFilter = uiState.statusFilter,
-                onToggleStatusFilter = onToggleStatusFilter,
+                periodText = activePeriodLabel,
                 onOpenPeriodFilter = { isFilterSheetVisible = true },
-                onAddTransaction = onAddTransaction,
+                onSelectAll = { onSelectStatusFilter(null) },
+                onToggleStatusFilter = onToggleStatusFilter,
+                horizontalPadding = horizontalPadding,
             )
             if (uiState.isLoading && uiState.summary != null) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -97,12 +131,12 @@ internal fun TransactionsScreen(
 
                     uiState.visibleTransactions.isEmpty() -> EmptyState(
                         iconRes = R.drawable.ic_receipt,
-                        title = "Tidak ada transaksi",
-                        supportingText = "Tidak ada transaksi dengan status " +
-                            "${uiState.statusFilter?.label.orEmpty()} pada periode ini.",
+                        title = "Tidak ada transaksi yang cocok",
+                        supportingText = "Coba ubah kata kunci pencarian atau filter status pada periode ini.",
                         actionLabel = "Tampilkan Semua",
                         onAction = {
-                            uiState.statusFilter?.let { statusFilter -> onToggleStatusFilter(statusFilter) }
+                            onSelectStatusFilter(null)
+                            onSearchQueryChange("")
                         },
                     )
 
@@ -135,53 +169,71 @@ internal fun TransactionsScreen(
 
 @Composable
 private fun TransactionsFilterRow(
-    isExpanded: Boolean,
+    transactions: List<Transaction>,
     statusFilter: TransactionStatusFilter?,
-    onToggleStatusFilter: (TransactionStatusFilter) -> Unit,
+    periodText: String,
     onOpenPeriodFilter: () -> Unit,
-    onAddTransaction: () -> Unit,
+    onSelectAll: () -> Unit,
+    onToggleStatusFilter: (TransactionStatusFilter) -> Unit,
+    horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
-    Row(
+    val chipColors = FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        selectedContainerColor = MaterialTheme.colorScheme.primary,
+        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+    )
+    LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = PosSpacing.md, end = PosSpacing.md, bottom = PosSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            .padding(bottom = PosSpacing.xs),
+        contentPadding = PaddingValues(horizontal = horizontalPadding),
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
-        TransactionStatusFilter.entries.forEach { option ->
-            RangeChip(
-                label = option.label,
+        item(key = "period") {
+            FilterChip(
+                selected = false,
+                onClick = onOpenPeriodFilter,
+                label = { Text(text = periodText) },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_calendar),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                shape = CircleShape,
+                border = null,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            )
+        }
+        item(key = "all") {
+            FilterChip(
+                selected = statusFilter == null,
+                onClick = onSelectAll,
+                label = { Text(text = "Semua (${transactions.size})") },
+                shape = CircleShape,
+                border = null,
+                colors = chipColors,
+            )
+        }
+        items(
+            items = TransactionStatusFilter.entries,
+            key = { option -> option.name },
+        ) { option ->
+            val count = transactions.count { transaction -> transaction.status in option.statuses }
+            FilterChip(
                 selected = option == statusFilter,
                 onClick = { onToggleStatusFilter(option) },
+                label = { Text(text = "${option.label} ($count)") },
+                shape = CircleShape,
+                border = null,
+                colors = chipColors,
             )
-        }
-        Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = onOpenPeriodFilter) {
-            Icon(
-                painter = painterResource(R.drawable.ic_settings),
-                contentDescription = "Filter periode",
-            )
-        }
-        if (isExpanded) {
-            PrimaryActionButton(
-                text = "Tambah Transaksi",
-                onClick = onAddTransaction,
-                iconRes = R.drawable.ic_plus,
-                shouldFillWidth = false,
-            )
-        } else {
-            FilledIconButton(
-                onClick = onAddTransaction,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_plus),
-                    contentDescription = "Tambah transaksi",
-                )
-            }
         }
     }
 }

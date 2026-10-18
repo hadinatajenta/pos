@@ -44,7 +44,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
-private val PRODUCT_ROW_THUMBNAIL_SIZE = 64.dp
+private val PRODUCT_ROW_THUMBNAIL_SIZE = 52.dp
 private val STOCK_PILL_ICON_SIZE = 12.dp
 private val STOCK_PILL_TEXT_MAX_WIDTH = 84.dp
 private val PRODUCT_PRICE_TEXT_STYLE = PosTextStyles.financialValue.copy(fontSize = 15.sp, lineHeight = 20.sp)
@@ -53,11 +53,12 @@ private val PRODUCT_PRICE_TEXT_STYLE = PosTextStyles.financialValue.copy(fontSiz
 internal fun ProductRow(
     productItem: ProductListItem,
     actions: ProductsActions,
+    modifier: Modifier = Modifier,
 ) {
     val product = productItem.product
     var isMenuExpanded by remember { mutableStateOf(false) }
     PosCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Ubah ${product.name}", onClick = { actions.onOpenEditForm(product.id) }),
         contentPadding = PosSpacing.sm,
@@ -71,6 +72,7 @@ internal fun ProductRow(
                 category = product.category,
                 size = PRODUCT_ROW_THUMBNAIL_SIZE,
                 imagePath = product.imagePath,
+                productName = product.name,
             )
             Column(
                 modifier = Modifier.weight(1f),

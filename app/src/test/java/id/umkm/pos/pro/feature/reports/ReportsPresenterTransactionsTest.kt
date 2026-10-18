@@ -80,6 +80,30 @@ class ReportsPresenterTransactionsTest {
     }
 
     @Test
+    fun searchQueryAndKasbonFilterNarrowVisibleTransactions() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(
+                transactions = listOf(
+                    sampleTransaction(id = 1L, invoiceNo = "INV-20261018-0001", status = TransactionStatus.COMPLETED),
+                    sampleTransaction(id = 2L, invoiceNo = "INV-20261018-0002", status = TransactionStatus.PARTIAL_DEBT),
+                    sampleTransaction(id = 3L, invoiceNo = "INV-20261018-0003", status = TransactionStatus.RETURNED),
+                ),
+            ),
+            scope = this,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        presenter.selectStatusFilter(TransactionStatusFilter.KASBON)
+        assertThat(presenter.uiState.value.visibleTransactions.map { it.id }).containsExactly(2L)
+
+        presenter.selectStatusFilter(null)
+        presenter.updateSearchQuery("0003")
+        assertThat(presenter.uiState.value.visibleTransactions.map { it.id }).containsExactly(3L)
+    }
+
+    @Test
     fun openDetailLoadsItemLinesAndCounterparties() = runTest(mainDispatcherRule.testDispatcher) {
         val presenter = createPresenter(
             transactionRepository = FakeTransactionRepository(

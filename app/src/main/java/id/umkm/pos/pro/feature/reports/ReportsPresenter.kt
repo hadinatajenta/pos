@@ -85,7 +85,34 @@ class ReportsPresenter(
             val updatedFilter = if (current.statusFilter == statusFilter) null else statusFilter
             current.copy(
                 statusFilter = updatedFilter,
-                visibleTransactions = current.transactions.matchingStatusFilter(updatedFilter),
+                visibleTransactions = current.transactions.matchingStatusFilter(
+                    statusFilter = updatedFilter,
+                    searchQuery = current.searchQuery,
+                ),
+            )
+        }
+    }
+
+    fun selectStatusFilter(statusFilter: TransactionStatusFilter?) {
+        mutableState.update { current ->
+            current.copy(
+                statusFilter = statusFilter,
+                visibleTransactions = current.transactions.matchingStatusFilter(
+                    statusFilter = statusFilter,
+                    searchQuery = current.searchQuery,
+                ),
+            )
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        mutableState.update { current ->
+            current.copy(
+                searchQuery = query,
+                visibleTransactions = current.transactions.matchingStatusFilter(
+                    statusFilter = current.statusFilter,
+                    searchQuery = query,
+                ),
             )
         }
     }
@@ -261,7 +288,13 @@ class ReportsPresenter(
             try {
                 val summary = reportRepository.salesSummary(range)
                 val dailySales = reportRepository.salesByDay(range)
-                val transactions = reportRepository.transactionsInRange(range)
+                val content = ReportContentLoader.load(
+                    range = range,
+                    reportRepository = reportRepository,
+                    transactionRepository = transactionRepository,
+                    productRepository = productRepository,
+                )
+                val transactions = content.transactions
                     .sortedByDescending { transaction -> transaction.createdAt }
                 mutableState.update { current ->
                     current.copy(
@@ -270,8 +303,12 @@ class ReportsPresenter(
                         dailySales = dailySales,
                         salesChartPoints = chartPointsFor(range, dailySales, zoneId),
                         paymentShares = paymentShares(transactions),
+                        topProducts = content.productSummaries,
                         transactions = transactions,
-                        visibleTransactions = transactions.matchingStatusFilter(current.statusFilter),
+                        visibleTransactions = transactions.matchingStatusFilter(
+                            statusFilter = current.statusFilter,
+                            searchQuery = current.searchQuery,
+                        ),
                         isLoading = false,
                         error = null,
                     )

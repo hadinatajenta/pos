@@ -27,6 +27,12 @@ enum class ProductSortOrder(val label: String) {
     LOWEST_STOCK("Stok Terendah"),
 }
 
+enum class ProductStockFilter {
+    ALL,
+    LOW_STOCK,
+    OUT_OF_STOCK,
+}
+
 data class ProductListItem(
     val product: Product,
     val stockStatus: StockStatus,
@@ -83,6 +89,7 @@ data class ProductFormState(
 data class ProductsUiState(
     val searchQuery: String = "",
     val categoryFilter: String? = null,
+    val stockFilter: ProductStockFilter = ProductStockFilter.ALL,
     val sortOrder: ProductSortOrder = ProductSortOrder.NEWEST,
     val catalog: UiState<ProductsCatalog> = UiState.Loading,
     val form: ProductFormState? = null,
@@ -95,11 +102,14 @@ fun buildProductsCatalog(
     productItems: List<ProductListItem>,
     categoryFilter: String?,
     sortOrder: ProductSortOrder,
+    stockFilter: ProductStockFilter = ProductStockFilter.ALL,
 ): ProductsCatalog {
     val categories = productItems.distinctCategories()
     return ProductsCatalog(
         items = productItems
-            .filter { productItem -> productItem.matchesCategory(categoryFilter) }
+            .filter { productItem ->
+                productItem.matchesCategory(categoryFilter) && productItem.matchesStockFilter(stockFilter)
+            }
             .sortedWith(sortOrder.comparator()),
         categories = categories,
         stats = productItems.computeProductStats(categoryCount = categories.size),
@@ -121,6 +131,13 @@ private fun ProductListItem.matchesCategory(categoryFilter: String?): Boolean {
     if (categoryFilter.isNullOrBlank()) return true
     val category = product.category?.trim().orEmpty()
     return category.equals(categoryFilter.trim(), ignoreCase = true)
+}
+
+private fun ProductListItem.matchesStockFilter(stockFilter: ProductStockFilter): Boolean = when (stockFilter) {
+    ProductStockFilter.ALL -> true
+    ProductStockFilter.LOW_STOCK -> stockStatus == StockStatus.LOW_STOCK
+    ProductStockFilter.OUT_OF_STOCK ->
+        stockStatus == StockStatus.OUT_OF_STOCK || stockStatus == StockStatus.OVERSOLD
 }
 
 private fun List<ProductListItem>.distinctCategories(): List<String> {

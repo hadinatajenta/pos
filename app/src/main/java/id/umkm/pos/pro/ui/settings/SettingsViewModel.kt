@@ -80,7 +80,46 @@ class SettingsViewModel(
         }
     }
 
+    fun onSaveStoreSettings(
+        storeName: String,
+        cashierName: String,
+        taxRatePercent: Int,
+        roundingIncrement: Long,
+    ) {
+        val currentSettings = _uiState.value.settings ?: return
+        val trimmedStoreName = storeName.trim()
+        if (trimmedStoreName.isEmpty()) {
+            _uiState.update { current ->
+                current.copy(
+                    message = null,
+                    errorMessage = "Nama toko tidak boleh kosong.",
+                )
+            }
+            return
+        }
+        val safeTax = taxRatePercent.coerceIn(0, 100)
+        val safeRounding = roundingIncrement.coerceAtLeast(0L)
+        viewModelScope.launch {
+            settingsRepository.updateSettings(
+                currentSettings.copy(
+                    storeName = trimmedStoreName,
+                    cashierName = cashierName.trim().ifEmpty { null },
+                    taxRatePercent = safeTax,
+                    roundingIncrement = safeRounding,
+                ),
+            )
+            _uiState.update { current ->
+                current.copy(
+                    message = "Pengaturan toko berhasil disimpan",
+                    errorMessage = null,
+                )
+            }
+        }
+    }
+
     fun onMessageConsumed() {
         _uiState.update { current -> current.copy(message = null, errorMessage = null) }
     }
+
+    internal fun onRemoveMessages() = onMessageConsumed()
 }

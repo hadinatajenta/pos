@@ -38,6 +38,7 @@ class ProductsViewModel(
 
     private val searchQuery = MutableStateFlow("")
     private val categoryFilter = MutableStateFlow<String?>(null)
+    private val stockFilter = MutableStateFlow(ProductStockFilter.ALL)
     private val sortOrder = MutableStateFlow(ProductSortOrder.NEWEST)
     private val reloadTrigger = MutableStateFlow(0)
 
@@ -54,6 +55,11 @@ class ProductsViewModel(
         val normalizedCategory = category?.trim()?.takeIf { it.isNotEmpty() }
         categoryFilter.value = normalizedCategory
         _state.update { it.copy(categoryFilter = normalizedCategory) }
+    }
+
+    fun onStockFilterChange(filter: ProductStockFilter) {
+        stockFilter.value = filter
+        _state.update { it.copy(stockFilter = filter) }
     }
 
     fun onSortOrderChange(order: ProductSortOrder) {
@@ -225,8 +231,17 @@ class ProductsViewModel(
 
     private fun observeProducts() {
         viewModelScope.launch {
-            combine(loadedProductsFlow(), categoryFilter, sortOrder) { productsState, category, order ->
-                productsState.toCatalogState(categoryFilter = category, sortOrder = order)
+            combine(
+                loadedProductsFlow(),
+                categoryFilter,
+                stockFilter,
+                sortOrder,
+            ) { productsState, category, stock, order ->
+                productsState.toCatalogState(
+                    categoryFilter = category,
+                    stockFilter = stock,
+                    sortOrder = order,
+                )
             }
                 .collect { catalogState ->
                     _state.update { current -> current.copy(catalog = catalogState) }
@@ -285,6 +300,7 @@ class ProductsViewModel(
 
 private fun UiState<List<Product>>.toCatalogState(
     categoryFilter: String?,
+    stockFilter: ProductStockFilter,
     sortOrder: ProductSortOrder,
 ): UiState<ProductsCatalog> {
     if (this is UiState.Error) return UiState.Error(error)
@@ -297,6 +313,7 @@ private fun UiState<List<Product>>.toCatalogState(
             },
             categoryFilter = categoryFilter,
             sortOrder = sortOrder,
+            stockFilter = stockFilter,
         ),
     )
 }

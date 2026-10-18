@@ -86,10 +86,10 @@ class AppRootTest {
     }
 
     @Test
-    fun dashboardIsTheDefaultDestination() {
+    fun cashierIsTheDefaultDestination() {
         showConstrainedAppRoot(windowWidth = 360.dp)
 
-        composeRule.onNodeWithText("Buka Kasir").assertIsDisplayed()
+        composeRule.onNodeWithText("Cari produk").assertIsDisplayed()
     }
 
     @Test
@@ -110,6 +110,6 @@ class AppRootTest {
         composeRule.onNodeWithText("Mulai").performClick()
 
         composeRule.onNodeWithTag(WELCOME_SCREEN_TEST_TAG).assertDoesNotExist()
-        composeRule.onNodeWithText("Buka Kasir").assertIsDisplayed()
+        composeRule.onNodeWithText("Cari produk").assertIsDisplayed()
     }
 }

@@ -6,17 +6,17 @@ import org.junit.Test
 class PosDestinationTest {
 
     @Test
-    fun exposesTheSixPrimaryDestinationsInOrder() {
+    fun exposesTheFivePrimaryDestinationsInOrder() {
         val names = PosDestination.entries.map { it.name }
 
         assertThat(names)
-            .containsExactly("BERANDA", "PRODUK", "KASIR", "TRANSAKSI", "LAPORAN", "LAINNYA")
+            .containsExactly("KASIR", "PRODUK", "TRANSAKSI", "LAPORAN", "LAINNYA")
             .inOrder()
     }
 
     @Test
-    fun berandaIsTheDefaultDestination() {
-        assertThat(PosDestination.entries.first()).isEqualTo(PosDestination.BERANDA)
+    fun kasirIsTheDefaultDestination() {
+        assertThat(PosDestination.entries.first()).isEqualTo(PosDestination.KASIR)
     }
 
     @Test
@@ -24,7 +24,7 @@ class PosDestinationTest {
         val labels = PosDestination.entries.map { it.label }
 
         assertThat(labels)
-            .containsExactly("Beranda", "Produk", "Kasir", "Transaksi", "Laporan", "Lainnya")
+            .containsExactly("Kasir", "Produk", "Transaksi", "Laporan", "Lainnya")
             .inOrder()
     }
 

@@ -38,12 +38,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
+import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
@@ -70,10 +72,9 @@ internal fun CashierCartPane(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        PosSectionHeader(
+        ScreenHeader(
             title = "Keranjang",
             supportingText = cartItemSummary(state),
-            modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
         )
         CartContents(state = state, actions = actions, modifier = Modifier.weight(1f))
     }
@@ -195,11 +196,19 @@ private fun CartLineCard(
 ) {
     PosCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    onClickLabel = "Ubah satuan atau harga ${line.productName}",
+                    onClick = { actions.onOpenLineEditor(line.lineId) },
+                ),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = line.productName,
                     style = LocalAppTextStyles.current.body,
@@ -242,7 +251,7 @@ private fun CartLineCard(
             }
             Spacer(modifier = Modifier.weight(1f))
             SecondaryTextAction(
-                text = "Ubah",
+                text = "Satuan / Nego",
                 onClick = { actions.onOpenLineEditor(line.lineId) },
             )
             IconButton(onClick = { actions.onRemoveLine(line.lineId) }) {

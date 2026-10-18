@@ -49,9 +49,11 @@ fun PosSearchField(
             }
         },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            disabledContainerColor = Color.White,
+            focusedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer,
+            disabledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer,
+            unfocusedBorderColor = Color.Transparent,
+            focusedBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
         ),
         keyboardOptions = KeyboardOptions(imeAction = imeAction),
     )

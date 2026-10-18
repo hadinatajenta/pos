@@ -47,6 +47,8 @@ fun TransactionsRoute(
         onPresetSelected = presenter::selectPreset,
         onCustomRangeSelected = presenter::selectCustomDays,
         onToggleStatusFilter = presenter::toggleStatusFilter,
+        onSelectStatusFilter = presenter::selectStatusFilter,
+        onSearchQueryChange = presenter::updateSearchQuery,
         onAddTransaction = onStartSale,
         onRefresh = presenter::refresh,
         modifier = modifier,
@@ -101,6 +103,7 @@ fun TransactionsRoute(
                 ReturnRoute(
                     transactionId = pendingReturnTransactionId,
                     onReturnProcessed = presenter::onReturnProcessed,
+                    onBack = presenter::dismissReturn,
                 )
             }
         }

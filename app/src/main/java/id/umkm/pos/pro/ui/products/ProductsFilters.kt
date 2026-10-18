@@ -1,220 +1,127 @@
 package id.umkm.pos.pro.ui.products
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.R
 import id.umkm.pos.pro.ui.common.EmptyState
-import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
-import androidx.compose.ui.res.painterResource
-import id.umkm.pos.pro.R
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 
-private const val ALL_CATEGORIES_LABEL = "Semua Kategori"
-private const val ALL_CATEGORY_CHIP_LABEL = "Semua"
+private val SORT_BUTTON_MIN_HEIGHT = 56.dp
 
 @Composable
-internal fun ProductsSearchField(
+internal fun ProductsSearchAndSortBar(
     state: ProductsUiState,
     actions: ProductsActions,
+    isCompact: Boolean = true,
 ) {
-    PosSearchField(
-        value = state.searchQuery,
-        onValueChange = actions.onSearchQueryChange,
-        placeholder = "Cari produk",
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-    )
-}
-
-@Composable
-internal fun ProductsFilterRow(
-    state: ProductsUiState,
-    actions: ProductsActions,
-) {
-    val categories = state.catalog.successDataOrNull()?.categories.orEmpty()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-    ) {
-        ProductsDropdown(
-            label = state.categoryFilter ?: ALL_CATEGORIES_LABEL,
-            modifier = Modifier.weight(1f),
-        ) { dismiss ->
-            DropdownMenuItem(
-                text = { Text(ALL_CATEGORIES_LABEL) },
-                trailingIcon = { SelectedOptionIcon(isSelected = state.categoryFilter == null) },
-                onClick = {
-                    dismiss()
-                    actions.onCategoryFilterChange(null)
-                },
-            )
-            categories.forEach { category ->
-                val isSelected = category.equals(state.categoryFilter, ignoreCase = true)
-                DropdownMenuItem(
-                    text = { Text(category) },
-                    trailingIcon = { SelectedOptionIcon(isSelected = isSelected) },
-                    onClick = {
-                        dismiss()
-                        actions.onCategoryFilterChange(category)
-                    },
-                )
-            }
-        }
-        ProductsDropdown(
-            label = "Urutkan: ${state.sortOrder.label}",
-            modifier = Modifier.weight(1f),
-        ) { dismiss ->
-            ProductSortOrder.entries.forEach { order ->
-                DropdownMenuItem(
-                    text = { Text(order.label) },
-                    trailingIcon = { SelectedOptionIcon(isSelected = order == state.sortOrder) },
-                    onClick = {
-                        dismiss()
-                        actions.onSortOrderChange(order)
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun ProductsCategoryChips(
-    categories: List<String>,
-    selectedCategoryFilter: String?,
-    onCategorySelect: (String?) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-    ) {
-        CategoryChip(
-            label = ALL_CATEGORY_CHIP_LABEL,
-            isSelected = selectedCategoryFilter == null,
-            onClick = { onCategorySelect(null) },
-        )
-        categories.forEach { category ->
-            CategoryChip(
-                label = category,
-                isSelected = category.equals(selectedCategoryFilter, ignoreCase = true),
-                onClick = { onCategorySelect(category) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun CategoryChip(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-) {
-    val shape = MaterialTheme.shapes.small
-    val containerColor = if (isSelected) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val contentColor = if (isSelected) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant
-    Row(
-        modifier = Modifier
-            .clip(shape)
-            .background(containerColor)
-            .border(width = 1.dp, color = borderColor, shape = shape)
-            .clickable(onClick = onClick)
-            .heightIn(min = PosSizes.touchTarget)
-            .padding(horizontal = PosSpacing.md),
+            .padding(
+                horizontal = if (isCompact) PosSpacing.md else PosSpacing.lg,
+                vertical = PosSpacing.xs,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = contentColor,
-            maxLines = 1,
+        PosSearchField(
+            value = state.searchQuery,
+            onValueChange = actions.onSearchQueryChange,
+            placeholder = "Cari produk",
+            modifier = Modifier.weight(1f),
+        )
+        SortDropdownButton(
+            sortOrder = state.sortOrder,
+            onSortOrderChange = actions.onSortOrderChange,
         )
     }
 }
 
 @Composable
-private fun ProductsDropdown(
-    label: String,
-    modifier: Modifier = Modifier,
-    menuContent: @Composable (dismiss: () -> Unit) -> Unit,
+private fun SortDropdownButton(
+    sortOrder: ProductSortOrder,
+    onSortOrderChange: (ProductSortOrder) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    val shape = MaterialTheme.shapes.small
-    Box(modifier = modifier) {
-        Row(
+    Box {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant, shape = shape)
-                .clickable(role = Role.DropdownList, onClick = { isExpanded = true })
-                .heightIn(min = PosSizes.touchTarget)
-                .padding(start = PosSpacing.sm, end = PosSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
+                .heightIn(min = SORT_BUTTON_MIN_HEIGHT)
+                .clickable(onClickLabel = "Urutkan produk", onClick = { isExpanded = true }),
         ) {
-            Text(
-                text = label,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                painter = painterResource(R.drawable.ic_chevron_down),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(PosSizes.iconMedium),
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_list_filter),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(PosSizes.iconSmall),
+                )
+                Spacer(modifier = Modifier.width(PosSpacing.xs))
+                Text(
+                    text = sortOrder.label,
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.width(PosSpacing.xxs))
+                Icon(
+                    painter = painterResource(R.drawable.ic_chevron_down),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(PosSizes.iconSmall),
+                )
+            }
         }
         DropdownMenu(
             expanded = isExpanded,
             onDismissRequest = { isExpanded = false },
         ) {
-            menuContent { isExpanded = false }
+            ProductSortOrder.entries.forEach { order ->
+                DropdownMenuItem(
+                    text = { Text(order.label) },
+                    trailingIcon = { SelectedOptionIcon(isSelected = order == sortOrder) },
+                    onClick = {
+                        isExpanded = false
+                        onSortOrderChange(order)
+                    },
+                )
+            }
         }
     }
 }
@@ -235,8 +142,11 @@ internal fun ProductsFilterEmptyState(actions: ProductsActions) {
     EmptyState(
         iconRes = R.drawable.ic_funnel,
         title = "Tidak ada produk pada filter ini",
-        supportingText = "Pilih kategori lain atau tampilkan semua produk.",
+        supportingText = "Pilih kategori atau filter stok lain, atau tampilkan semua produk.",
         actionLabel = "Tampilkan semua",
-        onAction = { actions.onCategoryFilterChange(null) },
+        onAction = {
+            actions.onStockFilterChange(ProductStockFilter.ALL)
+            actions.onCategoryFilterChange(null)
+        },
     )
 }

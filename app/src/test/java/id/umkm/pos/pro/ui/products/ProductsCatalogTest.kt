@@ -129,6 +129,50 @@ class ProductsCatalogTest {
         assertThat(catalog.stats.uncategorizedCount).isEqualTo(1)
     }
 
+    @Test
+    fun lowStockFilterIncludesOnlyLowStockProductsAndPreservesCatalogStats() {
+        val productItems = listOf(
+            productItem(id = 1L, name = "Kopi Susu", stockBaseQty = 20.0, minStockAlert = 5.0),
+            productItem(id = 2L, name = "Teh Manis", stockBaseQty = 3.0, minStockAlert = 5.0),
+            productItem(id = 3L, name = "Gula Pasir", stockBaseQty = 0.0, minStockAlert = 5.0),
+        )
+
+        val catalog = buildProductsCatalog(
+            productItems = productItems,
+            categoryFilter = null,
+            sortOrder = ProductSortOrder.NEWEST,
+            stockFilter = ProductStockFilter.LOW_STOCK,
+        )
+
+        assertThat(catalog.items.map { item -> item.product.name }).containsExactly("Teh Manis")
+        assertThat(catalog.stats.totalCount).isEqualTo(3)
+        assertThat(catalog.stats.lowStockCount).isEqualTo(1)
+        assertThat(catalog.stats.outOfStockCount).isEqualTo(1)
+    }
+
+    @Test
+    fun outOfStockFilterIncludesZeroAndNegativeStockProductsAndPreservesStats() {
+        val productItems = listOf(
+            productItem(id = 1L, name = "Kopi Susu", stockBaseQty = 20.0, minStockAlert = 5.0),
+            productItem(id = 2L, name = "Teh Manis", stockBaseQty = 3.0, minStockAlert = 5.0),
+            productItem(id = 3L, name = "Gula Pasir", stockBaseQty = 0.0, minStockAlert = 5.0),
+            productItem(id = 4L, name = "Air Mineral", stockBaseQty = -2.0, minStockAlert = 5.0),
+        )
+
+        val catalog = buildProductsCatalog(
+            productItems = productItems,
+            categoryFilter = null,
+            sortOrder = ProductSortOrder.NEWEST,
+            stockFilter = ProductStockFilter.OUT_OF_STOCK,
+        )
+
+        assertThat(catalog.items.map { item -> item.product.name })
+            .containsExactly("Air Mineral", "Gula Pasir")
+            .inOrder()
+        assertThat(catalog.stats.totalCount).isEqualTo(4)
+        assertThat(catalog.stats.outOfStockCount).isEqualTo(2)
+    }
+
     private fun productItem(
         id: Long,
         name: String = "Produk $id",

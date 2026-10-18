@@ -71,4 +71,37 @@ class SettingsViewModelTest {
             assertThat(deletedImagePath).isEqualTo("/data/qris.jpg")
             assertThat(viewModel.uiState.value.message).isEqualTo("QRIS statis dihapus")
         }
+
+    @Test
+    fun savingStoreSettingsUpdatesStoreProfileAndRules() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.onSaveStoreSettings(
+            storeName = "  Toko Maju Bersama  ",
+            cashierName = "  Mbak Rini ",
+            taxRatePercent = 11,
+            roundingIncrement = 500L,
+        )
+
+        val stored = settings.getSettings()
+        assertThat(stored.storeName).isEqualTo("Toko Maju Bersama")
+        assertThat(stored.cashierName).isEqualTo("Mbak Rini")
+        assertThat(stored.taxRatePercent).isEqualTo(11)
+        assertThat(stored.roundingIncrement).isEqualTo(500L)
+        assertThat(viewModel.uiState.value.message).isEqualTo("Pengaturan toko berhasil disimpan")
+    }
+
+    @Test
+    fun savingStoreSettingsRejectsBlankStoreName() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.onSaveStoreSettings(
+            storeName = "   ",
+            cashierName = "Kasir",
+            taxRatePercent = 0,
+            roundingIncrement = 0L,
+        )
+
+        assertThat(viewModel.uiState.value.errorMessage).isEqualTo("Nama toko tidak boleh kosong.")
+    }
 }

@@ -10,7 +10,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import id.umkm.pos.pro.ui.LocalAppContainer
 
 @Composable
-fun SettingsRoute(modifier: Modifier = Modifier) {
+fun SettingsRoute(
+    modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+) {
     val container = LocalAppContainer.current
     val viewModel: SettingsViewModel = viewModel(
         factory = viewModelFactory {
@@ -27,5 +30,6 @@ fun SettingsRoute(modifier: Modifier = Modifier) {
         state = state,
         actions = SettingsActions.from(viewModel),
         modifier = modifier,
+        onBack = onBack,
     )
 }

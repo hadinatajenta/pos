@@ -4,9 +4,9 @@ import androidx.compose.ui.graphics.Color
 import id.umkm.pos.pro.core.model.PaymentMethod
 
 fun paymentSliceColor(method: PaymentMethod): Color = when (method) {
-    PaymentMethod.CASH -> Color(0xFF1E6B54)
-    PaymentMethod.QRIS -> Color(0xFF21845D)
-    PaymentMethod.TRANSFER -> Color(0xFFE7C46A)
-    PaymentMethod.SPLIT -> Color(0xFF7C8A83)
-    PaymentMethod.KASBON -> Color(0xFFB87917)
+    PaymentMethod.CASH -> Color(0xFF0D5C46)
+    PaymentMethod.QRIS -> Color(0xFF1D6FA5)
+    PaymentMethod.TRANSFER -> Color(0xFF6C4AB6)
+    PaymentMethod.SPLIT -> Color(0xFF3B82A6)
+    PaymentMethod.KASBON -> Color(0xFFD97706)
 }

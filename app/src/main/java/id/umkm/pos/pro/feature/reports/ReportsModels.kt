@@ -22,15 +22,24 @@ enum class TransactionStatusFilter(
     val statuses: Set<TransactionStatus>,
 ) {
     COMPLETED("Berhasil", setOf(TransactionStatus.COMPLETED, TransactionStatus.PARTIAL_DEBT)),
+    KASBON("Kasbon", setOf(TransactionStatus.PARTIAL_DEBT)),
     REFUND("Refund", setOf(TransactionStatus.RETURNED)),
 }
 
-internal fun List<Transaction>.matchingStatusFilter(statusFilter: TransactionStatusFilter?): List<Transaction> =
-    if (statusFilter == null) {
-        this
-    } else {
-        filter { transaction -> transaction.status in statusFilter.statuses }
+internal fun List<Transaction>.matchingStatusFilter(
+    statusFilter: TransactionStatusFilter?,
+    searchQuery: String = "",
+): List<Transaction> {
+    val trimmedQuery = searchQuery.trim()
+    return filter { transaction ->
+        val matchesStatus = statusFilter == null || transaction.status in statusFilter.statuses
+        val matchesSearch = trimmedQuery.isEmpty() ||
+            transaction.invoiceNo.contains(trimmedQuery, ignoreCase = true) ||
+            transaction.notes?.contains(trimmedQuery, ignoreCase = true) == true ||
+            transaction.grandTotal.toString().contains(trimmedQuery)
+        matchesStatus && matchesSearch
     }
+}
 
 data class TransactionDetailLine(
     val name: String,
@@ -85,9 +94,11 @@ data class ReportsUiState(
     val dailySales: List<DailySales> = emptyList(),
     val salesChartPoints: List<ChartPoint> = emptyList(),
     val paymentShares: List<ReportsPaymentShare> = emptyList(),
+    val topProducts: List<ReportProductSummary> = emptyList(),
     val transactions: List<Transaction> = emptyList(),
     val visibleTransactions: List<Transaction> = emptyList(),
     val statusFilter: TransactionStatusFilter? = null,
+    val searchQuery: String = "",
     val isLoading: Boolean = true,
     val error: AppError? = null,
     val detail: TransactionDetail? = null,

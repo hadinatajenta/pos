@@ -128,8 +128,8 @@ private const val TABULAR_NUMERALS = "tnum"
 val PosTextStyles = AppTextStyles(
     screenTitle = TextStyle(
         fontFamily = PosFontFamily,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
         fontWeight = FontWeight.SemiBold,
     ),
     sectionHeading = TextStyle(

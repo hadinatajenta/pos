@@ -1,42 +1,49 @@
 package id.umkm.pos.pro.ui.more
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.BuildConfig
+import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.data.seed.DemoClearSummary
 import id.umkm.pos.pro.data.seed.DemoDataSeeder
 import id.umkm.pos.pro.data.seed.DemoSeedSummary
-import id.umkm.pos.pro.ui.common.SectionHeading
+import id.umkm.pos.pro.ui.components.IconBadge
+import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import kotlinx.coroutines.launch
-import id.umkm.pos.pro.R
-import androidx.annotation.DrawableRes
-import androidx.compose.ui.res.painterResource
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 
 val LocalDemoDataSeeder = staticCompositionLocalOf<DemoDataSeeder?> { null }
 
@@ -51,44 +58,109 @@ internal fun DemoDataSection(modifier: Modifier = Modifier) {
 private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
     val seeder = LocalDemoDataSeeder.current ?: return
     val scope = rememberCoroutineScope()
+    val palette = LocalPosSemanticPalette.current
     var isBusy by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-    ) {
-        SectionHeading(text = "Data Demo")
-        DemoActionRow(
-            label = "Muat data demo",
-            supportingText = "Isi katalog, pelanggan, dan transaksi contoh",
-            iconRes = R.drawable.ic_flask,
-            isBusy = isBusy,
-            onClick = {
-                if (!isBusy) {
-                    scope.launch {
-                        isBusy = true
-                        statusMessage = null
-                        statusMessage = seeder.load().toStatusMessage(::seedLoadedMessage)
-                        isBusy = false
-                    }
-                }
-            },
-        )
-        DemoActionRow(
-            label = "Hapus data demo",
-            supportingText = "Hapus hanya data bertanda DEMO",
-            iconRes = R.drawable.ic_trash,
-            isBusy = isBusy,
-            onClick = { if (!isBusy) showClearConfirm = true },
-        )
-        statusMessage?.let { message ->
+    PosCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            IconBadge(iconRes = R.drawable.ic_flask)
             Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "Data Demo",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.weight(1f),
             )
+            if (isBusy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            OutlinedButton(
+                onClick = {
+                    if (!isBusy) {
+                        scope.launch {
+                            isBusy = true
+                            statusMessage = null
+                            statusMessage = seeder.load().toStatusMessage(::seedLoadedMessage)
+                            isBusy = false
+                        }
+                    }
+                },
+                enabled = !isBusy,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = PosSpacing.sm,
+                    vertical = PosSpacing.xs,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = PosSizes.touchTarget),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_flask),
+                    contentDescription = null,
+                    modifier = Modifier.size(PosSizes.iconSmall),
+                )
+                Spacer(modifier = Modifier.width(PosSpacing.xs))
+                Text(
+                    text = "Muat Demo",
+                    style = LocalAppTextStyles.current.buttonLabel,
+                    maxLines = 1,
+                )
+            }
+            OutlinedButton(
+                onClick = { if (!isBusy) showClearConfirm = true },
+                enabled = !isBusy,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = palette.danger,
+                ),
+                border = BorderStroke(1.dp, palette.danger.copy(alpha = 0.35f)),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = PosSpacing.sm,
+                    vertical = PosSpacing.xs,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = PosSizes.touchTarget),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_trash),
+                    contentDescription = null,
+                    modifier = Modifier.size(PosSizes.iconSmall),
+                )
+                Spacer(modifier = Modifier.width(PosSpacing.xs))
+                Text(
+                    text = "Hapus Demo",
+                    style = LocalAppTextStyles.current.buttonLabel,
+                    maxLines = 1,
+                )
+            }
+        }
+
+        statusMessage?.let { message ->
+            Surface(
+                color = palette.neutralContainer,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
+                )
+            }
         }
     }
 
@@ -97,7 +169,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
             onDismissRequest = { showClearConfirm = false },
             title = { Text(text = "Hapus data demo?") },
             text = {
-                Text(text = "Transaksi, pelanggan, dan produk bertanda DEMO akan dihapus. Data asli tidak diubah.")
+                Text(text = "Transaksi, pelanggan, dan produk bertanda DEMO akan dihapus. Data asli toko tidak diubah.")
             },
             confirmButton = {
                 TextButton(
@@ -120,52 +192,6 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
                 }
             },
         )
-    }
-}
-
-@Composable
-private fun DemoActionRow(
-    label: String,
-    supportingText: String,
-    @DrawableRes iconRes: Int,
-    isBusy: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (isBusy) Modifier else Modifier.clickable(onClick = onClick)),
-    ) {
-        Row(
-            modifier = Modifier.padding(PosSpacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
-        ) {
-            if (isBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(PosSizes.iconMedium),
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(PosSizes.iconMedium),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = supportingText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
     }
 }
 

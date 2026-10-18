@@ -34,7 +34,7 @@ import androidx.compose.ui.res.painterResource
 fun PosCard(
     modifier: Modifier = Modifier,
     contentPadding: androidx.compose.ui.unit.Dp = PosSpacing.md,
-    border: BorderStroke = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    border: BorderStroke? = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -42,7 +42,7 @@ fun PosCard(
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
         border = border,
-        shadowElevation = 1.dp,
+        shadowElevation = 0.5.dp,
         modifier = modifier,
     ) {
         Column(

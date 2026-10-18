@@ -177,6 +177,40 @@ class ProductsViewModelTest {
     }
 
     @Test
+    fun stockFilterNarrowsTheCatalogToLowStockAndOutOfStockProducts() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu", stockBaseQty = 100.0, minStockAlert = 5.0),
+                uiSampleProduct(id = 2L, name = "Teh Manis", stockBaseQty = 2.0, minStockAlert = 5.0),
+                uiSampleProduct(id = 3L, name = "Gula Pasir", stockBaseQty = 0.0, minStockAlert = 5.0),
+                uiSampleProduct(id = 4L, name = "Sabun Cuci", stockBaseQty = -1.0, minStockAlert = 5.0),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        runPendingCoroutines()
+
+        viewModel.onStockFilterChange(ProductStockFilter.LOW_STOCK)
+        runPendingCoroutines()
+        assertThat(viewModel.state.value.stockFilter).isEqualTo(ProductStockFilter.LOW_STOCK)
+        assertThat(itemsOf(viewModel.state.value).map { item -> item.product.name })
+            .containsExactly("Teh Manis")
+        assertThat(viewModel.state.value.catalog.successDataOrNull()?.stats?.totalCount).isEqualTo(4)
+
+        viewModel.onStockFilterChange(ProductStockFilter.OUT_OF_STOCK)
+        runPendingCoroutines()
+        assertThat(viewModel.state.value.stockFilter).isEqualTo(ProductStockFilter.OUT_OF_STOCK)
+        assertThat(itemsOf(viewModel.state.value).map { item -> item.product.name })
+            .containsExactly("Sabun Cuci", "Gula Pasir")
+            .inOrder()
+
+        viewModel.onStockFilterChange(ProductStockFilter.ALL)
+        runPendingCoroutines()
+        assertThat(viewModel.state.value.stockFilter).isEqualTo(ProductStockFilter.ALL)
+        assertThat(itemsOf(viewModel.state.value)).hasSize(4)
+    }
+
+    @Test
     fun savingWithoutRequiredFieldsReportsInlineErrors() = runTest(mainDispatcherRule.testDispatcher) {
         val viewModel = createViewModel()
 

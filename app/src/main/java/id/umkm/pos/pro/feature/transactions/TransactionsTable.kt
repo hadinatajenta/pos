@@ -1,6 +1,8 @@
 package id.umkm.pos.pro.feature.transactions
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,21 +38,23 @@ import id.umkm.pos.pro.feature.reports.ReportDates
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
+import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.PosTextStyles
 import java.util.TimeZone
 
-private val TABLE_NUMBER_WIDTH = 44.dp
-private val TABLE_ACTION_WIDTH = 52.dp
+private val TABLE_NUMBER_WIDTH = 40.dp
+private val TABLE_ACTION_WIDTH = 48.dp
 private val COMPACT_VALUE_MAX_WIDTH = 168.dp
 private val TABLE_MONEY_TEXT_STYLE = PosTextStyles.financialValue.copy(fontSize = 15.sp, lineHeight = 20.sp)
-private const val TABLE_ID_WEIGHT = 1.5f
-private const val TABLE_DATE_WEIGHT = 1.5f
+private const val TABLE_ID_WEIGHT = 1.6f
+private const val TABLE_DATE_WEIGHT = 1.4f
+private const val TABLE_METHOD_WEIGHT = 1.0f
+private const val TABLE_STATUS_WEIGHT = 1.1f
 private const val TABLE_TOTAL_WEIGHT = 1.2f
-private const val TABLE_METHOD_WEIGHT = 1f
-private const val TABLE_STATUS_WEIGHT = 1f
-private const val ROW_DIVIDER_ALPHA = 0.6f
+private const val ROW_DIVIDER_ALPHA = 0.5f
 
 @Composable
 internal fun TransactionsTable(
@@ -62,16 +67,16 @@ internal fun TransactionsTable(
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
+        shadowElevation = 0.5.dp,
         modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.lg, vertical = PosSpacing.xs),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             TransactionTableHeader()
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = ROW_DIVIDER_ALPHA))
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 itemsIndexed(
                     items = transactions,
                     key = { _, transaction -> transaction.id },
@@ -82,9 +87,11 @@ internal fun TransactionsTable(
                         timeZone = timeZone,
                         actions = actions,
                     )
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = ROW_DIVIDER_ALPHA),
-                    )
+                    if (index < transactions.lastIndex) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = ROW_DIVIDER_ALPHA),
+                        )
+                    }
                 }
             }
         }
@@ -96,20 +103,21 @@ private fun TransactionTableHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(start = PosSpacing.md, end = PosSpacing.xs, top = PosSpacing.sm, bottom = PosSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         TableHeaderCell(text = "No", modifier = Modifier.width(TABLE_NUMBER_WIDTH))
         TableHeaderCell(text = "ID Transaksi", modifier = Modifier.weight(TABLE_ID_WEIGHT))
         TableHeaderCell(text = "Tanggal & Waktu", modifier = Modifier.weight(TABLE_DATE_WEIGHT))
+        TableHeaderCell(text = "Metode", modifier = Modifier.weight(TABLE_METHOD_WEIGHT))
+        TableHeaderCell(text = "Status", modifier = Modifier.weight(TABLE_STATUS_WEIGHT))
         TableHeaderCell(
             text = "Total",
             modifier = Modifier.weight(TABLE_TOTAL_WEIGHT),
             textAlign = TextAlign.End,
         )
-        TableHeaderCell(text = "Metode", modifier = Modifier.weight(TABLE_METHOD_WEIGHT))
-        TableHeaderCell(text = "Status", modifier = Modifier.weight(TABLE_STATUS_WEIGHT))
         Spacer(modifier = Modifier.width(TABLE_ACTION_WIDTH))
     }
 }
@@ -141,6 +149,7 @@ private fun TransactionTableRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { actions.onOpenDetail(transaction.id) }
             .padding(start = PosSpacing.md, end = PosSpacing.xs, top = PosSpacing.sm, bottom = PosSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
@@ -155,6 +164,7 @@ private fun TransactionTableRow(
         Text(
             text = transaction.invoiceNo,
             style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(TABLE_ID_WEIGHT),
@@ -167,6 +177,20 @@ private fun TransactionTableRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(TABLE_DATE_WEIGHT),
         )
+        Text(
+            text = paymentMethodLabel(transaction.paymentMethod),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(TABLE_METHOD_WEIGHT),
+        )
+        Box(
+            modifier = Modifier.weight(TABLE_STATUS_WEIGHT),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            TransactionStatusChip(status = transaction.status)
+        }
         Box(
             modifier = Modifier.weight(TABLE_TOTAL_WEIGHT),
             contentAlignment = Alignment.CenterEnd,
@@ -177,22 +201,6 @@ private fun TransactionTableRow(
                 maxLines = 1,
             )
         }
-        Text(
-            text = paymentMethodLabel(transaction.paymentMethod),
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(TABLE_METHOD_WEIGHT),
-        )
-        Text(
-            text = transactionStatusLabel(transaction.status),
-            style = MaterialTheme.typography.bodyMedium,
-            color = transactionStatusContentColor(transaction.status),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(TABLE_STATUS_WEIGHT),
-        )
         TransactionActionsButton(
             transaction = transaction,
             actions = actions,
@@ -211,7 +219,8 @@ internal fun TransactionsCompactList(
     var sheetTransaction by remember { mutableStateOf<Transaction?>(null) }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = PosSpacing.md),
+        contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
         items(items = transactions, key = { transaction -> transaction.id }) { transaction ->
             TransactionCompactRow(
@@ -220,7 +229,6 @@ internal fun TransactionsCompactList(
                 actions = actions,
                 onOpenMenu = { sheetTransaction = transaction },
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = ROW_DIVIDER_ALPHA))
         }
     }
     sheetTransaction?.let { transaction ->
@@ -239,53 +247,66 @@ private fun TransactionCompactRow(
     actions: TransactionActions,
     onOpenMenu: () -> Unit,
 ) {
-    Row(
+    PosCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = PosSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+            .clickable { actions.onOpenDetail(transaction.id) },
+        contentPadding = PosSpacing.sm,
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = PosSpacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = transaction.invoiceNo,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "${ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone)} · " +
-                    paymentMethodLabel(transaction.paymentMethod),
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+            ) {
+                Text(
+                    text = transaction.invoiceNo,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone)} · " +
+                        paymentMethodLabel(transaction.paymentMethod),
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (transaction.remainingDebt > 0L) {
+                    Text(
+                        text = "Sisa kasbon ${Rupiah.format(transaction.remainingDebt)}",
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = LocalPosSemanticPalette.current.warning,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(PosSpacing.sm))
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+            ) {
+                AutoSizeNumberText(
+                    text = Rupiah.format(transaction.grandTotal),
+                    style = TABLE_MONEY_TEXT_STYLE,
+                    modifier = Modifier.widthIn(max = COMPACT_VALUE_MAX_WIDTH),
+                )
+                TransactionStatusChip(status = transaction.status)
+            }
+            TransactionActionsButton(
+                transaction = transaction,
+                actions = actions,
+                isSheetStyle = true,
+                onOpenSheet = onOpenMenu,
             )
         }
-        Spacer(modifier = Modifier.width(PosSpacing.sm))
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
-        ) {
-            AutoSizeNumberText(
-                text = Rupiah.format(transaction.grandTotal),
-                style = TABLE_MONEY_TEXT_STYLE,
-                modifier = Modifier.widthIn(max = COMPACT_VALUE_MAX_WIDTH),
-            )
-            Text(
-                text = transactionStatusLabel(transaction.status),
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = transactionStatusContentColor(transaction.status),
-            )
-        }
-        TransactionActionsButton(
-            transaction = transaction,
-            actions = actions,
-            isSheetStyle = true,
-            onOpenSheet = onOpenMenu,
-        )
     }
 }
 

@@ -64,6 +64,7 @@ fun ReturnRoute(
     transactionId: Long,
     onReturnProcessed: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     val container = LocalAppContainer.current
     val returnViewModelFactory = remember(container) {
@@ -96,6 +97,7 @@ fun ReturnRoute(
             onReturnProcessed()
         },
         modifier = modifier,
+        onBack = onBack,
     )
 }
 
@@ -105,12 +107,14 @@ internal fun ReturnScreen(
     actions: ReturnActions,
     onReturnProcessed: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     val loadError = state.loadError
     Column(modifier = modifier.fillMaxSize()) {
         ScreenHeader(
             title = "Return",
             supportingText = state.invoiceNo?.let { invoiceNo -> "Sale $invoiceNo" } ?: "Choose the items to return",
+            onBack = onBack,
         )
         Box(
             modifier = Modifier.weight(1f).fillMaxWidth(),

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -60,7 +61,6 @@ import id.umkm.pos.pro.ui.cashier.CashierRoute
 import id.umkm.pos.pro.ui.common.LocalConnectivityMonitor
 import id.umkm.pos.pro.ui.common.rememberAndroidConnectivityMonitor
 import id.umkm.pos.pro.ui.common.rememberReceiptSharer
-import id.umkm.pos.pro.ui.dashboard.DashboardRoute
 import id.umkm.pos.pro.ui.more.MoreRoute
 import id.umkm.pos.pro.ui.navigation.PosDestination
 import id.umkm.pos.pro.ui.products.ProductsRoute
@@ -75,14 +75,12 @@ import androidx.compose.runtime.setValue
 const val COMPACT_NAVIGATION_TEST_TAG = "compact-navigation-bar"
 const val EXPANDED_NAVIGATION_TEST_TAG = "expanded-navigation-rail"
 
-private const val FLOATING_NAVIGATION_ELEVATION = 4
-private const val FLOATING_NAVIGATION_LABEL_SP = 10f
-private const val FLOATING_NAVIGATION_LABEL_MAX_SP = 12f
+private const val BOTTOM_NAVIGATION_LABEL_SP = 11f
+private const val BOTTOM_NAVIGATION_LABEL_MAX_SP = 12f
 
-private val FloatingNavigationShape = RoundedCornerShape(28.dp)
-private val FloatingNavigationMinHeight = 56.dp
-private val FloatingNavigationIndicatorWidth = 26.dp
-private val FloatingNavigationIndicatorHeight = 3.dp
+private val BottomNavigationMinHeight = 56.dp
+private val BottomNavigationIndicatorWidth = 26.dp
+private val BottomNavigationIndicatorHeight = 3.dp
 private val NavigationRailLaneWidth = 96.dp
 private val NavigationRailItemMinWidth = 72.dp
 private val NavigationRailItemMinHeight = 64.dp
@@ -104,7 +102,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
         )
         return
     }
-    var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.BERANDA) }
+    var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.KASIR) }
     val connectivityMonitor = rememberAndroidConnectivityMonitor()
     val shareReceipt = rememberReceiptSharer()
     val context = LocalContext.current
@@ -152,7 +150,6 @@ fun AppRoot(modifier: Modifier = Modifier) {
                         salesPresenter = salesPresenter,
                         onShareReceipt = shareReceipt,
                         onOpenCashier = { selectedDestination = PosDestination.KASIR },
-                        onOpenProducts = { selectedDestination = PosDestination.PRODUK },
                         modifier = Modifier
                             .fillMaxSize()
                             .imePadding(),
@@ -168,26 +165,30 @@ private fun PrimaryNavigationBar(
     selectedDestination: PosDestination,
     onDestinationSelected: (PosDestination) -> Unit,
 ) {
-    Box(
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = PosColors.TextPrimary,
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm)
             .testTag(COMPACT_NAVIGATION_TEST_TAG),
     ) {
-        Surface(
-            color = Color.White,
-            contentColor = PosColors.TextPrimary,
-            shape = FloatingNavigationShape,
-            shadowElevation = FLOATING_NAVIGATION_ELEVATION.dp,
-            modifier = Modifier.fillMaxWidth(),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
         ) {
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
             Row(
-                modifier = Modifier.fillMaxWidth().selectableGroup(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectableGroup(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PosDestination.entries.forEach { destination ->
-                    FloatingNavigationItem(
+                    BottomNavigationItem(
                         destination = destination,
                         isSelected = destination == selectedDestination,
                         onClick = { onDestinationSelected(destination) },
@@ -200,7 +201,7 @@ private fun PrimaryNavigationBar(
 }
 
 @Composable
-private fun FloatingNavigationItem(
+private fun BottomNavigationItem(
     destination: PosDestination,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -208,11 +209,10 @@ private fun FloatingNavigationItem(
 ) {
     val contentColor = if (isSelected) PosColors.Accent else PosColors.TextPrimary
     val fontScale = LocalDensity.current.fontScale
-    val labelFontSize = minOf(FLOATING_NAVIGATION_LABEL_SP, FLOATING_NAVIGATION_LABEL_MAX_SP / fontScale)
+    val labelFontSize = minOf(BOTTOM_NAVIGATION_LABEL_SP, BOTTOM_NAVIGATION_LABEL_MAX_SP / fontScale)
     Box(
         modifier = modifier
-            .heightIn(min = FloatingNavigationMinHeight)
-            .clip(MaterialTheme.shapes.large)
+            .heightIn(min = BottomNavigationMinHeight)
             .selectable(
                 selected = isSelected,
                 role = Role.Tab,
@@ -224,8 +224,8 @@ private fun FloatingNavigationItem(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .width(FloatingNavigationIndicatorWidth)
-                    .height(FloatingNavigationIndicatorHeight)
+                    .width(BottomNavigationIndicatorWidth)
+                    .height(BottomNavigationIndicatorHeight)
                     .clip(RoundedCornerShape(percent = 50))
                     .background(PosColors.Accent),
             )
@@ -343,15 +343,9 @@ private fun DestinationHost(
     salesPresenter: ReportsPresenter,
     onShareReceipt: (String) -> Unit,
     onOpenCashier: () -> Unit,
-    onOpenProducts: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (destination) {
-        PosDestination.BERANDA -> DashboardRoute(
-            modifier = modifier,
-            onOpenCashier = onOpenCashier,
-            onOpenProducts = onOpenProducts,
-        )
         PosDestination.KASIR -> CashierRoute(onShareReceipt = onShareReceipt, modifier = modifier)
         PosDestination.PRODUK -> ProductsRoute(modifier = modifier)
         PosDestination.TRANSAKSI -> TransactionsRoute(

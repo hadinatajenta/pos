@@ -170,6 +170,22 @@ class CashierViewModelTest {
     }
 
     @Test
+    fun outOfStockAndOversoldProductsAreSortedBelowAvailableProducts() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Air Mineral", basePrice = 4_000L, stockBaseQty = 0.0),
+                uiSampleProduct(id = 2L, name = "Beras 5kg", basePrice = 72_000L, stockBaseQty = -2.0),
+                uiSampleProduct(id = 3L, name = "Es Teh Manis", basePrice = 5_000L, stockBaseQty = 20.0),
+                uiSampleProduct(id = 4L, name = "Gula Pasir", basePrice = 15_000L, stockBaseQty = 3.0),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        val names = viewModel.state.value.catalog.successDataOrNull().orEmpty().map { item -> item.product.name }
+        assertThat(names).containsExactly("Es Teh Manis", "Gula Pasir", "Air Mineral", "Beras 5kg").inOrder()
+    }
+
+    @Test
     fun scanEventAddsTheMatchingUnit() = runTest(mainDispatcherRule.testDispatcher) {
         products.setUnits(
             1L,

@@ -1,10 +1,8 @@
 package id.umkm.pos.pro.ui.products
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -23,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,24 +30,29 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.monetization.admob.BannerAdSlot
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
+import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.OfflineNotice
+import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.UiStateContent
+import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.PosColors
+import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
-import id.umkm.pos.pro.R
-import androidx.compose.runtime.getValue
 
-private val PRODUCTS_CONTENT_SHAPE = RoundedCornerShape(topStart = PosSpacing.lg, topEnd = PosSpacing.lg)
 private val FORM_MAX_WIDTH = 560.dp
 private const val FORM_HEIGHT_FRACTION = 0.92f
+
+@Composable
+private fun rememberProductsActions(viewModel: ProductsViewModel): ProductsActions =
+    remember(viewModel) { ProductsActions.from(viewModel) }
 
 @Composable
 fun ProductsRoute(modifier: Modifier = Modifier) {
@@ -67,7 +70,7 @@ fun ProductsRoute(modifier: Modifier = Modifier) {
     }
     val viewModel: ProductsViewModel = viewModel(factory = productsViewModelFactory)
     val state by viewModel.state.collectAsState()
-    val actions = remember(viewModel) { ProductsActions.from(viewModel) }
+    val actions = rememberProductsActions(viewModel)
     ProductsScreen(state = state, actions = actions, modifier = modifier)
 }
 
@@ -83,35 +86,33 @@ internal fun ProductsScreen(
         snackbarHostState.showSnackbar(message)
         actions.onMessageConsumed()
     }
-    Box(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isCompact = maxWidth < PosBreakpoints.expandedNavigation
         Column(modifier = Modifier.fillMaxSize()) {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                shape = PRODUCTS_CONTENT_SHAPE,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    OfflineNotice()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = PosSpacing.md, end = PosSpacing.md, top = PosSpacing.md),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        AddProductButton(onClick = actions.onOpenCreateForm)
-                    }
-                    ProductsSearchField(state = state, actions = actions)
-                    ProductsFilterRow(state = state, actions = actions)
-                    ProductsCatalogPane(
-                        state = state,
-                        actions = actions,
-                        modifier = Modifier.weight(1f),
+            OfflineNotice()
+            ScreenHeader(
+                title = "Produk",
+                supportingText = state.catalog.successDataOrNull()?.let { "${it.stats.totalCount} produk terdaftar" },
+                actions = {
+                    HeaderActionButton(
+                        text = "Tambah",
+                        iconRes = R.drawable.ic_plus,
+                        contentDescription = "Tambah Produk",
+                        onClick = actions.onOpenCreateForm,
                     )
-                }
-            }
+                },
+            )
+            ProductsSearchAndSortBar(
+                state = state,
+                actions = actions,
+                isCompact = isCompact,
+            )
+            ProductsCatalogSection(
+                state = state,
+                actions = actions,
+                isCompact = isCompact,
+                modifier = Modifier.weight(1f),
+            )
             BannerAdSlot(placement = AdPlacement.STOCK_MANAGEMENT)
         }
         SnackbarHost(
@@ -130,9 +131,10 @@ internal fun ProductsScreen(
 }
 
 @Composable
-private fun ProductsCatalogPane(
+private fun ProductsCatalogSection(
     state: ProductsUiState,
     actions: ProductsActions,
+    isCompact: Boolean,
     modifier: Modifier,
 ) {
     UiStateContent(
@@ -142,9 +144,10 @@ private fun ProductsCatalogPane(
         onError = { error -> ErrorState(error = error, onRetry = actions.onRetry, modifier = modifier) },
         onSuccess = { catalog ->
             ProductsCatalogList(
+                state = state,
                 catalog = catalog,
-                categoryFilter = state.categoryFilter,
                 actions = actions,
+                isCompact = isCompact,
                 modifier = modifier,
             )
         },

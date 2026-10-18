@@ -13,9 +13,9 @@ class PosAppTest {
 
     @Test
     fun compactWindowShowsAllPrimaryDestinations() {
-        composeRule.onNodeWithText("Beranda").assertIsDisplayed()
         composeRule.onNodeWithText("Kasir").assertIsDisplayed()
         composeRule.onNodeWithText("Produk").assertIsDisplayed()
+        composeRule.onNodeWithText("Transaksi").assertIsDisplayed()
         composeRule.onNodeWithText("Laporan").assertIsDisplayed()
         composeRule.onNodeWithText("Lainnya").assertIsDisplayed()
     }

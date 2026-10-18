@@ -495,6 +495,10 @@ class CashierViewModel(
                 )
             }
             .filter { item -> filter.matches(item) }
+            .sortedBy { item ->
+                item.stockStatus == id.umkm.pos.pro.ui.common.StockStatus.OUT_OF_STOCK ||
+                    item.stockStatus == id.umkm.pos.pro.ui.common.StockStatus.OVERSOLD
+            }
         val publishedCatalog: UiState<List<CashierProductItem>> = when (val source = catalogSource) {
             is UiState.Success -> if (filteredItems.isEmpty()) UiState.Empty else UiState.Success(filteredItems)
             is UiState.Empty -> UiState.Empty
