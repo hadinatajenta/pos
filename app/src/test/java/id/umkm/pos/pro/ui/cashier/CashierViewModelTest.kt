@@ -187,6 +187,11 @@ class CashierViewModelTest {
 
     @Test
     fun scanEventAddsTheMatchingUnit() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Indomie", stockBaseQty = 80.0),
+            ),
+        )
         products.setUnits(
             1L,
             listOf(
@@ -252,6 +257,8 @@ class CashierViewModelTest {
         assertThat(receipt?.paidAmount).isEqualTo(5_000L)
         assertThat(receipt?.changeAmount).isEqualTo(3_000L)
         assertThat(receipt?.remainingDebt).isEqualTo(0L)
+        assertThat(receipt?.paymentMethod).isEqualTo(PaymentMethod.CASH)
+        assertThat(receipt?.itemCount).isEqualTo(1)
         assertThat(state.cartLines).isEmpty()
         assertThat(state.isPaymentSheetVisible).isFalse()
         val shareText = receipt?.shareText.orEmpty()
@@ -350,5 +357,74 @@ class CashierViewModelTest {
         viewModel.onMessageConsumed()
 
         assertThat(viewModel.state.value.message).isNull()
+    }
+
+    @Test
+    fun addingOutOfStockProductIsBlockedAndSetsMessage() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu", basePrice = 2_000L, stockBaseQty = 0.0),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onAddProduct(1L)
+
+        val state = viewModel.state.value
+        assertThat(state.cartLines).isEmpty()
+        assertThat(state.pricedCart).isNull()
+        assertThat(state.message).isEqualTo("Stok Kopi Susu habis")
+    }
+
+    @Test
+    fun increasingQuantityBeyondStockBaseQtyIsBlockedAndSetsMessage() = runTest(mainDispatcherRule.testDispatcher) {
+        products.setProducts(
+            listOf(
+                uiSampleProduct(id = 1L, name = "Kopi Susu", basePrice = 2_000L, stockBaseQty = 1.0),
+            ),
+        )
+        val viewModel = createViewModel()
+        viewModel.onAddProduct(1L)
+        val lineId = viewModel.state.value.cartLines.single().lineId
+
+        viewModel.onIncreaseQuantity(lineId)
+
+        val state = viewModel.state.value
+        assertThat(state.cartLines.single().quantity).isEqualTo(1.0)
+        assertThat(state.message).isEqualTo("Stok Kopi Susu tidak mencukupi (tersisa 1 pcs)")
+    }
+
+    @Test
+    fun onClearCartEmptiesTheCartAndResetsPricedCart() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onAddProduct(1L)
+        viewModel.onOpenCartSheet()
+
+        viewModel.onClearCart()
+
+        val state = viewModel.state.value
+        assertThat(state.cartLines).isEmpty()
+        assertThat(state.pricedCart).isNull()
+        assertThat(state.isCartSheetVisible).isFalse()
+    }
+
+    @Test
+    fun onQuickCreateCustomerAddsCustomerSelectsItAndClosesPicker() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onAddProduct(1L)
+        viewModel.onOpenPaymentSheet()
+        viewModel.onPaymentMethodChange(PaymentMethod.KASBON)
+        viewModel.onOpenCustomerPicker()
+
+        viewModel.onQuickCreateCustomer("Budi", "08123456789")
+
+        val state = viewModel.state.value
+        assertThat(state.isCustomerPickerVisible).isFalse()
+        assertThat(state.paymentDraft.customerId).isNotNull()
+        assertThat(state.selectedCustomerName).isEqualTo("Budi")
+        assertThat(state.message).isEqualTo("Pelanggan Budi ditambahkan & dipilih")
+        val addedCustomer = state.payableCustomers.single()
+        assertThat(addedCustomer.name).isEqualTo("Budi")
+        assertThat(addedCustomer.whatsappNumber).isEqualTo("08123456789")
     }
 }

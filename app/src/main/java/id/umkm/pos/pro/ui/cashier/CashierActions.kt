@@ -34,6 +34,8 @@ class CashierActions(
     val onPrintReceipt: () -> Unit,
     val onNewSale: () -> Unit,
     val onMessageConsumed: () -> Unit,
+    val onClearCart: () -> Unit = {},
+    val onQuickCreateCustomer: (name: String, whatsapp: String) -> Unit = { _, _ -> },
 ) {
     companion object {
         fun from(viewModel: CashierViewModel): CashierActions = CashierActions(
@@ -68,6 +70,8 @@ class CashierActions(
             onPrintReceipt = viewModel::onPrintReceipt,
             onNewSale = viewModel::onNewSale,
             onMessageConsumed = viewModel::onMessageConsumed,
+            onClearCart = viewModel::onClearCart,
+            onQuickCreateCustomer = viewModel::onQuickCreateCustomer,
         )
     }
 }

@@ -10,31 +10,38 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
+import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
 
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
+private val HERO_VALUE_MAX_WIDTH = 240.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +59,7 @@ internal fun CashierReceiptSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = PosSpacing.md)
                 .padding(bottom = PosSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -73,14 +81,38 @@ internal fun CashierReceiptSheet(
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            ReceiptHeroStatusCard(receipt = receipt)
             PosCard(modifier = Modifier.fillMaxWidth()) {
-                ReceiptSummaryLine(label = "Total", value = Rupiah.format(receipt.grandTotal), emphasized = true)
-                ReceiptSummaryLine(label = "Dibayar", value = Rupiah.format(receipt.paidAmount))
+                ReceiptSummaryLine(
+                    label = "Metode bayar",
+                    value = paymentMethodLabel(receipt.paymentMethod),
+                )
+                if (receipt.itemCount > 0) {
+                    ReceiptSummaryLine(
+                        label = "Jumlah item",
+                        value = "${receipt.itemCount} item",
+                    )
+                }
+                ReceiptSummaryLine(
+                    label = "Total",
+                    value = Rupiah.format(receipt.grandTotal),
+                    emphasized = true,
+                )
+                ReceiptSummaryLine(
+                    label = "Dibayar",
+                    value = Rupiah.format(receipt.paidAmount),
+                )
                 if (receipt.changeAmount > 0L) {
-                    ReceiptSummaryLine(label = "Kembalian", value = Rupiah.format(receipt.changeAmount))
+                    ReceiptSummaryLine(
+                        label = "Kembalian",
+                        value = Rupiah.format(receipt.changeAmount),
+                    )
                 }
                 if (receipt.remainingDebt > 0L) {
-                    ReceiptSummaryLine(label = "Sisa tagihan", value = Rupiah.format(receipt.remainingDebt))
+                    ReceiptSummaryLine(
+                        label = "Sisa tagihan",
+                        value = Rupiah.format(receipt.remainingDebt),
+                    )
                 }
             }
             Row(
@@ -104,7 +136,11 @@ internal fun CashierReceiptSheet(
                             modifier = Modifier.size(PosSizes.iconSmall),
                         )
                         Spacer(modifier = Modifier.width(PosSpacing.xs))
-                        Text(text = "Cetak struk")
+                        Text(
+                            text = "Cetak struk",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
                 OutlinedButton(
@@ -117,7 +153,11 @@ internal fun CashierReceiptSheet(
                         modifier = Modifier.size(PosSizes.iconSmall),
                     )
                     Spacer(modifier = Modifier.width(PosSpacing.xs))
-                    Text(text = "Bagikan")
+                    Text(
+                        text = "Bagikan Struk",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             PrimaryActionButton(
@@ -132,6 +172,56 @@ internal fun CashierReceiptSheet(
                     textAlign = TextAlign.Center,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ReceiptHeroStatusCard(receipt: CashierReceipt) {
+    val containerColor = if (receipt.changeAmount > 0L) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.secondaryContainer
+    }
+    val contentColor = if (receipt.changeAmount > 0L) {
+        MaterialTheme.colorScheme.onPrimaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    }
+    val label = when {
+        receipt.changeAmount > 0L -> "Kembalian"
+        receipt.remainingDebt > 0L -> "Sisa Kasbon"
+        else -> "Status Pembayaran"
+    }
+    val valueText = when {
+        receipt.changeAmount > 0L -> Rupiah.format(receipt.changeAmount)
+        receipt.remainingDebt > 0L -> Rupiah.format(receipt.remainingDebt)
+        else -> "Lunas (${paymentMethodLabel(receipt.paymentMethod)})"
+    }
+
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = PosShapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PosSpacing.md, vertical = PosSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = label,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = contentColor,
+            )
+            AutoSizeNumberText(
+                text = valueText,
+                style = LocalAppTextStyles.current.financialValueLarge.copy(color = contentColor),
+                modifier = Modifier.widthIn(max = HERO_VALUE_MAX_WIDTH),
+            )
         }
     }
 }

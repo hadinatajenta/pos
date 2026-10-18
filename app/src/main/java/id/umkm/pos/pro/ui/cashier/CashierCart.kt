@@ -21,7 +21,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -45,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
-import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
@@ -72,9 +73,11 @@ internal fun CashierCartPane(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        ScreenHeader(
-            title = "Keranjang",
-            supportingText = cartItemSummary(state),
+        CartHeader(
+            lineCount = state.lineCount,
+            totalQuantity = state.totalQuantity,
+            onClearCart = actions.onClearCart,
+            modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
         )
         CartContents(state = state, actions = actions, modifier = Modifier.weight(1f))
     }
@@ -105,26 +108,37 @@ internal fun CashierCartBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            Text(
-                text = "Proses ${state.lineCount} barang",
-                style = LocalAppTextStyles.current.body,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Column(
                 modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = Rupiah.format(state.grandTotal),
-                style = LocalAppTextStyles.current.buttonLabel,
-                color = Color.White,
-                maxLines = 1,
-            )
-            Icon(
-                painter = painterResource(R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(PosSizes.iconSmall),
-            )
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "${formatQuantity(state.totalQuantity)} barang • ${state.lineCount} jenis",
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = Color.White.copy(alpha = 0.9f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                AutoSizeNumberText(
+                    text = Rupiah.format(state.grandTotal),
+                    style = LocalAppTextStyles.current.buttonLabel.copy(color = Color.White),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            FilledTonalButton(
+                onClick = actions.onOpenPaymentSheet,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = Color.White,
+                    contentColor = PosColors.ForestGreen,
+                ),
+                contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
+            ) {
+                Text(
+                    text = "Bayar",
+                    style = LocalAppTextStyles.current.buttonLabel,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -142,12 +156,39 @@ internal fun CashierCartSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxSheetHeight)) {
-            PosSectionHeader(
-                title = "Keranjang",
-                supportingText = cartItemSummary(state),
+            CartHeader(
+                lineCount = state.lineCount,
+                totalQuantity = state.totalQuantity,
+                onClearCart = actions.onClearCart,
                 modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
             )
             CartContents(state = state, actions = actions, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun CartHeader(
+    lineCount: Int,
+    totalQuantity: Double,
+    onClearCart: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        PosSectionHeader(
+            title = "Keranjang",
+            supportingText = cartItemSummary(lineCount = lineCount, totalQuantity = totalQuantity),
+            modifier = Modifier.weight(1f),
+        )
+        if (lineCount > 0 && onClearCart != null) {
+            SecondaryTextAction(
+                text = "Kosongkan",
+                onClick = onClearCart,
+            )
         }
     }
 }
@@ -286,7 +327,7 @@ private fun CartTotals(state: CashierUiState) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
     ) {
-        TotalLine(label = "Item", value = state.lineCount.toString())
+        TotalLine(label = "Item", value = "${formatQuantity(state.totalQuantity)} barang (${state.lineCount} item)")
         TotalLine(label = "Subtotal", value = Rupiah.format(pricedCart.subtotal))
         if (pricedCart.invoiceDiscount > 0L) {
             TotalLine(label = "Diskon", value = "-${Rupiah.format(pricedCart.invoiceDiscount)}")
@@ -437,5 +478,5 @@ private fun UnitSelector(
     }
 }
 
-private fun cartItemSummary(state: CashierUiState): String =
-    if (state.lineCount == 0) "Belum ada item" else "${state.lineCount} item"
+private fun cartItemSummary(lineCount: Int, totalQuantity: Double): String =
+    if (lineCount == 0) "Belum ada item" else "${formatQuantity(totalQuantity)} barang (${lineCount} item)"

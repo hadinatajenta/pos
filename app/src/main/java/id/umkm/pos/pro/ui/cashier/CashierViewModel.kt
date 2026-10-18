@@ -15,6 +15,7 @@ import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.CartLine
+import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricedCartLine
 import id.umkm.pos.pro.core.model.PricingContext
@@ -124,6 +125,20 @@ class CashierViewModel(
     }
 
     fun onIncreaseQuantity(lineId: String) {
+        val target = cartDrafts.value.firstOrNull { it.lineId == lineId } ?: return
+        val product = productCache[target.productId]
+        if (product != null) {
+            val addedBaseQty = QUANTITY_STEP * conversionFactorFor(target.productId, target.unitId)
+            val projectedBaseQty = totalBaseQtyInCart(target.productId) + addedBaseQty
+            if (projectedBaseQty > product.stockBaseQty) {
+                _state.update {
+                    it.copy(
+                        message = "Stok ${product.name} tidak mencukupi (tersisa ${formatQuantity(product.stockBaseQty)} ${product.baseUnit})",
+                    )
+                }
+                return
+            }
+        }
         cartDrafts.value = cartDrafts.value.map { draft ->
             if (draft.lineId == lineId) draft.copy(quantity = draft.quantity + QUANTITY_STEP) else draft
         }
@@ -147,6 +162,12 @@ class CashierViewModel(
         _state.update { current ->
             if (current.cartLineEditor?.lineId == lineId) current.copy(cartLineEditor = null) else current
         }
+        refreshCart()
+    }
+
+    fun onClearCart() {
+        cartDrafts.value = emptyList()
+        _state.update { it.copy(isCartSheetVisible = false, cartLineEditor = null) }
         refreshCart()
     }
 
@@ -217,6 +238,18 @@ class CashierViewModel(
             updateLineEditorValidation("Masukkan diskon item yang valid.")
             return
         }
+        val target = cartDrafts.value.firstOrNull { it.lineId == editor.lineId } ?: return
+        val product = productCache[target.productId]
+        if (product != null) {
+            val requiredBaseQty = totalBaseQtyInCart(target.productId, excludingLineId = target.lineId) +
+                (target.quantity * conversionFactorFor(target.productId, editor.selectedUnitId))
+            if (requiredBaseQty > product.stockBaseQty) {
+                updateLineEditorValidation(
+                    "Stok tidak mencukupi (tersisa ${formatQuantity(product.stockBaseQty)} ${product.baseUnit}).",
+                )
+                return
+            }
+        }
         cartDrafts.value = cartDrafts.value.map { draft ->
             if (draft.lineId == editor.lineId) {
                 draft.copy(
@@ -249,11 +282,13 @@ class CashierViewModel(
     }
 
     fun onPaymentMethodChange(method: PaymentMethod) {
+        val keepsCustomer = method == PaymentMethod.KASBON || method == PaymentMethod.SPLIT
         _state.update { current ->
             current.copy(
                 paymentDraft = PaymentDraft(
                     method = method,
-                    customerId = if (method == PaymentMethod.KASBON) current.paymentDraft.customerId else null,
+                    customerId = if (keepsCustomer) current.paymentDraft.customerId else null,
+                    dueDateMillis = if (keepsCustomer) current.paymentDraft.dueDateMillis else null,
                 ),
                 submitErrorMessage = null,
             )
@@ -285,6 +320,31 @@ class CashierViewModel(
                 isCustomerPickerVisible = false,
                 submitErrorMessage = null,
             )
+        }
+    }
+
+    fun onQuickCreateCustomer(name: String, whatsapp: String) {
+        val trimmedName = name.trim()
+        val trimmedWhatsapp = whatsapp.trim()
+        if (trimmedName.isBlank()) return
+        viewModelScope.launch {
+            val newId = customerRepository.upsertCustomer(
+                Customer(
+                    id = 0L,
+                    name = trimmedName,
+                    whatsappNumber = trimmedWhatsapp.ifBlank { null },
+                    totalDebt = 0L,
+                    notes = null,
+                ),
+            )
+            _state.update { current ->
+                current.copy(
+                    paymentDraft = current.paymentDraft.copy(customerId = newId),
+                    isCustomerPickerVisible = false,
+                    submitErrorMessage = null,
+                    message = "Pelanggan $trimmedName ditambahkan & dipilih",
+                )
+            }
         }
     }
 
@@ -459,6 +519,20 @@ class CashierViewModel(
         if (!unitsCache.containsKey(productId)) {
             unitsCache[productId] = productRepository.getUnits(productId)
         }
+        val addedBaseQty = QUANTITY_STEP * conversionFactorFor(productId, unitId)
+        val projectedBaseQty = totalBaseQtyInCart(productId) + addedBaseQty
+        if (product.stockBaseQty <= 0.0) {
+            _state.update { it.copy(message = "Stok ${product.name} habis") }
+            return
+        }
+        if (projectedBaseQty > product.stockBaseQty) {
+            _state.update {
+                it.copy(
+                    message = "Stok ${product.name} tidak mencukupi (tersisa ${formatQuantity(product.stockBaseQty)} ${product.baseUnit})",
+                )
+            }
+            return
+        }
         val existingDraft = cartDrafts.value.firstOrNull { draft ->
             draft.productId == productId && draft.unitId == unitId && draft.negotiatedUnitPrice == null
         }
@@ -483,6 +557,16 @@ class CashierViewModel(
         _state.update { it.copy(message = "${product.name} ditambahkan") }
         refreshCart()
     }
+
+    private fun conversionFactorFor(productId: Long, unitId: Long?): Double {
+        if (unitId == null) return 1.0
+        return unitsCache[productId]?.firstOrNull { it.id == unitId }?.conversionFactor ?: 1.0
+    }
+
+    private fun totalBaseQtyInCart(productId: Long, excludingLineId: String? = null): Double =
+        cartDrafts.value
+            .filter { it.productId == productId && it.lineId != excludingLineId }
+            .sumOf { it.quantity * conversionFactorFor(it.productId, it.unitId) }
 
     private fun publishCatalog() {
         val filter = catalogFilter.value
@@ -612,6 +696,8 @@ class CashierViewModel(
             changeAmount = result.allocation.changeAmount,
             remainingDebt = result.allocation.remainingDebt,
             shareText = ReceiptShareText.build(buildReceiptShareData(result)),
+            paymentMethod = result.allocation.paymentMethod,
+            itemCount = result.pricedCart.lines.size,
         )
         _state.update { current ->
             current.copy(

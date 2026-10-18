@@ -40,7 +40,6 @@ import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.PosTextStyles
 import java.util.TimeZone
@@ -278,28 +277,13 @@ private fun TransactionCompactRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (transaction.remainingDebt > 0L) {
-                    Text(
-                        text = "Sisa kasbon ${Rupiah.format(transaction.remainingDebt)}",
-                        style = LocalAppTextStyles.current.supportingLabel,
-                        color = LocalPosSemanticPalette.current.warning,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
             Spacer(modifier = Modifier.width(PosSpacing.sm))
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
-            ) {
-                AutoSizeNumberText(
-                    text = Rupiah.format(transaction.grandTotal),
-                    style = TABLE_MONEY_TEXT_STYLE,
-                    modifier = Modifier.widthIn(max = COMPACT_VALUE_MAX_WIDTH),
-                )
-                TransactionStatusChip(status = transaction.status)
-            }
+            AutoSizeNumberText(
+                text = Rupiah.format(transaction.grandTotal),
+                style = TABLE_MONEY_TEXT_STYLE,
+                modifier = Modifier.widthIn(max = COMPACT_VALUE_MAX_WIDTH),
+            )
             TransactionActionsButton(
                 transaction = transaction,
                 actions = actions,

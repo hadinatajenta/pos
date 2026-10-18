@@ -35,6 +35,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -49,6 +55,7 @@ import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -57,8 +64,6 @@ import id.umkm.pos.pro.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +73,8 @@ import id.umkm.pos.pro.ui.common.renderQrBitmap
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 
 private const val CUSTOMER_LIST_MAX_HEIGHT_DP = 320
+private const val CUSTOMER_SEARCH_THRESHOLD = 4
+private const val MAX_QUICK_CASH_SUGGESTIONS = 3
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 private val TOTAL_VALUE_MAX_WIDTH = 208.dp
 
@@ -178,29 +185,60 @@ private fun PaymentConditionalFields(
     state: CashierUiState,
     actions: CashierActions,
 ) {
-    when (state.paymentDraft.method) {
-        PaymentMethod.CASH -> AmountReceivedField(
-            value = state.paymentDraft.amountReceivedInput,
-            onValueChange = actions.onAmountReceivedChange,
-            label = "Jumlah diterima",
-        )
+    val draft = state.paymentDraft
+    when (draft.method) {
+        PaymentMethod.CASH -> {
+            QuickCashChipsRow(
+                grandTotal = state.grandTotal,
+                currentInput = draft.amountReceivedInput,
+                onSelectAmount = { actions.onAmountReceivedChange(it.toString()) },
+            )
+            AmountReceivedField(
+                value = draft.amountReceivedInput,
+                onValueChange = actions.onAmountReceivedChange,
+                label = "Jumlah diterima",
+            )
+        }
 
-        PaymentMethod.SPLIT -> AmountReceivedField(
-            value = state.paymentDraft.amountReceivedInput,
-            onValueChange = actions.onAmountReceivedChange,
-            label = "Jumlah diterima",
-        )
+        PaymentMethod.SPLIT -> {
+            CustomerField(
+                customerName = state.selectedCustomerName,
+                onClick = actions.onOpenCustomerPicker,
+            )
+            QuickPartialChipsRow(
+                grandTotal = state.grandTotal,
+                currentInput = draft.amountReceivedInput,
+                onSelectAmount = { actions.onAmountReceivedChange(it.toString()) },
+            )
+            AmountReceivedField(
+                value = draft.amountReceivedInput,
+                onValueChange = actions.onAmountReceivedChange,
+                label = "Jumlah dibayar sekarang",
+            )
+            if (expectedRemainingAmount(state) > 0L) {
+                DueDateField(
+                    dueDateMillis = draft.dueDateMillis,
+                    onClick = actions.onOpenDueDatePicker,
+                )
+            }
+        }
 
         PaymentMethod.KASBON -> {
-            CustomerField(state = state, actions = actions)
+            CustomerField(
+                customerName = state.selectedCustomerName,
+                onClick = actions.onOpenCustomerPicker,
+            )
             AmountReceivedField(
-                value = state.paymentDraft.amountReceivedInput,
+                value = draft.amountReceivedInput,
                 onValueChange = actions.onAmountReceivedChange,
                 label = "Titipan diterima",
                 supportingText = "Biarkan kosong bila belum ada pembayaran.",
             )
             if (expectedRemainingAmount(state) > 0L) {
-                DueDateField(state = state, actions = actions)
+                DueDateField(
+                    dueDateMillis = draft.dueDateMillis,
+                    onClick = actions.onOpenDueDatePicker,
+                )
             }
         }
 
@@ -211,6 +249,101 @@ private fun PaymentConditionalFields(
 
         PaymentMethod.TRANSFER -> Unit
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuickCashChipsRow(
+    grandTotal: Long,
+    currentInput: String,
+    onSelectAmount: (Long) -> Unit,
+) {
+    if (grandTotal <= 0L) return
+    val suggestions = remember(grandTotal) { quickCashSuggestions(grandTotal) }
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
+        Text(
+            text = "Nominal cepat",
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        ) {
+            FilterChip(
+                selected = currentInput == grandTotal.toString(),
+                onClick = { onSelectAmount(grandTotal) },
+                label = { Text("Uang Pas") },
+            )
+            suggestions.forEach { amount ->
+                FilterChip(
+                    selected = currentInput == amount.toString(),
+                    onClick = { onSelectAmount(amount) },
+                    label = { Text(Rupiah.format(amount)) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuickPartialChipsRow(
+    grandTotal: Long,
+    currentInput: String,
+    onSelectAmount: (Long) -> Unit,
+) {
+    val suggestions = remember(grandTotal) { quickPartialSuggestions(grandTotal) }
+    if (suggestions.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
+        Text(
+            text = "Pilihan nominal",
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        ) {
+            suggestions.forEach { amount ->
+                FilterChip(
+                    selected = currentInput == amount.toString(),
+                    onClick = { onSelectAmount(amount) },
+                    label = { Text(Rupiah.format(amount)) },
+                )
+            }
+        }
+    }
+}
+
+private fun quickCashSuggestions(grandTotal: Long): List<Long> {
+    if (grandTotal <= 0L) return emptyList()
+    val candidates = buildList {
+        addAll(listOf(5_000L, 10_000L, 20_000L, 50_000L, 100_000L))
+        listOf(5_000L, 10_000L, 20_000L, 50_000L, 100_000L).forEach { step ->
+            val nextMultiple = ((grandTotal / step) + 1L) * step
+            add(nextMultiple)
+        }
+    }
+    return candidates
+        .filter { it > grandTotal }
+        .distinct()
+        .sorted()
+        .take(MAX_QUICK_CASH_SUGGESTIONS)
+}
+
+private fun quickPartialSuggestions(grandTotal: Long): List<Long> {
+    if (grandTotal <= 1_000L) return emptyList()
+    val halfRounded = ((grandTotal / 2L) / 1_000L) * 1_000L
+    val candidates = buildList {
+        if (halfRounded > 0L) add(halfRounded)
+        addAll(listOf(10_000L, 20_000L, 50_000L, 100_000L))
+    }
+    return candidates
+        .filter { it in 1L until grandTotal }
+        .distinct()
+        .sorted()
+        .take(MAX_QUICK_CASH_SUGGESTIONS)
 }
 
 private val QR_PAYMENT_SIZE = 220.dp
@@ -294,11 +427,11 @@ private fun AmountReceivedField(
 
 @Composable
 private fun CustomerField(
-    state: CashierUiState,
-    actions: CashierActions,
+    customerName: String?,
+    onClick: () -> Unit,
 ) {
     OutlinedButton(
-        onClick = actions.onOpenCustomerPicker,
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
     ) {
         Icon(
@@ -308,7 +441,7 @@ private fun CustomerField(
         )
         Spacer(modifier = Modifier.width(PosSpacing.sm))
         Text(
-            text = state.selectedCustomerName ?: "Pilih pelanggan",
+            text = customerName ?: "Pilih pelanggan",
             style = LocalAppTextStyles.current.buttonLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -319,12 +452,11 @@ private fun CustomerField(
 
 @Composable
 private fun DueDateField(
-    state: CashierUiState,
-    actions: CashierActions,
+    dueDateMillis: Long?,
+    onClick: () -> Unit,
 ) {
-    val dueDateMillis = state.paymentDraft.dueDateMillis
     OutlinedButton(
-        onClick = actions.onOpenDueDatePicker,
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
     ) {
         Icon(
@@ -404,30 +536,128 @@ internal fun CashierCustomerPicker(
     actions: CashierActions,
 ) {
     if (!state.isCustomerPickerVisible) return
+    var isCreateOpen by rememberSaveable(state.payableCustomers.isEmpty()) {
+        mutableStateOf(state.payableCustomers.isEmpty())
+    }
+    var newName by rememberSaveable { mutableStateOf("") }
+    var newPhone by rememberSaveable { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+
+    val filteredCustomers = remember(state.payableCustomers, searchQuery) {
+        if (searchQuery.isBlank()) {
+            state.payableCustomers
+        } else {
+            val trimmed = searchQuery.trim()
+            state.payableCustomers.filter { customer ->
+                customer.name.contains(trimmed, ignoreCase = true) ||
+                    customer.whatsappNumber?.contains(trimmed, ignoreCase = true) == true
+            }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = actions.onCloseCustomerPicker,
-        title = { Text(text = "Pilih pelanggan") },
-        text = {
-            if (state.payableCustomers.isEmpty()) {
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(
-                    text = "Belum ada pelanggan. Tambahkan pelanggan sebelum menjual dengan kasbon.",
-                    style = LocalAppTextStyles.current.supportingLabel,
+                    text = "Pilih pelanggan",
+                    modifier = Modifier.weight(1f),
                 )
-            } else {
-                LazyColumn(modifier = Modifier.heightIn(max = CUSTOMER_LIST_MAX_HEIGHT_DP.dp)) {
-                    items(items = state.payableCustomers, key = { customer -> customer.id }) { customer ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { actions.onCustomerSelected(customer.id) }
-                                .padding(vertical = PosSpacing.sm),
-                        ) {
-                            Text(text = customer.name, style = LocalAppTextStyles.current.body)
-                            Text(
-                                text = "Utang ${Rupiah.format(customer.totalDebt)}",
-                                style = LocalAppTextStyles.current.supportingLabel,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                if (state.payableCustomers.isNotEmpty()) {
+                    SecondaryTextAction(
+                        text = if (isCreateOpen) "Tutup" else "+ Pelanggan Baru",
+                        onClick = { isCreateOpen = !isCreateOpen },
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            ) {
+                if (isCreateOpen) {
+                    PosCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Tambah Pelanggan Baru",
+                            style = LocalAppTextStyles.current.body,
+                        )
+                        OutlinedTextField(
+                            value = newName,
+                            onValueChange = { newName = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Nama pelanggan") },
+                            singleLine = true,
+                        )
+                        OutlinedTextField(
+                            value = newPhone,
+                            onValueChange = { newPhone = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("No. WhatsApp (opsional)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = ImeAction.Done,
+                            ),
+                        )
+                        PrimaryActionButton(
+                            text = "Simpan & Pilih",
+                            onClick = {
+                                actions.onQuickCreateCustomer(newName.trim(), newPhone.trim())
+                            },
+                            enabled = newName.isNotBlank(),
+                        )
+                    }
+                }
+
+                if (state.payableCustomers.size > CUSTOMER_SEARCH_THRESHOLD) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Cari nama atau WhatsApp") },
+                        singleLine = true,
+                    )
+                }
+
+                if (state.payableCustomers.isEmpty()) {
+                    Text(
+                        text = "Belum ada pelanggan tersimpan. Isi nama di atas untuk membuat pelanggan baru.",
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else if (filteredCustomers.isEmpty()) {
+                    Text(
+                        text = "Pelanggan tidak ditemukan.",
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = CUSTOMER_LIST_MAX_HEIGHT_DP.dp)) {
+                        items(items = filteredCustomers, key = { customer -> customer.id }) { customer ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { actions.onCustomerSelected(customer.id) }
+                                    .padding(vertical = PosSpacing.sm),
+                            ) {
+                                Text(text = customer.name, style = LocalAppTextStyles.current.body)
+                                val details = buildList {
+                                    if (!customer.whatsappNumber.isNullOrBlank()) {
+                                        add(customer.whatsappNumber)
+                                    }
+                                    add("Utang ${Rupiah.format(customer.totalDebt)}")
+                                }.joinToString(" • ")
+                                Text(
+                                    text = details,
+                                    style = LocalAppTextStyles.current.supportingLabel,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }

@@ -78,7 +78,9 @@ internal fun CashierScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
         val message = state.message ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message)
+        if (!message.endsWith(" ditambahkan")) {
+            snackbarHostState.showSnackbar(message)
+        }
         actions.onMessageConsumed()
     }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {

@@ -75,6 +75,8 @@ data class CashierReceipt(
     val changeAmount: Long,
     val remainingDebt: Long,
     val shareText: String,
+    val paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    val itemCount: Int = 0,
 )
 
 data class CashierUiState(
@@ -100,6 +102,8 @@ data class CashierUiState(
     val qrisPayload: String? = null,
 ) {
     val lineCount: Int get() = cartLines.size
+
+    val totalQuantity: Double get() = cartLines.sumOf { it.quantity }
 
     val grandTotal: Long get() = pricedCart?.grandTotal ?: 0L
 
