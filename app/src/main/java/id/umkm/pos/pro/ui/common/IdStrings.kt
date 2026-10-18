@@ -444,7 +444,7 @@ object IdStrings : PosStrings {
     override val settingsBackupTitle = "Cadangkan & Pulihkan"
     override val settingsBackupMenuDescription = "Ekspor dan impor data toko (JSON)"
     override val settingsBackupExportSection = "Ekspor Backup"
-    override val settingsBackupExportHint = "Simpan seluruh data toko (produk, transaksi, pelanggan, pengaturan) ke satu berkas JSON di folder Download."
+    override val settingsBackupExportHint = "Simpan seluruh data toko (produk, transaksi, pelanggan, pengaturan) ke satu berkas JSON di folder Download. Foto produk dan gambar QRIS tidak ikut tersimpan."
     override val settingsBackupExportButton = "Ekspor Backup (JSON)"
     override val settingsBackupExporting = "Menyimpan backup..."
     override val settingsBackupExportedTitle = "Backup selesai"

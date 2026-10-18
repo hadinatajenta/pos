@@ -52,8 +52,10 @@ or wiring does not · **MISSING** = nothing in the code.
 - **Local backup and restore** (§6.5, §7.6, JSON part). `data/backup/JsonDataBackupService` exports
   every table to a versioned JSON document in `Download` and restores it inside one Room
   transaction. Import validates the format version, refuses a newer schema, requires every table,
-  and rejects unknown columns before deleting anything, with a confirmation dialog. The SQLite
-  `.db` export and the Google Drive path are still missing.
+  and rejects unknown columns before deleting anything, with a confirmation dialog. Product photo
+  and QRIS image files are stored as paths, not bundled, so a restore on a new device keeps the
+  references but not the images. The SQLite `.db` export and the Google Drive path are still
+  missing.
 - **Privacy policy in the app** (Play requirement). **Pengaturan → Tentang & Privasi** shows the
   app version and opens the hosted policy.
 - **Export feedback** (§7.4). Report exports and the JSON backup now show a completion card with

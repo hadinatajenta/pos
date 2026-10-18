@@ -444,7 +444,7 @@ object EnStrings : PosStrings {
     override val settingsBackupTitle = "Backup & Restore"
     override val settingsBackupMenuDescription = "Export and import store data (JSON)"
     override val settingsBackupExportSection = "Export Backup"
-    override val settingsBackupExportHint = "Save all store data (products, transactions, customers, settings) to a single JSON file in the Download folder."
+    override val settingsBackupExportHint = "Save all store data (products, transactions, customers, settings) to a single JSON file in the Download folder. Product photos and the QRIS image are not included."
     override val settingsBackupExportButton = "Export Backup (JSON)"
     override val settingsBackupExporting = "Saving backup..."
     override val settingsBackupExportedTitle = "Backup complete"

@@ -39,8 +39,10 @@ Settings
 - Bluetooth thermal printer: connection status, paired-device list, paper width, test print, and
   receipt preview
 - Static QRIS image upload and replacement
-- Backup and restore: export every table to a single JSON file in `Download` and restore it back,
-  with validation and a confirmation before data is replaced
+- Backup and restore: export every database table to a single JSON file in `Download` and
+  restore it back, with validation and a confirmation before data is replaced. Image files
+  (product photos and the QRIS image) are referenced by path but not bundled, so copy them
+  separately when moving to a new device
 - App language: Indonesian, English, and Simplified Chinese. The interface, receipts, printer
   output, and report exports follow the selected language
 - About and privacy: app version and an in-app link to the privacy policy

@@ -442,7 +442,7 @@ object ZhStrings : PosStrings {
     override val settingsBackupTitle = "备份与恢复"
     override val settingsBackupMenuDescription = "导出和导入店铺数据（JSON）"
     override val settingsBackupExportSection = "导出备份"
-    override val settingsBackupExportHint = "将全部店铺数据（商品、交易、客户、设置）保存为 Download 文件夹中的一个 JSON 文件。"
+    override val settingsBackupExportHint = "将全部店铺数据（商品、交易、客户、设置）保存为 Download 文件夹中的一个 JSON 文件。商品照片与 QRIS 图片不会包含在内。"
     override val settingsBackupExportButton = "导出备份（JSON）"
     override val settingsBackupExporting = "正在保存备份..."
     override val settingsBackupExportedTitle = "备份完成"
