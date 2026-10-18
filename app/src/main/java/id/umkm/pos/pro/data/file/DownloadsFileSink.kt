@@ -1,4 +1,4 @@
-package id.umkm.pos.pro.feature.reports
+package id.umkm.pos.pro.data.file
 
 import android.content.ContentValues
 import android.content.Context
@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-class DownloadsReportSink(private val context: Context) : BinarySink, CsvSink {
+class DownloadsFileSink(private val context: Context) : BinarySink, CsvSink {
 
     override suspend fun write(targetPath: String, content: ByteArray): Long =
         writeToDownloads(targetPath, content)
@@ -21,7 +21,7 @@ class DownloadsReportSink(private val context: Context) : BinarySink, CsvSink {
 
     private suspend fun writeToDownloads(requestedName: String, content: ByteArray): Long =
         withContext(Dispatchers.IO) {
-            val fileName = ReportExportFileName.normalize(requestedName)
+            val fileName = FileNames.normalized(requestedName)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 writeViaMediaStore(fileName, content)
             } else {
@@ -58,7 +58,7 @@ class DownloadsReportSink(private val context: Context) : BinarySink, CsvSink {
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun pendingValues(fileName: String): ContentValues = ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-        put(MediaStore.MediaColumns.MIME_TYPE, ReportExportFileName.mimeTypeFor(fileName))
+        put(MediaStore.MediaColumns.MIME_TYPE, FileNames.mimeTypeFor(fileName))
         put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
         put(MediaStore.MediaColumns.IS_PENDING, STILL_PENDING)
     }

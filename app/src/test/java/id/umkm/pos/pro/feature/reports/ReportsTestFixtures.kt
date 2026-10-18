@@ -1,5 +1,7 @@
 package id.umkm.pos.pro.feature.reports
 
+import id.umkm.pos.pro.data.file.BinarySink
+import id.umkm.pos.pro.data.file.CsvSink
 import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.core.contract.AppError

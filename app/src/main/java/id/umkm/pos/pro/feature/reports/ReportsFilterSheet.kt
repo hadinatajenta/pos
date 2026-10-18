@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.common.LocalPosStrings
@@ -268,7 +269,7 @@ internal fun ExportDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
                 Text(
-                    text = strings.reportsExportAdHint(DownloadsReportSink.DESTINATION_LABEL),
+                    text = strings.reportsExportAdHint(DownloadsFileSink.DESTINATION_LABEL),
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

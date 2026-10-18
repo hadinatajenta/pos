@@ -53,7 +53,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import id.umkm.pos.pro.feature.reports.DownloadsReportSink
+import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.feature.reports.ReportsPresenter
 import id.umkm.pos.pro.feature.reports.ReportsRoute
 import id.umkm.pos.pro.feature.reports.SalesCsvExporter
@@ -129,7 +129,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
         val shareReceipt = rememberReceiptSharer()
         val context = LocalContext.current
         val salesScope = rememberCoroutineScope()
-        val downloadsSink = remember(context) { DownloadsReportSink(context.applicationContext) }
+        val downloadsSink = remember(context) { DownloadsFileSink(context.applicationContext) }
         val settings by container.settingsRepository.observeSettings().collectAsState(initial = null)
         val currentLanguage = remember(settings?.languageCode) {
             AppLanguage.fromCode(settings?.languageCode)
