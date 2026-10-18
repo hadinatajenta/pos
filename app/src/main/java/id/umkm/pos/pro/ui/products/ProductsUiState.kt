@@ -2,7 +2,9 @@ package id.umkm.pos.pro.ui.products
 
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.Product
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.StockStatus
+import id.umkm.pos.pro.ui.common.UiText
 
 enum class ProductFormField {
     NAME,
@@ -21,10 +23,16 @@ enum class ProductFormField {
     WHOLESALE_PRICE,
 }
 
-enum class ProductSortOrder(val label: String) {
-    NEWEST("Terbaru"),
-    NAME_ASC("Nama (A-Z)"),
-    LOWEST_STOCK("Stok Terendah"),
+enum class ProductSortOrder {
+    NEWEST,
+    NAME_ASC,
+    LOWEST_STOCK,
+}
+
+fun ProductSortOrder.label(strings: PosStrings): String = when (this) {
+    ProductSortOrder.NEWEST -> strings.productsSortNewest
+    ProductSortOrder.NAME_ASC -> strings.productsSortNameAsc
+    ProductSortOrder.LOWEST_STOCK -> strings.productsSortLowestStock
 }
 
 enum class ProductStockFilter {
@@ -75,7 +83,7 @@ data class ProductFormState(
     val persistedImagePath: String? = null,
     val isImageRemoved: Boolean = false,
     val isImageImporting: Boolean = false,
-    val errors: Map<ProductFormField, String> = emptyMap(),
+    val errors: Map<ProductFormField, UiText> = emptyMap(),
 ) {
     val isEditing: Boolean get() = productId != null
 
@@ -83,7 +91,7 @@ data class ProductFormState(
 
     val storedImagePathToDiscard: String? get() = persistedImagePath?.takeIf { path -> path != imagePath }
 
-    fun errorFor(field: ProductFormField): String? = errors[field]
+    fun errorFor(field: ProductFormField): UiText? = errors[field]
 }
 
 data class ProductsUiState(
@@ -95,7 +103,7 @@ data class ProductsUiState(
     val form: ProductFormState? = null,
     val isSaving: Boolean = false,
     val pendingDeleteProductId: Long? = null,
-    val message: String? = null,
+    val message: UiText? = null,
 )
 
 fun buildProductsCatalog(

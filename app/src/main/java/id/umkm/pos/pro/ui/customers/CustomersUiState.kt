@@ -3,6 +3,7 @@ package id.umkm.pos.pro.ui.customers
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.PaymentMethod
+import id.umkm.pos.pro.ui.common.UiText
 
 data class CustomerDebtItem(
     val customer: Customer,
@@ -28,14 +29,14 @@ data class RecordPaymentState(
     val amountInput: String,
     val method: PaymentMethod = PaymentMethod.CASH,
     val note: String = "",
-    val validationMessage: String? = null,
+    val validationMessage: UiText? = null,
 )
 
 data class CustomerFormState(
     val name: String = "",
     val whatsappNumber: String = "",
     val notes: String = "",
-    val validationMessage: String? = null,
+    val validationMessage: UiText? = null,
 )
 
 data class CustomersUiState(
@@ -44,5 +45,5 @@ data class CustomersUiState(
     val recordPayment: RecordPaymentState? = null,
     val customerForm: CustomerFormState? = null,
     val isSubmitting: Boolean = false,
-    val message: String? = null,
+    val message: UiText? = null,
 )

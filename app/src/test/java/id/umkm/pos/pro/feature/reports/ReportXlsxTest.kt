@@ -1,6 +1,9 @@
 package id.umkm.pos.pro.feature.reports
 
 import com.google.common.truth.Truth.assertThat
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.ZhStrings
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.util.TimeZone
@@ -21,7 +24,7 @@ class ReportXlsxTest {
 
     @Test
     fun workbookContainsExactlyTheExpectedEntries() {
-        val entries = readEntries(ReportXlsx.buildWorkbook(content(), utc))
+        val entries = readEntries(ReportXlsx.buildWorkbook(content(), IdStrings, utc))
 
         assertThat(entries.keys).containsExactly(
             "[Content_Types].xml",
@@ -35,7 +38,7 @@ class ReportXlsxTest {
 
     @Test
     fun transactionSheetHasHeaderAndKnownRow() {
-        val sheet = readEntries(ReportXlsx.buildWorkbook(content(), utc)).getValue("xl/worksheets/sheet1.xml")
+        val sheet = readEntries(ReportXlsx.buildWorkbook(content(), IdStrings, utc)).getValue("xl/worksheets/sheet1.xml")
 
         assertThat(sheet).contains("<t xml:space=\"preserve\">Tanggal</t>")
         assertThat(sheet).contains("<t xml:space=\"preserve\">No. Transaksi</t>")
@@ -54,7 +57,7 @@ class ReportXlsxTest {
 
     @Test
     fun productSheetHasHeaderAndRow() {
-        val sheet = readEntries(ReportXlsx.buildWorkbook(content(), utc)).getValue("xl/worksheets/sheet2.xml")
+        val sheet = readEntries(ReportXlsx.buildWorkbook(content(), IdStrings, utc)).getValue("xl/worksheets/sheet2.xml")
 
         assertThat(sheet).contains("<t xml:space=\"preserve\">Nama Produk</t>")
         assertThat(sheet).contains("<t xml:space=\"preserve\">Qty Terjual</t>")
@@ -66,7 +69,7 @@ class ReportXlsxTest {
 
     @Test
     fun workbookAndContentTypesReferenceBothSheets() {
-        val entries = readEntries(ReportXlsx.buildWorkbook(content(), utc))
+        val entries = readEntries(ReportXlsx.buildWorkbook(content(), IdStrings, utc))
 
         assertThat(entries.getValue("[Content_Types].xml")).contains("/xl/worksheets/sheet1.xml")
         assertThat(entries.getValue("[Content_Types].xml")).contains("/xl/worksheets/sheet2.xml")
@@ -87,17 +90,43 @@ class ReportXlsxTest {
             productSummaries = emptyList(),
         )
 
-        val sheet = readEntries(ReportXlsx.buildWorkbook(content, utc)).getValue("xl/worksheets/sheet1.xml")
+        val sheet = readEntries(ReportXlsx.buildWorkbook(content, IdStrings, utc)).getValue("xl/worksheets/sheet1.xml")
 
         assertThat(sheet).contains("INV&lt;&amp;&gt;&quot;&apos;")
     }
 
     @Test
     fun emptyContentStillProducesHeaderOnlySheets() {
-        val entries = readEntries(ReportXlsx.buildWorkbook(ReportContent(emptyList(), emptyList()), utc))
+        val entries = readEntries(ReportXlsx.buildWorkbook(ReportContent(emptyList(), emptyList()), IdStrings, utc))
 
         assertThat(entries.getValue("xl/worksheets/sheet1.xml")).contains("Tanggal")
         assertThat(entries.getValue("xl/worksheets/sheet2.xml")).contains("Nama Produk")
+    }
+
+    @Test
+    fun workbookSheetNamesAndHeadersFollowTheSelectedCatalogue() {
+        val englishEntries = readEntries(ReportXlsx.buildWorkbook(content(), EnStrings, utc))
+
+        assertThat(englishEntries.getValue("xl/workbook.xml")).contains("name=\"Transactions\"")
+        assertThat(englishEntries.getValue("xl/workbook.xml")).contains("name=\"Product Summary\"")
+        val englishTransactionSheet = englishEntries.getValue("xl/worksheets/sheet1.xml")
+        assertThat(englishTransactionSheet).contains("<t xml:space=\"preserve\">Date</t>")
+        assertThat(englishTransactionSheet).contains("<t xml:space=\"preserve\">Transaction No.</t>")
+        assertThat(englishTransactionSheet).contains("<t xml:space=\"preserve\">COGS</t>")
+        assertThat(englishTransactionSheet).contains("<c r=\"D2\" t=\"inlineStr\"><is><t xml:space=\"preserve\">Cash</t></is></c>")
+        assertThat(englishEntries.getValue("xl/worksheets/sheet2.xml"))
+            .contains("<t xml:space=\"preserve\">Qty Sold</t>")
+
+        val mandarinEntries = readEntries(ReportXlsx.buildWorkbook(content(), ZhStrings, utc))
+
+        assertThat(mandarinEntries.getValue("xl/workbook.xml")).contains("name=\"交易明细\"")
+        assertThat(mandarinEntries.getValue("xl/workbook.xml")).contains("name=\"商品汇总\"")
+        val mandarinTransactionSheet = mandarinEntries.getValue("xl/worksheets/sheet1.xml")
+        assertThat(mandarinTransactionSheet).contains("<t xml:space=\"preserve\">日期</t>")
+        assertThat(mandarinTransactionSheet).contains("<t xml:space=\"preserve\">商品成本</t>")
+        assertThat(mandarinTransactionSheet).contains("<c r=\"D2\" t=\"inlineStr\"><is><t xml:space=\"preserve\">现金</t></is></c>")
+        assertThat(mandarinEntries.getValue("xl/worksheets/sheet2.xml"))
+            .contains("<t xml:space=\"preserve\">销售数量</t>")
     }
 
     private fun readEntries(bytes: ByteArray): Map<String, String> {

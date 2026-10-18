@@ -36,8 +36,9 @@ import androidx.compose.runtime.getValue
 @Composable
 fun LoadingState(
     modifier: Modifier = Modifier,
-    label: String = "Memuat",
+    label: String? = null,
 ) {
+    val resolvedLabel = label ?: LocalPosStrings.current.commonLoading
     Box(
         modifier = modifier.fillMaxWidth().padding(PosSpacing.lg),
         contentAlignment = Alignment.Center,
@@ -48,7 +49,7 @@ fun LoadingState(
         ) {
             CircularProgressIndicator()
             Text(
-                text = label,
+                text = resolvedLabel,
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -105,6 +106,7 @@ fun ErrorState(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = modifier.fillMaxWidth().padding(PosSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -117,12 +119,12 @@ fun ErrorState(
             tint = MaterialTheme.colorScheme.error,
         )
         Text(
-            text = "Terjadi kesalahan",
+            text = strings.commonErrorTitle,
             style = LocalAppTextStyles.current.sectionHeading,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = error.message,
+            text = error.toUiText().asText(),
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -138,13 +140,14 @@ fun ErrorState(
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
             Spacer(modifier = Modifier.width(PosSpacing.xs))
-            Text(text = "Coba lagi", style = LocalAppTextStyles.current.buttonLabel)
+            Text(text = strings.actionRetry, style = LocalAppTextStyles.current.buttonLabel)
         }
     }
 }
 
 @Composable
 fun OfflineNotice(modifier: Modifier = Modifier) {
+    val strings = LocalPosStrings.current
     val connectivityMonitor = LocalConnectivityMonitor.current
     val isOnline by connectivityMonitor.isOnline.collectAsState(initial = true)
     if (isOnline) return
@@ -167,7 +170,7 @@ fun OfflineNotice(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
             Text(
-                text = "Mode offline. Penjualan tetap berjalan dan data tersimpan di perangkat ini.",
+                text = strings.commonOfflineNotice,
                 style = LocalAppTextStyles.current.supportingLabel,
             )
         }

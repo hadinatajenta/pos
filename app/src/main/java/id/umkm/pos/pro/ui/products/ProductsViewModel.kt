@@ -9,6 +9,7 @@ import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
+import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.resolveStockStatus
 import id.umkm.pos.pro.ui.common.sanitizeQuantityInput
@@ -79,7 +80,9 @@ class ProductsViewModel(
         viewModelScope.launch {
             val product = productRepository.getProductById(productId)
             if (product == null) {
-                _state.update { it.copy(message = "Produk tidak ditemukan") }
+                _state.update {
+                    it.copy(message = UiText.from { strings -> strings.productsNotFoundMessage })
+                }
                 return@launch
             }
             val unit = productRepository.getUnits(productId).firstOrNull()
@@ -133,7 +136,7 @@ class ProductsViewModel(
                     val currentForm = current.form ?: return@update current
                     current.copy(
                         form = currentForm.copy(isImageImporting = false),
-                        message = "Gambar gagal dimuat. Coba pilih gambar lain.",
+                        message = UiText.from { strings -> strings.productsImageFailed },
                     )
                 }
             }
@@ -189,12 +192,23 @@ class ProductsViewModel(
             _state.update { it.copy(isSaving = true) }
             val productId = saveProduct(form)
             if (productId == null) {
-                _state.update { it.copy(isSaving = false, message = "Produk gagal disimpan.") }
+                _state.update {
+                    it.copy(
+                        isSaving = false,
+                        message = UiText.from { strings -> strings.productsSaveFailed },
+                    )
+                }
                 return@launch
             }
             saveVariantUnit(form = form, productId = productId)
             productImageRepository.deleteImage(form.storedImagePathToDiscard)
-            _state.update { it.copy(isSaving = false, form = null, message = "Produk disimpan") }
+            _state.update {
+                it.copy(
+                    isSaving = false,
+                    form = null,
+                    message = UiText.from { strings -> strings.productsSaved },
+                )
+            }
         }
     }
 
@@ -219,7 +233,7 @@ class ProductsViewModel(
                 current.copy(
                     pendingDeleteProductId = null,
                     form = if (current.form?.productId == productId) null else current.form,
-                    message = "Produk dihapus",
+                    message = UiText.from { strings -> strings.productsDeleted },
                 )
             }
         }

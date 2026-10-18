@@ -8,6 +8,7 @@ import id.umkm.pos.pro.domain.usecase.RecordDebtPaymentUseCase
 import id.umkm.pos.pro.ui.FakeCustomerStore
 import id.umkm.pos.pro.ui.FakeTransactionStore
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.uiSampleCustomer
 import id.umkm.pos.pro.ui.uiSampleDebtTransaction
@@ -87,7 +88,7 @@ class CustomersViewModelTest {
 
         val state = viewModel.state.value
         assertThat(state.recordPayment).isNull()
-        assertThat(state.message).isEqualTo("Pembayaran dicatat")
+        assertThat(state.message?.resolve(IdStrings)).isEqualTo("Pembayaran dicatat")
         val recorded = transactions.recordedPayments.single()
         assertThat(recorded.transactionId).isEqualTo(20L)
         assertThat(recorded.customerId).isEqualTo(7L)
@@ -106,7 +107,7 @@ class CustomersViewModelTest {
         viewModel.onAmountChange("200000")
         viewModel.onConfirmPayment()
 
-        assertThat(viewModel.state.value.recordPayment?.validationMessage)
+        assertThat(viewModel.state.value.recordPayment?.validationMessage?.resolve(IdStrings))
             .isEqualTo("Jumlah pembayaran melebihi sisa utang.")
         assertThat(transactions.recordedPayments).isEmpty()
     }
@@ -123,7 +124,7 @@ class CustomersViewModelTest {
         viewModel.onAmountChange("0")
         viewModel.onConfirmPayment()
 
-        assertThat(viewModel.state.value.recordPayment?.validationMessage)
+        assertThat(viewModel.state.value.recordPayment?.validationMessage?.resolve(IdStrings))
             .isEqualTo("Masukkan jumlah pembayaran lebih dari nol.")
         assertThat(transactions.recordedPayments).isEmpty()
     }
@@ -148,7 +149,8 @@ class CustomersViewModelTest {
         viewModel.onOpenCreateCustomer()
         viewModel.onSubmitCustomerForm()
 
-        assertThat(viewModel.state.value.customerForm?.validationMessage).isEqualTo("Masukkan nama pelanggan.")
+        assertThat(viewModel.state.value.customerForm?.validationMessage?.resolve(IdStrings))
+            .isEqualTo("Masukkan nama pelanggan.")
         assertThat(customers.currentCustomers()).isEmpty()
     }
 
@@ -165,7 +167,7 @@ class CustomersViewModelTest {
         assertThat(saved.name).isEqualTo("Ibu Ani")
         assertThat(saved.whatsappNumber).isEqualTo("0812345678")
         assertThat(viewModel.state.value.customerForm).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Pelanggan disimpan")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Pelanggan disimpan")
     }
 
     @Test

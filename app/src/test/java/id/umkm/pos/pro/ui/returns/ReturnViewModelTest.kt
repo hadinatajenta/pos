@@ -16,6 +16,7 @@ import id.umkm.pos.pro.domain.usecase.FakeTransactionRepository
 import id.umkm.pos.pro.domain.usecase.ProcessReturnUseCase
 import id.umkm.pos.pro.domain.usecase.sampleProduct
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.IdStrings
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +71,8 @@ class ReturnViewModelTest {
         assertThat(state.isLoading).isFalse()
         assertThat(state.loadError).isNull()
         assertThat(state.lines.map { it.returnQty }).containsExactly("2", "3")
+        assertThat(state.lines.map { line -> line.itemName.resolve(IdStrings) })
+            .containsExactly("Product 1", "Product 2")
     }
 
     @Test
@@ -113,7 +116,9 @@ class ReturnViewModelTest {
         viewModel.onSubmit()
 
         val state = viewModel.state.value
-        assertThat(state.lineErrors).containsKey(firstItemId)
+        assertThat(state.lineErrors.keys).containsExactly(firstItemId)
+        assertThat(state.lineErrors[firstItemId]?.resolve(IdStrings))
+            .isEqualTo("Jumlah retur tidak boleh melebihi jumlah yang dibeli.")
         assertThat(state.isProcessed).isFalse()
         assertThat(returns.recorded).isEmpty()
     }
@@ -138,7 +143,8 @@ class ReturnViewModelTest {
         viewModel.onSubmit()
 
         val state = viewModel.state.value
-        assertThat(state.formError).isNotNull()
+        assertThat(state.formError?.resolve(IdStrings))
+            .isEqualTo("Pilih setidaknya satu barang untuk diretur.")
         assertThat(state.isProcessed).isFalse()
         assertThat(returns.recorded).isEmpty()
     }

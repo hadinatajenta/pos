@@ -5,6 +5,10 @@ import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.PosStrings
+import id.umkm.pos.pro.ui.common.ZhStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -165,7 +169,9 @@ class ReportsPresenterTransactionsTest {
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
 
         assertThat(presenter.uiState.value.detail).isNull()
-        assertThat(presenter.uiState.value.message).isEqualTo("Transaksi tidak ditemukan.")
+        assertThat(presenter.uiState.value.message?.resolve(IdStrings)).isEqualTo("Transaksi tidak ditemukan.")
+        assertThat(presenter.uiState.value.message?.resolve(EnStrings)).isEqualTo("Transaction not found.")
+        assertThat(presenter.uiState.value.message?.resolve(ZhStrings)).isEqualTo("未找到该交易。")
 
         presenter.onMessageConsumed()
 
@@ -209,7 +215,37 @@ class ReportsPresenterTransactionsTest {
         assertThat(presenter.uiState.value.pendingReceiptPrint).isNull()
     }
 
-    private fun createStoredTransactionPresenter(scope: CoroutineScope): ReportsPresenter = createPresenter(
+    @Test
+    fun shareReceiptUsesTheSelectedCatalogue() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createStoredTransactionPresenter(this, ZhStrings)
+
+        presenter.shareReceipt(1L)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val shareText = presenter.uiState.value.pendingReceiptShare
+        assertThat(shareText).isNotNull()
+        assertThat(requireNotNull(shareText)).contains("单据编号 : INV-1")
+        assertThat(requireNotNull(shareText)).contains("总计 : Rp 20.000")
+    }
+
+    @Test
+    fun printReceiptUsesTheSelectedCatalogue() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createStoredTransactionPresenter(this, EnStrings)
+
+        presenter.printReceipt(1L)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val printRequest = presenter.uiState.value.pendingReceiptPrint
+        assertThat(printRequest).isNotNull()
+        assertThat(requireNotNull(printRequest).documentName).isEqualTo("Receipt INV-1")
+        assertThat(requireNotNull(printRequest).content).contains("Invoice INV-1")
+        assertThat(requireNotNull(printRequest).content).contains("TOTAL")
+    }
+
+    private fun createStoredTransactionPresenter(
+        scope: CoroutineScope,
+        strings: PosStrings = IdStrings,
+    ): ReportsPresenter = createPresenter(
         transactionRepository = FakeTransactionRepository(
             itemsByTransaction = mapOf(
                 1L to listOf(
@@ -227,6 +263,7 @@ class ReportsPresenterTransactionsTest {
         productRepository = FakeProductRepository(mapOf(10L to sampleProduct(name = "Kopi Susu"))),
         settingsRepository = FakeSettingsRepository(sampleSettings(storeName = "Toko Uji", cashierName = "Sari")),
         scope = scope,
+        strings = strings,
     )
 
     private fun createPresenter(
@@ -236,6 +273,7 @@ class ReportsPresenterTransactionsTest {
         customerRepository: FakeCustomerRepository = FakeCustomerRepository(),
         settingsRepository: FakeSettingsRepository = FakeSettingsRepository(),
         scope: CoroutineScope,
+        strings: PosStrings = IdStrings,
     ): ReportsPresenter = ReportsPresenter(
         reportRepository = reportRepository,
         transactionRepository = transactionRepository,
@@ -247,6 +285,7 @@ class ReportsPresenterTransactionsTest {
         adController = RecordingAdController(),
         coroutineScope = scope,
         clock = clock,
+        stringsFlow = stringsFlowFor(strings),
         timeZone = utc,
     )
 }

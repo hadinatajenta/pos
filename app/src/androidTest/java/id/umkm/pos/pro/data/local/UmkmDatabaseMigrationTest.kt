@@ -29,7 +29,10 @@ class UmkmDatabaseMigrationTest {
         context = ApplicationProvider.getApplicationContext()
         context.deleteDatabase(TEST_DATABASE_NAME)
         context.deleteDatabase(TEST_DATABASE_NAME_2_3)
+        context.deleteDatabase(TEST_DATABASE_NAME_3_4)
+        context.deleteDatabase(TEST_DATABASE_NAME_4_5)
     }
+
 
     @Test
     fun migration1To2KeepsLegacyItemsAndAddsNullableFactorAndCounterTable() {
@@ -108,6 +111,32 @@ class UmkmDatabaseMigrationTest {
         versionFour.close()
     }
 
+    @Test
+    fun migration4To5KeepsSettingsAndAddsPrinterAndLanguageColumns() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_4_5, 4).use { versionFour ->
+            versionFour.execSQL(INSERT_VERSION_FOUR_SETTINGS)
+        }
+
+        val versionFive = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_4_5,
+            5,
+            true,
+            UmkmDatabase.MIGRATION_4_5,
+        )
+
+        versionFive.query(
+            "SELECT store_name, printer_name, paper_width_mm, language_code FROM app_settings",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.count)
+            assertEquals("Toko Versi 4", cursor.getString(0))
+            assertTrue(cursor.isNull(1))
+            assertEquals(58, cursor.getInt(2))
+            assertEquals("id", cursor.getString(3))
+        }
+        versionFive.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -126,13 +155,22 @@ class UmkmDatabaseMigrationTest {
 
         const val TEST_DATABASE_NAME_3_4 = "umkm-migration-3-4.db"
 
+        const val TEST_DATABASE_NAME_4_5 = "umkm-migration-4-5.db"
+
         const val INSERT_VERSION_THREE_SETTINGS =
             "INSERT INTO app_settings " +
                 "(id, store_name, cashier_name, tax_rate_percent, rounding_increment, " +
                 "is_pin_enabled, printer_address, qris_image_path) " +
                 "VALUES (1, 'Toko Lama', NULL, 0, 0, 0, NULL, '/data/qris.jpg')"
 
+        const val INSERT_VERSION_FOUR_SETTINGS =
+            "INSERT INTO app_settings " +
+                "(id, store_name, cashier_name, tax_rate_percent, rounding_increment, " +
+                "is_pin_enabled, printer_address, qris_image_path, qris_payload) " +
+                "VALUES (1, 'Toko Versi 4', NULL, 0, 0, 0, '00:11:22:33:44:55', NULL, NULL)"
+
         const val INSERT_LEGACY_TRANSACTION =
+
             "INSERT INTO transactions " +
                 "(invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
                 "invoice_discount, tax_total, rounding, grand_total, total_hpp, net_profit, " +

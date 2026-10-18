@@ -45,8 +45,11 @@ import id.umkm.pos.pro.domain.usecase.ProcessReturnUseCase
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.PreviewAppContainerProvider
 import id.umkm.pos.pro.ui.common.ScreenHeader
+import id.umkm.pos.pro.ui.common.UiText
+import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -109,11 +112,14 @@ internal fun ReturnScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
 ) {
+    val strings = LocalPosStrings.current
     val loadError = state.loadError
     Column(modifier = modifier.fillMaxSize()) {
         ScreenHeader(
-            title = "Return",
-            supportingText = state.invoiceNo?.let { invoiceNo -> "Sale $invoiceNo" } ?: "Choose the items to return",
+            title = strings.returnTitle,
+            supportingText = state.invoiceNo
+                ?.let { invoiceNo -> strings.returnInvoiceLabel(invoiceNo) }
+                ?: strings.returnItemsTitle,
             onBack = onBack,
         )
         Box(
@@ -128,7 +134,7 @@ internal fun ReturnScreen(
                     .imePadding(),
             ) {
                 when {
-                    state.isLoading -> LoadingState(modifier = Modifier.weight(1f), label = "Loading sale")
+                    state.isLoading -> LoadingState(modifier = Modifier.weight(1f), label = strings.returnLoading)
                     loadError != null -> ErrorState(
                         error = loadError,
                         onRetry = actions.onRetry,
@@ -145,6 +151,7 @@ internal fun ReturnScreen(
             }
         }
     }
+
 }
 
 @Composable
@@ -153,6 +160,7 @@ private fun ReturnForm(
     actions: ReturnActions,
     modifier: Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -160,7 +168,7 @@ private fun ReturnForm(
             .padding(horizontal = PosSpacing.md),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
     ) {
-        Text(text = "Items", style = LocalAppTextStyles.current.sectionHeading)
+        Text(text = strings.returnItemsTitle, style = LocalAppTextStyles.current.sectionHeading)
         Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
             state.lines.forEach { line ->
                 ReturnLineRow(
@@ -180,7 +188,7 @@ private fun ReturnForm(
             onValueChange = actions.onNoteChange,
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.isSubmitting,
-            label = { Text("Note (optional)") },
+            label = { Text(strings.returnNoteLabel) },
             minLines = 2,
         )
         val submitError = state.submitError
@@ -201,22 +209,24 @@ private fun ReturnForm(
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Spacer(modifier = Modifier.width(PosSpacing.xs))
-                Text(text = "Recording return", style = LocalAppTextStyles.current.buttonLabel)
+                Text(text = strings.returnSubmittingButton, style = LocalAppTextStyles.current.buttonLabel)
             } else {
-                Text(text = "Complete return", style = LocalAppTextStyles.current.buttonLabel)
+                Text(text = strings.returnSubmitButton, style = LocalAppTextStyles.current.buttonLabel)
             }
         }
         Spacer(modifier = Modifier.height(PosSizes.listBottomPadding))
     }
+
 }
 
 @Composable
 private fun ReturnLineRow(
     line: ReturnLineInput,
-    errorMessage: String?,
+    errorMessage: UiText?,
     isEnabled: Boolean,
     actions: ReturnActions,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
@@ -232,7 +242,7 @@ private fun ReturnLineRow(
                     verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
                 ) {
                     Text(
-                        text = line.itemName,
+                        text = line.itemName.asText(),
                         style = LocalAppTextStyles.current.body,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -245,7 +255,7 @@ private fun ReturnLineRow(
                         )
                     }
                     Text(
-                        text = "Purchased ${formatQuantity(line.purchasedQty)}",
+                        text = strings.returnPurchasedQty(formatQuantity(line.purchasedQty)),
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -257,7 +267,7 @@ private fun ReturnLineRow(
                     enabled = isEnabled,
                     singleLine = true,
                     isError = errorMessage != null,
-                    label = { Text("Return") },
+                    label = { Text(strings.returnQtyLabel) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Next,
@@ -267,7 +277,7 @@ private fun ReturnLineRow(
         }
         if (errorMessage != null) {
             Text(
-                text = errorMessage,
+                text = errorMessage.asText(),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(start = PosSpacing.md),
@@ -277,7 +287,7 @@ private fun ReturnLineRow(
 }
 
 @Composable
-private fun InlineError(message: String) {
+private fun InlineError(message: UiText) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
@@ -289,7 +299,7 @@ private fun InlineError(message: String) {
             tint = MaterialTheme.colorScheme.error,
         )
         Text(
-            text = message,
+            text = message.asText(),
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.error,
         )
@@ -301,6 +311,7 @@ private fun ReturnSuccessState(
     onReturnProcessed: () -> Unit,
     modifier: Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = modifier.fillMaxWidth().padding(PosSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -313,12 +324,12 @@ private fun ReturnSuccessState(
             tint = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = "Return recorded",
+            text = strings.returnSuccessTitle,
             style = LocalAppTextStyles.current.sectionHeading,
             textAlign = TextAlign.Center,
         )
         Text(
-            text = "Stock and refunds were updated for this sale.",
+            text = strings.returnSuccessMsg,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -328,10 +339,11 @@ private fun ReturnSuccessState(
             onClick = onReturnProcessed,
             modifier = Modifier.heightIn(min = PosSizes.touchTarget),
         ) {
-            Text(text = "Done", style = LocalAppTextStyles.current.buttonLabel)
+            Text(text = strings.actionDone, style = LocalAppTextStyles.current.buttonLabel)
         }
     }
 }
+
 
 private fun previewLine(
     transactionItemId: Long,
@@ -341,7 +353,7 @@ private fun previewLine(
     returnQty: String,
 ): ReturnLineInput = ReturnLineInput(
     transactionItemId = transactionItemId,
-    itemName = itemName,
+    itemName = UiText.literal(itemName),
     variantName = variantName,
     purchasedQty = purchasedQty,
     returnQty = returnQty,

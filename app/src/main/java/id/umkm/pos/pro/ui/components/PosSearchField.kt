@@ -13,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosShapes
 
@@ -24,6 +25,7 @@ fun PosSearchField(
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Search,
 ) {
+    val strings = LocalPosStrings.current
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -44,7 +46,7 @@ fun PosSearchField(
         trailingIcon = {
             if (value.isNotEmpty()) {
                 IconButton(onClick = { onValueChange("") }) {
-                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
+                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = strings.actionClearSearch)
                 }
             }
         },

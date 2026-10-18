@@ -232,6 +232,8 @@ class FakeReceiptPrinter : ReceiptPrinter {
 
     var lastPrintedDocument: ReceiptDocument? = null
     var printResult: AppResult<Unit> = AppResult.Success(Unit)
+    var lastPaperWidthMm: Int = 58
+    var availablePrintersList: List<PrinterInfo> = emptyList()
 
     override val connectionState: Flow<PrinterConnection> = flowOf(PrinterConnection.DISCONNECTED)
 
@@ -243,7 +245,14 @@ class FakeReceiptPrinter : ReceiptPrinter {
         lastPrintedDocument = receipt
         return printResult
     }
+
+    override fun getAvailablePrinters(): List<PrinterInfo> = availablePrintersList
+
+    override fun setPaperWidth(paperWidthMm: Int) {
+        lastPaperWidthMm = paperWidthMm
+    }
 }
+
 
 class FakeReceiptRenderer : ReceiptRenderer {
 

@@ -1,6 +1,7 @@
 package id.umkm.pos.pro.ui.products
 
 import com.google.common.truth.Truth.assertThat
+import id.umkm.pos.pro.ui.common.IdStrings
 import org.junit.Test
 
 class ProductFormValidationTest {
@@ -25,6 +26,7 @@ class ProductFormValidationTest {
         val errors = validateProductForm(validForm().copy(name = " "))
 
         assertThat(errors).containsKey(ProductFormField.NAME)
+        assertThat(errors[ProductFormField.NAME]?.resolve(IdStrings)).isEqualTo("Masukkan nama produk.")
     }
 
     @Test
@@ -32,6 +34,8 @@ class ProductFormValidationTest {
         val errors = validateProductForm(validForm().copy(basePrice = "-1"))
 
         assertThat(errors).containsKey(ProductFormField.BASE_PRICE)
+        assertThat(errors[ProductFormField.BASE_PRICE]?.resolve(IdStrings))
+            .isEqualTo("Masukkan harga jual yang valid.")
     }
 
     @Test
@@ -94,13 +98,15 @@ class ProductFormValidationTest {
         val errors = validateProductForm(validForm().copy(name = " ", basePrice = ""))
 
         assertThat(errors.keys).containsExactly(ProductFormField.NAME, ProductFormField.BASE_PRICE)
-        assertThat(productFormErrorSummary(errors)).isEqualTo("Lengkapi 2 kolom wajib sebelum menyimpan.")
+        assertThat(productFormErrorSummary(errors).resolve(IdStrings))
+            .isEqualTo("Lengkapi 2 kolom wajib sebelum menyimpan.")
     }
 
     @Test
     fun summarisesASingleBlockingField() {
         val errors = validateProductForm(validForm().copy(name = ""))
 
-        assertThat(productFormErrorSummary(errors)).isEqualTo("Lengkapi 1 kolom wajib sebelum menyimpan.")
+        assertThat(productFormErrorSummary(errors).resolve(IdStrings))
+            .isEqualTo("Lengkapi 1 kolom wajib sebelum menyimpan.")
     }
 }

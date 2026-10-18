@@ -23,6 +23,7 @@ import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.ui.LocalAppContainer
+import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.resolveStockStatus
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosPaneWeights
@@ -76,10 +77,11 @@ internal fun CashierScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(state.message) {
-        val message = state.message ?: return@LaunchedEffect
-        if (!message.endsWith(" ditambahkan")) {
-            snackbarHostState.showSnackbar(message)
+    val messageText = state.message?.asTextOrNull()
+    LaunchedEffect(messageText, state.shouldSuppressMessageSnackbar) {
+        if (messageText == null) return@LaunchedEffect
+        if (!state.shouldSuppressMessageSnackbar) {
+            snackbarHostState.showSnackbar(messageText)
         }
         actions.onMessageConsumed()
     }

@@ -6,6 +6,7 @@ import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.domain.usecase.FakeClock
 import id.umkm.pos.pro.ui.FakeCatalogRepository
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.uiSampleProduct
 import kotlinx.coroutines.test.runTest
@@ -257,7 +258,7 @@ class ProductsViewModelTest {
         assertThat(saved.stockBaseQty).isEqualTo(12.0)
         assertThat(saved.sku).isEqualTo("SKU-10000")
         assertThat(viewModel.state.value.form).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Produk disimpan")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Produk disimpan")
     }
 
     @Test
@@ -324,7 +325,7 @@ class ProductsViewModelTest {
         viewModel.onOpenEditForm(404L)
 
         assertThat(viewModel.state.value.form).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Produk tidak ditemukan")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Produk tidak ditemukan")
     }
 
     @Test
@@ -339,7 +340,7 @@ class ProductsViewModelTest {
 
         assertThat(products.currentProducts()).isEmpty()
         assertThat(viewModel.state.value.pendingDeleteProductId).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Produk dihapus")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Produk dihapus")
     }
 
     @Test

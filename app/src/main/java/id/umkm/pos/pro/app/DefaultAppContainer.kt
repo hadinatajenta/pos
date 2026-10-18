@@ -44,6 +44,8 @@ import id.umkm.pos.pro.monetization.admob.NoAdsController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
 
 class DefaultAppContainer(
     context: Context,
@@ -52,6 +54,7 @@ class DefaultAppContainer(
 
     private val applicationContext: Context = context.applicationContext
     private val database: UmkmDatabase = UmkmDatabase.build(applicationContext)
+
 
     override val clock: Clock = SystemClock
 
@@ -103,6 +106,15 @@ class DefaultAppContainer(
     override val onboardingStore: OnboardingStore = OnboardingPreferences(applicationContext)
 
     override val qrisService: QrisService = AndroidQrisService(applicationContext)
+
+    init {
+        applicationScope.launch {
+            settingsRepository.observeSettings().collect { settings ->
+                receiptPrinter.setPaperWidth(settings.paperWidthMm)
+            }
+        }
+    }
+
 
     val demoDataSeeder: DemoDataSeeder? =
         if (BuildConfig.DEBUG) {

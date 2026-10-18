@@ -1,5 +1,6 @@
 package id.umkm.pos.pro.feature.reports
 
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import java.io.ByteArrayOutputStream
@@ -16,9 +17,6 @@ object ReportXlsx {
     private const val TRANSACTION_SHEET_ENTRY = "xl/worksheets/sheet1.xml"
     private const val PRODUCT_SHEET_ENTRY = "xl/worksheets/sheet2.xml"
 
-    private const val TRANSACTION_SHEET_NAME = "Transaksi"
-    private const val PRODUCT_SHEET_NAME = "Ringkasan Produk"
-
     private const val SPREADSHEET_NAMESPACE =
         "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
     private const val RELATIONSHIP_NAMESPACE =
@@ -30,26 +28,18 @@ object ReportXlsx {
 
     fun buildWorkbook(
         content: ReportContent,
+        strings: PosStrings,
         timeZone: TimeZone = TimeZone.getDefault(),
     ): ByteArray {
         val transactionRows = buildList<List<XlsxCell>> {
-            add(
-                listOf(
-                    XlsxCell.Text("Tanggal"),
-                    XlsxCell.Text("No. Transaksi"),
-                    XlsxCell.Text("Total Penjualan"),
-                    XlsxCell.Text("Metode Pembayaran"),
-                    XlsxCell.Text("HPP"),
-                    XlsxCell.Text("Laba"),
-                ),
-            )
+            add(ReportCsv.reportTransactionColumns(strings).map { column -> XlsxCell.Text(column) })
             content.transactions.forEach { transaction ->
                 add(
                     listOf(
                         XlsxCell.Text(ReportDates.formatTimestamp(transaction.createdAt, timeZone)),
                         XlsxCell.Text(transaction.invoiceNo),
                         XlsxCell.Number(transaction.grandTotal.toString()),
-                        XlsxCell.Text(paymentMethodLabel(transaction.paymentMethod)),
+                        XlsxCell.Text(paymentMethodLabel(transaction.paymentMethod, strings)),
                         XlsxCell.Number(transaction.totalHpp.toString()),
                         XlsxCell.Number(transaction.netProfit.toString()),
                     ),
@@ -57,13 +47,7 @@ object ReportXlsx {
             }
         }
         val productRows = buildList<List<XlsxCell>> {
-            add(
-                listOf(
-                    XlsxCell.Text("Nama Produk"),
-                    XlsxCell.Text("Qty Terjual"),
-                    XlsxCell.Text("Nilai Penjualan"),
-                ),
-            )
+            add(ReportCsv.productSummaryColumns(strings).map { column -> XlsxCell.Text(column) })
             content.productSummaries.forEach { summary ->
                 add(
                     listOf(
@@ -79,7 +63,7 @@ object ReportXlsx {
         ZipOutputStream(output).use { zip ->
             writeEntry(zip, CONTENT_TYPES_ENTRY, contentTypesXml())
             writeEntry(zip, ROOT_RELS_ENTRY, rootRelationshipsXml())
-            writeEntry(zip, WORKBOOK_ENTRY, workbookXml())
+            writeEntry(zip, WORKBOOK_ENTRY, workbookXml(strings))
             writeEntry(zip, WORKBOOK_RELS_ENTRY, workbookRelationshipsXml())
             writeEntry(zip, TRANSACTION_SHEET_ENTRY, worksheetXml(transactionRows))
             writeEntry(zip, PRODUCT_SHEET_ENTRY, worksheetXml(productRows))
@@ -111,12 +95,12 @@ object ReportXlsx {
         append("</Relationships>")
     }
 
-    private fun workbookXml(): String = buildString {
+    private fun workbookXml(strings: PosStrings): String = buildString {
         append(XML_DECLARATION)
         append("<workbook xmlns=\"$SPREADSHEET_NAMESPACE\" xmlns:r=\"$RELATIONSHIP_NAMESPACE\">")
         append("<sheets>")
-        append("<sheet name=\"$TRANSACTION_SHEET_NAME\" sheetId=\"1\" r:id=\"rId1\"/>")
-        append("<sheet name=\"$PRODUCT_SHEET_NAME\" sheetId=\"2\" r:id=\"rId2\"/>")
+        append("<sheet name=\"${strings.exportTransactionSheetName}\" sheetId=\"1\" r:id=\"rId1\"/>")
+        append("<sheet name=\"${strings.exportProductSheetName}\" sheetId=\"2\" r:id=\"rId2\"/>")
         append("</sheets>")
         append("</workbook>")
     }

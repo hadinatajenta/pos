@@ -1,6 +1,9 @@
 package id.umkm.pos.pro.feature.receipt
 
 import com.google.common.truth.Truth.assertThat
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.ZhStrings
 import org.junit.Test
 
 class ReceiptShareTextTest {
@@ -45,7 +48,7 @@ class ReceiptShareTextTest {
 
     @Test
     fun includesHeaderItemsAndTotals() {
-        val text = ReceiptShareText.build(receiptData())
+        val text = ReceiptShareText.build(receiptData(), IdStrings)
 
         assertThat(text).contains("*Toko Demo*")
         assertThat(text).contains("No. Invoice : INV-20261017-0001")
@@ -63,7 +66,7 @@ class ReceiptShareTextTest {
 
     @Test
     fun cashSaleShowsChangeWithoutDebtLines() {
-        val text = ReceiptShareText.build(receiptData(changeAmount = 5_000L))
+        val text = ReceiptShareText.build(receiptData(changeAmount = 5_000L), IdStrings)
 
         assertThat(text).contains("Dibayar : Rp 25.000")
         assertThat(text).contains("Kembalian : Rp 5.000")
@@ -79,6 +82,7 @@ class ReceiptShareTextTest {
                 remainingDebt = 7_500L,
                 dueDateLabel = "24 Okt 2026",
             ),
+            IdStrings,
         )
 
         assertThat(text).contains("Pelanggan : Eren")
@@ -89,7 +93,7 @@ class ReceiptShareTextTest {
 
     @Test
     fun discountTaxAndRoundingAppearOnlyWhenApplied() {
-        val withoutExtras = ReceiptShareText.build(receiptData())
+        val withoutExtras = ReceiptShareText.build(receiptData(), IdStrings)
         assertThat(withoutExtras).doesNotContain("Diskon item")
         assertThat(withoutExtras).doesNotContain("Pajak")
         assertThat(withoutExtras).doesNotContain("Pembulatan")
@@ -101,6 +105,7 @@ class ReceiptShareTextTest {
                 rounding = 500L,
                 itemDiscount = 250L,
             ),
+            IdStrings,
         )
         assertThat(withExtras).contains("Diskon item : -Rp 250")
         assertThat(withExtras).contains("Diskon : -Rp 1.000")
@@ -112,10 +117,39 @@ class ReceiptShareTextTest {
     fun fallsBackToTheAppNameAndSkipsBlankOptionalFields() {
         val text = ReceiptShareText.build(
             receiptData(storeName = "", cashierName = null, customerName = null),
+            IdStrings,
         )
 
         assertThat(text).contains("*POS UMKM Pro*")
         assertThat(text).doesNotContain("Kasir :")
         assertThat(text).doesNotContain("Pelanggan :")
+    }
+
+    @Test
+    fun englishCatalogueLocalizesLabelsAndFooter() {
+        val text = ReceiptShareText.build(receiptData(changeAmount = 5_000L), EnStrings)
+
+        assertThat(text).contains("Invoice no. : INV-20261017-0001")
+        assertThat(text).contains("Cashier : Pemilik")
+        assertThat(text).contains("*Order details*")
+        assertThat(text).contains("Paid : Rp 25.000")
+        assertThat(text).contains("Change : Rp 5.000")
+        assertThat(text).contains("Thank you for your purchase.")
+        assertThat(text).contains("Keep this message as proof of payment.")
+        assertThat(text).doesNotContain("Terima kasih")
+        assertThat(text).doesNotContain("*Rincian pesanan*")
+    }
+
+    @Test
+    fun chineseCatalogueLocalizesLabelsAndFooter() {
+        val text = ReceiptShareText.build(receiptData(), ZhStrings)
+
+        assertThat(text).contains("单据编号 : INV-20261017-0001")
+        assertThat(text).contains("*商品明细*")
+        assertThat(text).contains("小计 : Rp 20.000")
+        assertThat(text).contains("*总计 : Rp 20.000*")
+        assertThat(text).contains("感谢您的光临。")
+        assertThat(text).contains("请保存本条信息作为付款凭证。")
+        assertThat(text).doesNotContain("Terima kasih")
     }
 }

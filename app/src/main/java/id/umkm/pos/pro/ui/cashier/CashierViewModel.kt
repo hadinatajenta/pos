@@ -14,6 +14,7 @@ import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.UiState
+import id.umkm.pos.pro.core.model.AppLanguage
 import id.umkm.pos.pro.core.model.CartLine
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.PaymentMethod
@@ -26,10 +27,15 @@ import id.umkm.pos.pro.domain.usecase.CheckoutRequest
 import id.umkm.pos.pro.domain.usecase.CheckoutResult
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.PosStrings
+import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.resolveStockStatus
+import id.umkm.pos.pro.ui.common.stringsFor
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.common.toAppError
+import id.umkm.pos.pro.ui.common.toUiText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,7 +59,7 @@ import id.umkm.pos.pro.core.contract.Clock
 private sealed interface PaidAmountResolution {
     data class Resolved(val paidAmount: Long) : PaidAmountResolution
 
-    data class Rejected(val message: String) : PaidAmountResolution
+    data class Rejected(val message: UiText) : PaidAmountResolution
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -84,6 +90,7 @@ class CashierViewModel(
     private var pricingContext = PricingContext()
     private var storeName = ""
     private var cashierName: String? = null
+    private var currentStrings: PosStrings = IdStrings
     private var nextLineNumber = 1
     private var pendingReceiptDocument: ReceiptDocument? = null
 
@@ -131,11 +138,15 @@ class CashierViewModel(
             val addedBaseQty = QUANTITY_STEP * conversionFactorFor(target.productId, target.unitId)
             val projectedBaseQty = totalBaseQtyInCart(target.productId) + addedBaseQty
             if (projectedBaseQty > product.stockBaseQty) {
-                _state.update {
-                    it.copy(
-                        message = "Stok ${product.name} tidak mencukupi (tersisa ${formatQuantity(product.stockBaseQty)} ${product.baseUnit})",
-                    )
-                }
+                setMessage(
+                    UiText.from { strings ->
+                        strings.cashierStockInsufficientNamed(
+                            product.name,
+                            formatQuantity(product.stockBaseQty),
+                            product.baseUnit,
+                        )
+                    },
+                )
                 return
             }
         }
@@ -229,13 +240,13 @@ class CashierViewModel(
         val priceInput = editor.negotiatedUnitPriceInput.trim()
         val negotiatedUnitPrice = if (priceInput.isEmpty()) null else priceInput.toLongOrNull()
         if (priceInput.isNotEmpty() && negotiatedUnitPrice == null) {
-            updateLineEditorValidation("Masukkan harga nego yang valid.")
+            updateLineEditorValidation(UiText.from { strings -> strings.cashierInvalidNegotiatedPrice })
             return
         }
         val discountInput = editor.itemDiscountInput.trim()
         val itemDiscount = if (discountInput.isEmpty()) 0L else discountInput.toLongOrNull()
         if (itemDiscount == null) {
-            updateLineEditorValidation("Masukkan diskon item yang valid.")
+            updateLineEditorValidation(UiText.from { strings -> strings.cashierInvalidItemDiscount })
             return
         }
         val target = cartDrafts.value.firstOrNull { it.lineId == editor.lineId } ?: return
@@ -245,7 +256,12 @@ class CashierViewModel(
                 (target.quantity * conversionFactorFor(target.productId, editor.selectedUnitId))
             if (requiredBaseQty > product.stockBaseQty) {
                 updateLineEditorValidation(
-                    "Stok tidak mencukupi (tersisa ${formatQuantity(product.stockBaseQty)} ${product.baseUnit}).",
+                    UiText.from { strings ->
+                        strings.cashierStockInsufficientShort(
+                            formatQuantity(product.stockBaseQty),
+                            product.baseUnit,
+                        )
+                    },
                 )
                 return
             }
@@ -342,7 +358,8 @@ class CashierViewModel(
                     paymentDraft = current.paymentDraft.copy(customerId = newId),
                     isCustomerPickerVisible = false,
                     submitErrorMessage = null,
-                    message = "Pelanggan $trimmedName ditambahkan & dipilih",
+                    message = UiText.from { strings -> strings.cashierCustomerAdded(trimmedName) },
+                    shouldSuppressMessageSnackbar = false,
                 )
             }
         }
@@ -381,7 +398,7 @@ class CashierViewModel(
         }
         val remainingAfterPayment = (pricedCart.grandTotal - paidAmount).coerceAtLeast(0L)
         if (remainingAfterPayment > 0L && draft.customerId == null) {
-            _state.update { it.copy(submitErrorMessage = "Pilih pelanggan untuk sisa tagihan.") }
+            _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierRemainingDebtNeedsCustomer }) }
             return
         }
 
@@ -410,7 +427,7 @@ class CashierViewModel(
             when (val result = checkoutUseCase(request)) {
                 is AppResult.Success -> onCheckoutCompleted(result.value)
                 is AppResult.Failure -> _state.update { current ->
-                    current.copy(isSubmitting = false, submitErrorMessage = result.error.message)
+                    current.copy(isSubmitting = false, submitErrorMessage = result.error.toUiText())
                 }
             }
         }
@@ -423,11 +440,14 @@ class CashierViewModel(
             _state.update { it.copy(isPrintingReceipt = true, receiptMessage = null) }
             when (val result = receiptPrinter.print(document)) {
                 is AppResult.Success -> _state.update {
-                    it.copy(isPrintingReceipt = false, receiptMessage = "Struk terkirim ke printer.")
+                    it.copy(
+                        isPrintingReceipt = false,
+                        receiptMessage = UiText.from { strings -> strings.cashierReceiptSent },
+                    )
                 }
 
                 is AppResult.Failure -> _state.update {
-                    it.copy(isPrintingReceipt = false, receiptMessage = result.error.message)
+                    it.copy(isPrintingReceipt = false, receiptMessage = result.error.toUiText())
                 }
             }
         }
@@ -439,7 +459,13 @@ class CashierViewModel(
     }
 
     fun onMessageConsumed() {
-        _state.update { it.copy(message = null) }
+        _state.update { it.copy(message = null, shouldSuppressMessageSnackbar = false) }
+    }
+
+    private fun setMessage(message: UiText, shouldSuppressSnackbar: Boolean = false) {
+        _state.update {
+            it.copy(message = message, shouldSuppressMessageSnackbar = shouldSuppressSnackbar)
+        }
     }
 
     private fun observeSettings() {
@@ -447,6 +473,7 @@ class CashierViewModel(
             settingsRepository.observeSettings().collect { settings ->
                 storeName = settings.storeName
                 cashierName = settings.cashierName
+                currentStrings = stringsFor(AppLanguage.fromCode(settings.languageCode))
                 pricingContext = PricingContext(
                     invoiceDiscount = 0L,
                     taxRatePercent = settings.taxRatePercent,
@@ -506,13 +533,13 @@ class CashierViewModel(
             addProductToCart(product.id, null)
             return
         }
-        _state.update { it.copy(message = "Tidak ada produk dengan kode $code") }
+        _state.update { it.copy(message = UiText.from { strings -> strings.cashierBarcodeNotFound(code) }) }
     }
 
     private suspend fun addProductToCart(productId: Long, unitId: Long?) {
         val product = productCache[productId] ?: productRepository.getProductById(productId)
         if (product == null) {
-            _state.update { it.copy(message = "Produk tidak ditemukan") }
+            setMessage(UiText.from { strings -> strings.cashierProductNotFound })
             return
         }
         productCache[productId] = product
@@ -522,15 +549,19 @@ class CashierViewModel(
         val addedBaseQty = QUANTITY_STEP * conversionFactorFor(productId, unitId)
         val projectedBaseQty = totalBaseQtyInCart(productId) + addedBaseQty
         if (product.stockBaseQty <= 0.0) {
-            _state.update { it.copy(message = "Stok ${product.name} habis") }
+            setMessage(UiText.from { strings -> strings.cashierStockEmptyNamed(product.name) })
             return
         }
         if (projectedBaseQty > product.stockBaseQty) {
-            _state.update {
-                it.copy(
-                    message = "Stok ${product.name} tidak mencukupi (tersisa ${formatQuantity(product.stockBaseQty)} ${product.baseUnit})",
-                )
-            }
+            setMessage(
+                UiText.from { strings ->
+                    strings.cashierStockInsufficientNamed(
+                        product.name,
+                        formatQuantity(product.stockBaseQty),
+                        product.baseUnit,
+                    )
+                },
+            )
             return
         }
         val existingDraft = cartDrafts.value.firstOrNull { draft ->
@@ -554,10 +585,12 @@ class CashierViewModel(
                 itemDiscount = 0L,
             )
         }
-        _state.update { it.copy(message = "${product.name} ditambahkan") }
+        setMessage(
+            UiText.from { strings -> strings.cashierProductAdded(product.name) },
+            shouldSuppressSnackbar = true,
+        )
         refreshCart()
     }
-
     private fun conversionFactorFor(productId: Long, unitId: Long?): Double {
         if (unitId == null) return 1.0
         return unitsCache[productId]?.firstOrNull { it.id == unitId }?.conversionFactor ?: 1.0
@@ -665,8 +698,14 @@ class CashierViewModel(
         PaymentMethod.CASH -> {
             val tendered = draft.amountReceivedInput.toLongOrNull()
             when {
-                tendered == null -> PaidAmountResolution.Rejected("Masukkan jumlah diterima.")
-                tendered < grandTotal -> PaidAmountResolution.Rejected("Jumlah diterima kurang dari total.")
+                tendered == null -> PaidAmountResolution.Rejected(
+                    UiText.from { strings -> strings.cashierEnterAmountReceived },
+                )
+
+                tendered < grandTotal -> PaidAmountResolution.Rejected(
+                    UiText.from { strings -> strings.cashierAmountLessThanTotal },
+                )
+
                 else -> PaidAmountResolution.Resolved(tendered)
             }
         }
@@ -676,7 +715,7 @@ class CashierViewModel(
         PaymentMethod.SPLIT -> {
             val tendered = draft.amountReceivedInput.toLongOrNull()
             if (tendered == null) {
-                PaidAmountResolution.Rejected("Masukkan jumlah diterima.")
+                PaidAmountResolution.Rejected(UiText.from { strings -> strings.cashierEnterAmountReceived })
             } else {
                 PaidAmountResolution.Resolved(tendered)
             }
@@ -695,7 +734,7 @@ class CashierViewModel(
             paidAmount = result.allocation.paidAmount,
             changeAmount = result.allocation.changeAmount,
             remainingDebt = result.allocation.remainingDebt,
-            shareText = ReceiptShareText.build(buildReceiptShareData(result)),
+            shareText = ReceiptShareText.build(buildReceiptShareData(result), currentStrings),
             paymentMethod = result.allocation.paymentMethod,
             itemCount = result.pricedCart.lines.size,
         )
@@ -715,7 +754,7 @@ class CashierViewModel(
     private fun buildReceiptDocument(result: CheckoutResult): ReceiptDocument {
         val pricedCart = result.pricedCart
         val lines = mutableListOf<ReceiptLine>()
-        lines += ReceiptLine("Invoice ${result.invoiceNo}", alignment = ReceiptAlignment.CENTER)
+        lines += ReceiptLine(currentStrings.receiptInvoiceHeader(result.invoiceNo), alignment = ReceiptAlignment.CENTER)
         lines += ReceiptLine("")
         pricedCart.lines.forEach { pricedLine ->
             lines += ReceiptLine("${formatQuantity(pricedLine.line.qty)} x ${pricedLine.product.name}")
@@ -725,23 +764,36 @@ class CashierViewModel(
             )
         }
         lines += ReceiptLine("")
-        lines += ReceiptLine(twoColumn("Subtotal", Rupiah.format(pricedCart.subtotal)))
+        lines += ReceiptLine(twoColumn(currentStrings.transactionsFieldSubtotal, Rupiah.format(pricedCart.subtotal)))
         if (pricedCart.invoiceDiscount > 0L) {
-            lines += ReceiptLine(twoColumn("Diskon", "-${Rupiah.format(pricedCart.invoiceDiscount)}"))
+            lines += ReceiptLine(
+                twoColumn(currentStrings.transactionsFieldDiscount, "-${Rupiah.format(pricedCart.invoiceDiscount)}"),
+            )
         }
         if (pricedCart.taxTotal > 0L) {
-            lines += ReceiptLine(twoColumn("Pajak", Rupiah.format(pricedCart.taxTotal)))
+            lines += ReceiptLine(twoColumn(currentStrings.transactionsFieldTax, Rupiah.format(pricedCart.taxTotal)))
         }
         if (pricedCart.rounding != 0L) {
-            lines += ReceiptLine(twoColumn("Pembulatan", Rupiah.format(pricedCart.rounding)))
+            lines += ReceiptLine(
+                twoColumn(currentStrings.transactionsFieldRounding, Rupiah.format(pricedCart.rounding)),
+            )
         }
-        lines += ReceiptLine(twoColumn("TOTAL", Rupiah.format(pricedCart.grandTotal)), isBold = true)
-        lines += ReceiptLine(twoColumn("Dibayar", Rupiah.format(result.allocation.paidAmount)))
+        lines += ReceiptLine(
+            twoColumn(currentStrings.receiptTotalPlain, Rupiah.format(pricedCart.grandTotal)),
+            isBold = true,
+        )
+        lines += ReceiptLine(
+            twoColumn(currentStrings.transactionsFieldPaid, Rupiah.format(result.allocation.paidAmount)),
+        )
         if (result.allocation.changeAmount > 0L) {
-            lines += ReceiptLine(twoColumn("Kembalian", Rupiah.format(result.allocation.changeAmount)))
+            lines += ReceiptLine(
+                twoColumn(currentStrings.transactionsFieldChange, Rupiah.format(result.allocation.changeAmount)),
+            )
         }
         if (result.allocation.remainingDebt > 0L) {
-            lines += ReceiptLine(twoColumn("Sisa", Rupiah.format(result.allocation.remainingDebt)))
+            lines += ReceiptLine(
+                twoColumn(currentStrings.receiptRemainingDebtShort, Rupiah.format(result.allocation.remainingDebt)),
+            )
         }
         return ReceiptDocument(storeName = storeName, lines = lines)
     }
@@ -752,10 +804,10 @@ class CashierViewModel(
         return ReceiptShareData(
             storeName = storeName,
             invoiceNo = result.invoiceNo,
-            createdAtLabel = formatDateTime(clock.nowMillis()),
+            createdAtLabel = formatDateTime(clock.nowMillis(), currentStrings),
             cashierName = cashierName,
             customerName = state.selectedCustomerName,
-            paymentMethodLabel = paymentMethodLabel(result.allocation.paymentMethod),
+            paymentMethodLabel = paymentMethodLabel(result.allocation.paymentMethod, currentStrings),
             items = pricedCart.lines.map { pricedLine ->
                 ReceiptShareItem(
                     name = pricedLine.product.name,
@@ -774,14 +826,14 @@ class CashierViewModel(
             paidAmount = result.allocation.paidAmount,
             changeAmount = result.allocation.changeAmount,
             remainingDebt = result.allocation.remainingDebt,
-            dueDateLabel = state.paymentDraft.dueDateMillis?.let(::formatDate),
+            dueDateLabel = state.paymentDraft.dueDateMillis?.let { millis -> formatDate(millis, currentStrings) },
         )
     }
 
     private fun twoColumn(label: String, value: String): String =
         twoColumnLine(label = label, value = value, widthChars = RECEIPT_WIDTH_CHARS)
 
-    private fun updateLineEditorValidation(message: String) {
+    private fun updateLineEditorValidation(message: UiText) {
         _state.update { current ->
             val editor = current.cartLineEditor ?: return@update current
             current.copy(cartLineEditor = editor.copy(validationMessage = message))

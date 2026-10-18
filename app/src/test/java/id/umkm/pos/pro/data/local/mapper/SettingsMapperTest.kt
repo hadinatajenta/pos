@@ -15,7 +15,11 @@ class SettingsMapperTest {
             roundingIncrement = 100L,
             isPinEnabled = true,
             printerAddress = "00:11:22:33:44:55",
+            printerName = "RPP02N",
+            paperWidthMm = 80,
+            languageCode = "zh",
             qrisImagePath = "/data/qris.png",
+            qrisPayload = "000201...",
         )
 
         val restored = SettingsMapper.toModel(SettingsMapper.toEntity(settings))
@@ -32,6 +36,9 @@ class SettingsMapperTest {
             roundingIncrement = 0L,
             isPinEnabled = false,
             printerAddress = null,
+            printerName = null,
+            paperWidthMm = 58,
+            languageCode = "id",
             qrisImagePath = null,
         )
 
@@ -39,6 +46,9 @@ class SettingsMapperTest {
 
         assertThat(entity.cashierName).isNull()
         assertThat(entity.printerAddress).isNull()
+        assertThat(entity.printerName).isNull()
+        assertThat(entity.paperWidthMm).isEqualTo(58)
+        assertThat(entity.languageCode).isEqualTo("id")
         assertThat(entity.qrisImagePath).isNull()
         assertThat(entity.taxRatePercent).isEqualTo(0)
         assertThat(entity.roundingIncrement).isEqualTo(0L)
@@ -56,6 +66,10 @@ class SettingsMapperTest {
         assertThat(defaults.roundingIncrement).isEqualTo(0L)
         assertThat(defaults.isPinEnabled).isFalse()
         assertThat(defaults.printerAddress).isNull()
+        assertThat(defaults.printerName).isNull()
+        assertThat(defaults.paperWidthMm).isEqualTo(58)
+        assertThat(defaults.languageCode).isEqualTo("id")
         assertThat(defaults.qrisImagePath).isNull()
     }
 }
+

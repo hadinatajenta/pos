@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
+import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
@@ -90,6 +93,7 @@ internal fun CashierCartBar(
     modifier: Modifier = Modifier,
 ) {
     if (state.lineCount == 0) return
+    val strings = LocalPosStrings.current
     Surface(
         color = PosColors.ForestGreen,
         contentColor = Color.White,
@@ -98,7 +102,7 @@ internal fun CashierCartBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm)
-            .clickable(onClickLabel = "Buka keranjang", onClick = actions.onOpenCartSheet),
+            .clickable(onClickLabel = strings.cashierOpenCart, onClick = actions.onOpenCartSheet),
     ) {
         Row(
             modifier = Modifier
@@ -113,7 +117,10 @@ internal fun CashierCartBar(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = "${formatQuantity(state.totalQuantity)} barang • ${state.lineCount} jenis",
+                    text = strings.cashierItemCountLine(
+                        formatQuantity(state.totalQuantity),
+                        state.lineCount,
+                    ),
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = Color.White.copy(alpha = 0.9f),
                     maxLines = 1,
@@ -134,7 +141,7 @@ internal fun CashierCartBar(
                 contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
             ) {
                 Text(
-                    text = "Bayar",
+                    text = strings.cashierPay,
                     style = LocalAppTextStyles.current.buttonLabel,
                     maxLines = 1,
                 )
@@ -174,19 +181,20 @@ private fun CartHeader(
     onClearCart: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         PosSectionHeader(
-            title = "Keranjang",
-            supportingText = cartItemSummary(lineCount = lineCount, totalQuantity = totalQuantity),
+            title = strings.cashierCartTitle,
+            supportingText = cartItemSummary(lineCount = lineCount, totalQuantity = totalQuantity, strings = strings),
             modifier = Modifier.weight(1f),
         )
         if (lineCount > 0 && onClearCart != null) {
             SecondaryTextAction(
-                text = "Kosongkan",
+                text = strings.cashierClearCart,
                 onClick = onClearCart,
             )
         }
@@ -199,12 +207,13 @@ private fun CartContents(
     actions: CashierActions,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(modifier = modifier.fillMaxWidth()) {
         if (state.cartLines.isEmpty()) {
             EmptyState(
                 iconRes = R.drawable.ic_shopping_cart,
-                title = "Keranjang kosong",
-                supportingText = "Ketuk produk untuk menambahkan ke penjualan.",
+                title = strings.cashierEmptyCartTitle,
+                supportingText = strings.cashierEmptyCartMsg,
                 modifier = Modifier.weight(1f),
             )
         } else {
@@ -221,7 +230,7 @@ private fun CartContents(
         HorizontalDivider()
         CartTotals(state = state)
         PrimaryActionButton(
-            text = "Bayar",
+            text = strings.cashierPay,
             onClick = actions.onOpenPaymentSheet,
             enabled = state.cartLines.isNotEmpty(),
             loading = state.isSubmitting,
@@ -235,12 +244,13 @@ private fun CartLineCard(
     line: CashierCartLine,
     actions: CashierActions,
 ) {
+    val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(
-                    onClickLabel = "Ubah satuan atau harga ${line.productName}",
+                    onClickLabel = strings.cashierEditLineOptions(line.productName),
                     onClick = { actions.onOpenLineEditor(line.lineId) },
                 ),
             verticalAlignment = Alignment.Top,
@@ -277,7 +287,7 @@ private fun CartLineCard(
             IconButton(onClick = { actions.onDecreaseQuantity(line.lineId) }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_minus),
-                    contentDescription = "Kurangi jumlah ${line.productName}",
+                    contentDescription = strings.cashierDecreaseLineQuantity(line.productName),
                 )
             }
             Text(
@@ -287,18 +297,18 @@ private fun CartLineCard(
             IconButton(onClick = { actions.onIncreaseQuantity(line.lineId) }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_plus),
-                    contentDescription = "Tambah jumlah ${line.productName}",
+                    contentDescription = strings.cashierIncreaseLineQuantity(line.productName),
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
             SecondaryTextAction(
-                text = "Satuan / Nego",
+                text = strings.cashierUnitAndNegotiation,
                 onClick = { actions.onOpenLineEditor(line.lineId) },
             )
             IconButton(onClick = { actions.onRemoveLine(line.lineId) }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_trash),
-                    contentDescription = "Hapus ${line.productName}",
+                    contentDescription = strings.cashierRemoveLine(line.productName),
                 )
             }
         }
@@ -307,10 +317,11 @@ private fun CartLineCard(
 
 @Composable
 private fun LinePriceNote(line: CashierCartLine) {
+    val strings = LocalPosStrings.current
     val note = when {
-        line.itemDiscount > 0L -> "Diskon item ${Rupiah.format(line.itemDiscount)}"
-        line.isNegotiated -> "Harga nego"
-        line.isWholesale -> "Harga grosir"
+        line.itemDiscount > 0L -> strings.cashierLineDiscount(Rupiah.format(line.itemDiscount))
+        line.isNegotiated -> strings.cashierLineNegotiatedBadge
+        line.isWholesale -> strings.cashierLineWholesaleBadge
         else -> null
     } ?: return
     Text(
@@ -323,20 +334,24 @@ private fun LinePriceNote(line: CashierCartLine) {
 @Composable
 private fun CartTotals(state: CashierUiState) {
     val pricedCart = state.pricedCart ?: return
+    val strings = LocalPosStrings.current
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
     ) {
-        TotalLine(label = "Item", value = "${formatQuantity(state.totalQuantity)} barang (${state.lineCount} item)")
-        TotalLine(label = "Subtotal", value = Rupiah.format(pricedCart.subtotal))
+        TotalLine(
+            label = strings.cashierItemLabel,
+            value = strings.cashierItemQuantityLine(formatQuantity(state.totalQuantity), state.lineCount),
+        )
+        TotalLine(label = strings.cashierSubtotal, value = Rupiah.format(pricedCart.subtotal))
         if (pricedCart.invoiceDiscount > 0L) {
-            TotalLine(label = "Diskon", value = "-${Rupiah.format(pricedCart.invoiceDiscount)}")
+            TotalLine(label = strings.cashierDiscount, value = "-${Rupiah.format(pricedCart.invoiceDiscount)}")
         }
         if (pricedCart.taxTotal > 0L) {
-            TotalLine(label = "Pajak", value = Rupiah.format(pricedCart.taxTotal))
+            TotalLine(label = strings.cashierTax, value = Rupiah.format(pricedCart.taxTotal))
         }
         if (pricedCart.rounding != 0L) {
-            TotalLine(label = "Pembulatan", value = Rupiah.format(pricedCart.rounding))
+            TotalLine(label = strings.cashierRounding, value = Rupiah.format(pricedCart.rounding))
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = PosSpacing.xs))
         Row(
@@ -344,7 +359,7 @@ private fun CartTotals(state: CashierUiState) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = "Total", style = LocalAppTextStyles.current.sectionHeading)
+            Text(text = strings.cashierTotal, style = LocalAppTextStyles.current.sectionHeading)
             AutoSizeNumberText(
                 text = Rupiah.format(pricedCart.grandTotal),
                 style = LocalAppTextStyles.current.financialValueLarge,
@@ -380,6 +395,7 @@ internal fun CashierLineEditorSheet(
     editor: CartLineEditorState,
     actions: CashierActions,
 ) {
+    val strings = LocalPosStrings.current
     ModalBottomSheet(
         onDismissRequest = actions.onCloseLineEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -393,7 +409,7 @@ internal fun CashierLineEditorSheet(
                 .padding(bottom = PosSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            PosSectionHeader(title = "Opsi item", supportingText = editor.productName)
+            PosSectionHeader(title = strings.cashierLineItemOptions, supportingText = editor.productName)
             PosCard(modifier = Modifier.fillMaxWidth()) {
                 if (editor.unitOptions.isNotEmpty()) {
                     UnitSelector(
@@ -406,8 +422,8 @@ internal fun CashierLineEditorSheet(
                     value = editor.negotiatedUnitPriceInput,
                     onValueChange = actions.onLineEditorPriceChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Harga satuan nego") },
-                    supportingText = { Text("Biarkan kosong untuk memakai harga normal.") },
+                    label = { Text(strings.cashierNegotiatedPrice) },
+                    supportingText = { Text(strings.cashierNegotiatedPriceHint) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
@@ -415,14 +431,15 @@ internal fun CashierLineEditorSheet(
                     value = editor.itemDiscountInput,
                     onValueChange = actions.onLineEditorDiscountChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Diskon item") },
+                    label = { Text(strings.cashierItemDiscount) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
-            editor.validationMessage?.let { message ->
+            val validationMessage = editor.validationMessage?.asTextOrNull()
+            if (validationMessage != null) {
                 Text(
-                    text = message,
+                    text = validationMessage,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -432,13 +449,13 @@ internal fun CashierLineEditorSheet(
                     onClick = actions.onCloseLineEditor,
                     modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
                 ) {
-                    Text(text = "Batal")
+                    Text(text = strings.actionCancel)
                 }
                 Button(
                     onClick = actions.onApplyLineEditor,
                     modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
                 ) {
-                    Text(text = "Terapkan", style = LocalAppTextStyles.current.buttonLabel)
+                    Text(text = strings.cashierApply, style = LocalAppTextStyles.current.buttonLabel)
                 }
             }
         }
@@ -452,9 +469,10 @@ private fun UnitSelector(
     selectedUnitId: Long?,
     onSelect: (Long?) -> Unit,
 ) {
+    val strings = LocalPosStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
         Text(
-            text = "Satuan",
+            text = strings.cashierUnit,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -465,7 +483,7 @@ private fun UnitSelector(
             FilterChip(
                 selected = selectedUnitId == null,
                 onClick = { onSelect(null) },
-                label = { Text("Satuan dasar") },
+                label = { Text(strings.cashierBaseUnit) },
             )
             options.forEach { unit ->
                 FilterChip(
@@ -478,5 +496,9 @@ private fun UnitSelector(
     }
 }
 
-private fun cartItemSummary(lineCount: Int, totalQuantity: Double): String =
-    if (lineCount == 0) "Belum ada item" else "${formatQuantity(totalQuantity)} barang (${lineCount} item)"
+private fun cartItemSummary(lineCount: Int, totalQuantity: Double, strings: PosStrings): String =
+    if (lineCount == 0) {
+        strings.cashierCartEmptyLine
+    } else {
+        strings.cashierItemQuantityLine(formatQuantity(totalQuantity), lineCount)
+    }

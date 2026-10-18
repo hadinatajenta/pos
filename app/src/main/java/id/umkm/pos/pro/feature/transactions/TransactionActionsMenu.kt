@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionStatus
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -57,11 +59,12 @@ internal fun TransactionActionsButton(
     onOpenSheet: () -> Unit = {},
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
+    val strings = LocalPosStrings.current
     Box(modifier = modifier) {
         IconButton(onClick = { if (isSheetStyle) onOpenSheet() else isMenuExpanded = true }) {
             Icon(
                 painter = painterResource(R.drawable.ic_ellipsis_vertical),
-                contentDescription = "Aksi ${transaction.invoiceNo}",
+                contentDescription = strings.transactionsActionMenu(transaction.invoiceNo),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -87,23 +90,24 @@ private fun transactionMenuItems(
     transaction: Transaction,
     onDismiss: () -> Unit,
     actions: TransactionActions,
+    strings: PosStrings,
 ): List<TransactionMenuItem> = listOfNotNull(
-    TransactionMenuItem("Lihat detail", R.drawable.ic_eye, false) {
+    TransactionMenuItem(strings.transactionsActionViewDetail, R.drawable.ic_eye, false) {
         onDismiss()
         actions.onOpenDetail(transaction.id)
     },
-    TransactionMenuItem("Cetak ulang struk", R.drawable.ic_printer, false) {
+    TransactionMenuItem(strings.transactionsActionReprint, R.drawable.ic_printer, false) {
         onDismiss()
         actions.onReprintReceipt(transaction.id)
     },
-    TransactionMenuItem("Bagikan struk", R.drawable.ic_share, false) {
+    TransactionMenuItem(strings.transactionsActionShare, R.drawable.ic_share, false) {
         onDismiss()
         actions.onShareReceipt(transaction.id)
     },
     if (transaction.status == TransactionStatus.RETURNED) {
         null
     } else {
-        TransactionMenuItem("Proses Refund", R.drawable.ic_undo, true) {
+        TransactionMenuItem(strings.transactionsActionRefund, R.drawable.ic_undo, true) {
             onDismiss()
             actions.onRefund(transaction.id)
         }
@@ -118,7 +122,8 @@ private fun TransactionActionsDropdown(
     actions: TransactionActions,
 ) {
     val palette = LocalPosSemanticPalette.current
-    val menuItems = transactionMenuItems(transaction, onDismiss, actions)
+    val strings = LocalPosStrings.current
+    val menuItems = transactionMenuItems(transaction, onDismiss, actions, strings)
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
@@ -156,7 +161,8 @@ internal fun TransactionActionsSheet(
     actions: TransactionActions,
 ) {
     val palette = LocalPosSemanticPalette.current
-    val menuItems = transactionMenuItems(transaction, onDismiss, actions)
+    val strings = LocalPosStrings.current
+    val menuItems = transactionMenuItems(transaction, onDismiss, actions, strings)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -164,7 +170,7 @@ internal fun TransactionActionsSheet(
                 .padding(bottom = PosSpacing.md),
         ) {
             Text(
-                text = "Transaksi ${transaction.invoiceNo}",
+                text = strings.transactionsMenuTitle(transaction.invoiceNo),
                 style = LocalAppTextStyles.current.sectionHeading,
                 modifier = Modifier.padding(horizontal = PosSpacing.lg, vertical = PosSpacing.sm),
             )

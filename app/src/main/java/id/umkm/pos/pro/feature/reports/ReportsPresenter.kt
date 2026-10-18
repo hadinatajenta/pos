@@ -15,7 +15,9 @@ import id.umkm.pos.pro.feature.receipt.ReceiptShareText
 import id.umkm.pos.pro.feature.receipt.StoredReceipt
 import id.umkm.pos.pro.feature.receipt.StoredReceiptBuilder
 import id.umkm.pos.pro.feature.receipt.StoredReceiptLoader
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.ReceiptPrintRequest
+import id.umkm.pos.pro.ui.common.UiText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -38,6 +40,7 @@ class ReportsPresenter(
     private val adController: AdController,
     private val coroutineScope: CoroutineScope,
     clock: Clock,
+    private val stringsFlow: StateFlow<PosStrings>,
     private val timeZone: TimeZone = TimeZone.getDefault(),
 ) {
 
@@ -131,7 +134,10 @@ class ReportsPresenter(
                 )
                 mutableState.update { current ->
                     if (detail == null) {
-                        current.copy(isDetailLoading = false, message = "Transaksi tidak ditemukan.")
+                        current.copy(
+                            isDetailLoading = false,
+                            message = UiText.from { strings -> strings.transactionsNotFound },
+                        )
                     } else {
                         current.copy(isDetailLoading = false, detail = detail)
                     }
@@ -140,7 +146,10 @@ class ReportsPresenter(
                 throw cancellation
             } catch (error: Exception) {
                 mutableState.update { current ->
-                    current.copy(isDetailLoading = false, message = "Detail transaksi gagal dimuat.")
+                    current.copy(
+                        isDetailLoading = false,
+                        message = UiText.from { strings -> strings.transactionsDetailLoadFailed },
+                    )
                 }
             }
         }
@@ -152,7 +161,7 @@ class ReportsPresenter(
 
     fun shareReceipt(transactionId: Long) {
         prepareStoredReceipt(transactionId) { current, receipt ->
-            current.copy(pendingReceiptShare = ReceiptShareText.build(receipt.shareData))
+            current.copy(pendingReceiptShare = ReceiptShareText.build(receipt.shareData, stringsFlow.value))
         }
     }
 
@@ -160,7 +169,7 @@ class ReportsPresenter(
         prepareStoredReceipt(transactionId) { current, receipt ->
             current.copy(
                 pendingReceiptPrint = ReceiptPrintRequest(
-                    documentName = "Struk ${receipt.shareData.invoiceNo}",
+                    documentName = stringsFlow.value.receiptPrintJobName(receipt.shareData.invoiceNo),
                     content = StoredReceiptBuilder.toPrintText(receipt),
                 ),
             )
@@ -205,10 +214,10 @@ class ReportsPresenter(
                     transactionRepository = transactionRepository,
                     productRepository = productRepository,
                 )
-                val fileName = ReportExportFileName.forRange(currentRange, format, timeZone)
+                val fileName = ReportExportFileName.forRange(currentRange, format, timeZone, stringsFlow.value)
                 val result = when (format) {
-                    ReportExportFormat.CSV -> csvExporter.exportReport(content, fileName)
-                    ReportExportFormat.XLSX -> xlsxExporter.exportReport(content, fileName)
+                    ReportExportFormat.CSV -> csvExporter.exportReport(content, fileName, stringsFlow.value)
+                    ReportExportFormat.XLSX -> xlsxExporter.exportReport(content, fileName, stringsFlow.value)
                 }
                 mutableState.update { current -> current.withExportResult(result) }
             } catch (cancellation: CancellationException) {
@@ -246,10 +255,13 @@ class ReportsPresenter(
                     productRepository = productRepository,
                     customerRepository = customerRepository,
                     settingsRepository = settingsRepository,
+                    strings = stringsFlow.value,
                 )
                 mutableState.update { current ->
                     if (receipt == null) {
-                        current.copy(message = "Transaksi tidak ditemukan.")
+                        current.copy(
+                            message = UiText.from { strings -> strings.transactionsNotFound },
+                        )
                     } else {
                         onReady(current, receipt)
                     }
@@ -257,7 +269,11 @@ class ReportsPresenter(
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
-                mutableState.update { current -> current.copy(message = "Struk gagal disiapkan.") }
+                mutableState.update { current ->
+                    current.copy(
+                        message = UiText.from { strings -> strings.transactionsReceiptPrepareFailed },
+                    )
+                }
             }
         }
     }
@@ -301,7 +317,7 @@ class ReportsPresenter(
                         summary = summary,
                         averageTransaction = averageTransactionOf(summary),
                         dailySales = dailySales,
-                        salesChartPoints = chartPointsFor(range, dailySales, zoneId),
+                        salesChartPoints = chartPointsFor(range, dailySales, zoneId, stringsFlow.value),
                         paymentShares = paymentShares(transactions),
                         topProducts = content.productSummaries,
                         transactions = transactions,

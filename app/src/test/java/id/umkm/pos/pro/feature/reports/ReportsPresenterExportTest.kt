@@ -6,6 +6,9 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -214,6 +217,33 @@ class ReportsPresenterExportTest {
         assertThat(presenter.uiState.value.exportState).isEqualTo(ReportsExportState.Idle)
     }
 
+    @Test
+    fun exportRendersFileNameAndHeadersFromTheSelectedCatalogue() = runTest(mainDispatcherRule.testDispatcher) {
+        val csvSink = RecordingCsvSink()
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(transactions = listOf(sampleTransaction(id = 1L))),
+            transactionRepository = FakeTransactionRepository(mapOf(1L to listOf(sampleTransactionItem()))),
+            productRepository = FakeProductRepository(mapOf(10L to sampleProduct())),
+            csvSink = csvSink,
+            scope = this,
+            strings = EnStrings,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.exportReport(ReportExportFormat.CSV)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = presenter.uiState.value.exportState
+        assertThat(state).isInstanceOf(ReportsExportState.Succeeded::class.java)
+        assertThat((state as ReportsExportState.Succeeded).artifactPath)
+            .isEqualTo("report-2024-01-15_2024-01-15.csv")
+        assertThat(csvSink.writtenPath).isEqualTo("report-2024-01-15_2024-01-15.csv")
+        assertThat(csvSink.writtenContent).contains("Date,Transaction No.,Total Sales,Payment Method,COGS,Profit")
+        assertThat(csvSink.writtenContent).contains("2024-01-15 00:00:00,INV-1,20000,Cash,10000,5000")
+        assertThat(csvSink.writtenContent).contains("Product Name,Qty Sold,Sales Value")
+    }
+
     private fun createPresenter(
         reportRepository: ReportRepository,
         transactionRepository: FakeTransactionRepository = FakeTransactionRepository(),
@@ -222,6 +252,7 @@ class ReportsPresenterExportTest {
         binarySink: RecordingBinarySink = RecordingBinarySink(),
         adController: RecordingAdController = RecordingAdController(),
         scope: CoroutineScope,
+        strings: PosStrings = IdStrings,
     ): ReportsPresenter = ReportsPresenter(
         reportRepository = reportRepository,
         transactionRepository = transactionRepository,
@@ -233,6 +264,7 @@ class ReportsPresenterExportTest {
         adController = adController,
         coroutineScope = scope,
         clock = clock,
+        stringsFlow = stringsFlowFor(strings),
         timeZone = utc,
     )
 }

@@ -7,8 +7,10 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.domain.usecase.ProcessReturnUseCase
+import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.sanitizeQuantityInput
+import id.umkm.pos.pro.ui.common.toUiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,7 +79,7 @@ class ReturnViewModel(
             when (val result = processReturnUseCase(transactionId, requests, current.note.trim().ifBlank { null })) {
                 is AppResult.Success -> _state.update { it.copy(isSubmitting = false, isProcessed = true) }
                 is AppResult.Failure -> _state.update {
-                    it.copy(isSubmitting = false, submitError = result.error.toPlainMessage())
+                    it.copy(isSubmitting = false, submitError = result.error.toUiText())
                 }
             }
         }
@@ -98,9 +100,11 @@ class ReturnViewModel(
                 return@launch
             }
             val lines = items.map { item ->
+                val productName = productRepository.getProductById(item.productId)?.name
                 ReturnLineInput(
                     transactionItemId = item.id,
-                    itemName = productRepository.getProductById(item.productId)?.name ?: "Item ${item.productId}",
+                    itemName = productName?.let { name -> UiText.literal(name) }
+                        ?: UiText.from { strings -> strings.returnItemFallbackName(item.productId) },
                     variantName = item.variantName,
                     purchasedQty = item.qty,
                     returnQty = formatQuantity(item.qty),
@@ -109,13 +113,4 @@ class ReturnViewModel(
             _state.update { it.copy(isLoading = false, invoiceNo = transaction.invoiceNo, lines = lines) }
         }
     }
-}
-
-private fun AppError.toPlainMessage(): String = when (this) {
-    is AppError.Validation -> message
-    is AppError.NotFound -> "This sale could not be found. Refresh the sale and try again."
-    is AppError.Storage -> "The return could not be saved. Please try again."
-    is AppError.Hardware -> "A device error stopped the return. Please try again."
-    is AppError.Network -> "The return needs a connection. Please try again."
-    is AppError.Unexpected -> message.ifBlank { "Something went wrong. Please try again." }
 }

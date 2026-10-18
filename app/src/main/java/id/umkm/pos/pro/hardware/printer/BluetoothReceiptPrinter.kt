@@ -7,7 +7,9 @@ import android.content.Context
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.PrinterInfo
+import id.umkm.pos.pro.core.contract.PrinterTransport
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
+
 import id.umkm.pos.pro.hardware.receipt.ReceiptPaperWidth
 import java.io.IOException
 import java.util.UUID
@@ -32,12 +34,48 @@ class BluetoothReceiptPrinter(
         (applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
 
     @Volatile
+    private var isSimulator: Boolean = false
+
+    @Volatile
     private var socket: BluetoothSocket? = null
 
     @Volatile
     private var monitorJob: Job? = null
 
+    override fun getAvailablePrinters(): List<PrinterInfo> {
+        val list = mutableListOf(SIMULATOR_58, SIMULATOR_80)
+        val bluetoothAdapter = adapter ?: return list
+        if (!bluetoothAdapter.isEnabled) return list
+        try {
+            val bonded = bluetoothAdapter.bondedDevices ?: emptySet()
+            for (device in bonded) {
+                val name = try { device.name } catch (_: SecurityException) { null } ?: "Bluetooth Printer"
+                val address = device.address
+                list.add(
+                    PrinterInfo(
+                        name = name,
+                        address = address,
+                        transport = PrinterTransport.BLUETOOTH_RFCOMM,
+                    ),
+                )
+            }
+        } catch (_: SecurityException) {
+            // Bluetooth permission not granted, return simulators
+        }
+        return list
+    }
+
     override suspend fun openTransport(printer: PrinterInfo): AppResult<Unit> {
+        if (printer.address == SIMULATOR_ADDRESS_58 || printer.address == SIMULATOR_ADDRESS_80) {
+            isSimulator = true
+            if (printer.address == SIMULATOR_ADDRESS_80) {
+                setPaperWidth(80)
+            } else {
+                setPaperWidth(58)
+            }
+            return AppResult.Success(Unit)
+        }
+        isSimulator = false
         val bluetoothAdapter = adapter
             ?: return AppResult.Failure(AppError.Hardware("Bluetooth is not available on this device"))
         if (!bluetoothAdapter.isEnabled) {
@@ -77,6 +115,9 @@ class BluetoothReceiptPrinter(
     }
 
     override suspend fun writeTransport(bytes: ByteArray): AppResult<Unit> {
+        if (isSimulator) {
+            return AppResult.Success(Unit)
+        }
         val activeSocket = socket
             ?: return AppResult.Failure(AppError.Hardware("Printer is not connected"))
         return try {
@@ -92,6 +133,7 @@ class BluetoothReceiptPrinter(
     }
 
     override fun closeTransport() {
+        isSimulator = false
         monitorJob?.cancel()
         monitorJob = null
         val activeSocket = socket
@@ -126,8 +168,23 @@ class BluetoothReceiptPrinter(
         markTransportDisconnected()
     }
 
-    private companion object {
+    companion object {
+        const val SIMULATOR_ADDRESS_58 = "SIMULATOR_58MM"
+        const val SIMULATOR_ADDRESS_80 = "SIMULATOR_80MM"
+
+        val SIMULATOR_58 = PrinterInfo(
+            name = "Thermal Simulator (58mm)",
+            address = SIMULATOR_ADDRESS_58,
+            transport = id.umkm.pos.pro.core.contract.PrinterTransport.BLUETOOTH_RFCOMM,
+        )
+        val SIMULATOR_80 = PrinterInfo(
+            name = "Thermal Simulator (80mm)",
+            address = SIMULATOR_ADDRESS_80,
+            transport = id.umkm.pos.pro.core.contract.PrinterTransport.BLUETOOTH_RFCOMM,
+        )
+
         const val INPUT_BUFFER_BYTES = 256
         val SPP_SERVICE_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
 }
+

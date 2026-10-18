@@ -4,6 +4,7 @@ import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.components.ChartBuckets
 import id.umkm.pos.pro.ui.components.ChartPoint
 import java.time.ZoneId
@@ -15,6 +16,7 @@ internal fun chartPointsFor(
     range: ReportRange,
     dailySales: List<DailySales>,
     zoneId: ZoneId,
+    strings: PosStrings,
 ): List<ChartPoint> {
     if (dailySales.none { day -> day.totalSales > 0L }) return emptyList()
     val buckets = ChartBuckets.dailyZeroFilled(range, dailySales, zoneId)
@@ -22,7 +24,7 @@ internal fun chartPointsFor(
     return buckets.map { day ->
         ChartPoint(
             label = if (isWeekdayLabel) {
-                ChartBuckets.weekdayLabel(day.epochDay)
+                ChartBuckets.weekdayLabel(day.epochDay, strings)
             } else {
                 ChartBuckets.dayOfMonthLabel(day.epochDay)
             },

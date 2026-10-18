@@ -7,6 +7,10 @@ data class AppSettings(
     val roundingIncrement: Long,
     val isPinEnabled: Boolean,
     val printerAddress: String?,
+    val printerName: String? = null,
+    val paperWidthMm: Int = 58,
+    val languageCode: String = "id",
     val qrisImagePath: String?,
     val qrisPayload: String? = null,
 )
+

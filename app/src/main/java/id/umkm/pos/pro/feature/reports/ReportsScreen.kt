@@ -50,6 +50,8 @@ import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
@@ -82,6 +84,7 @@ internal fun ReportsScreen(
     modifier: Modifier = Modifier,
 ) {
     val timeZone = remember { TimeZone.getDefault() }
+    val strings = LocalPosStrings.current
     var isExportDialogVisible by remember { mutableStateOf(false) }
     var isFilterSheetVisible by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -89,19 +92,19 @@ internal fun ReportsScreen(
         val horizontalPadding = if (isExpanded) PosSpacing.lg else PosSpacing.md
         Column(modifier = Modifier.fillMaxSize()) {
             ScreenHeader(
-                title = "Laporan",
-                supportingText = periodLabel(uiState.preset, uiState.range, timeZone),
+                title = strings.reportsTitle,
+                supportingText = periodLabel(uiState.preset, uiState.range, timeZone, strings),
                 actions = {
                     IconButton(onClick = { isFilterSheetVisible = true }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_calendar),
-                            contentDescription = "Filter periode",
+                            contentDescription = strings.reportsFilterPeriod,
                         )
                     }
                     HeaderActionButton(
-                        text = "Ekspor",
+                        text = strings.reportsExportButton,
                         iconRes = R.drawable.ic_download,
-                        contentDescription = "Ekspor laporan",
+                        contentDescription = strings.reportsExportAction,
                         onClick = { isExportDialogVisible = true },
                     )
                 },
@@ -120,7 +123,7 @@ internal fun ReportsScreen(
                 val error = uiState.error
                 when {
                     error != null -> ErrorState(error = error, onRetry = onRefresh)
-                    uiState.summary == null -> LoadingState(label = "Memuat laporan")
+                    uiState.summary == null -> LoadingState(label = strings.reportsLoading)
                     else -> MainReportContent(
                         uiState = uiState,
                         isExpanded = isExpanded,
@@ -157,6 +160,7 @@ private fun ReportsPeriodBar(
     onOpenCustomRange: () -> Unit,
     horizontalPadding: Dp,
 ) {
+    val strings = LocalPosStrings.current
     val chipColors = FilterChipDefaults.filterChipColors(
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
         labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -186,7 +190,7 @@ private fun ReportsPeriodBar(
                         onPresetSelected(option)
                     }
                 },
-                label = { Text(text = option.label) },
+                label = { Text(text = option.label(strings)) },
                 leadingIcon = if (isCustom) {
                     {
                         Icon(
@@ -266,6 +270,7 @@ private fun ReportTotals(
     isExpanded: Boolean,
 ) {
     val palette = LocalPosSemanticPalette.current
+    val strings = LocalPosStrings.current
     val profitColor = if (summary.netProfit >= 0L) palette.success else palette.danger
     if (isExpanded) {
         Row(
@@ -274,32 +279,32 @@ private fun ReportTotals(
             verticalAlignment = Alignment.Top,
         ) {
             ReportMetricCard(
-                label = "Total Penjualan (Omzet)",
+                label = strings.reportsTotalTurnover,
                 value = Rupiah.format(summary.totalSales),
-                supportingText = "${summary.transactionCount} transaksi selesai",
+                supportingText = strings.reportsCompletedCount(summary.transactionCount),
                 iconRes = R.drawable.ic_store,
                 emphasized = true,
                 modifier = Modifier.weight(1.15f),
             )
             ReportMetricCard(
-                label = "Estimasi Laba Bersih",
+                label = strings.reportsNetProfit,
                 value = Rupiah.format(summary.netProfit),
-                supportingText = "Keuntungan bersih",
+                supportingText = strings.reportsNetProfitHint,
                 iconRes = R.drawable.ic_banknote,
                 emphasized = true,
                 valueColor = profitColor,
                 modifier = Modifier.weight(1.15f),
             )
             ReportMetricCard(
-                label = "Modal (HPP)",
+                label = strings.reportsHppModal,
                 value = Rupiah.format(summary.totalHpp),
-                supportingText = "Harga pokok penjualan",
+                supportingText = strings.reportsHppHint,
                 modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
-                label = "Rata-rata Transaksi",
+                label = strings.reportsAverageTx,
                 value = Rupiah.format(averageTransaction),
-                supportingText = "Dari ${summary.transactionCount} nota",
+                supportingText = strings.reportsAverageFromNotes(summary.transactionCount),
                 iconRes = R.drawable.ic_receipt,
                 modifier = Modifier.weight(1f),
             )
@@ -314,7 +319,7 @@ private fun ReportTotals(
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Total Penjualan (Omzet)",
+                        text = strings.reportsTotalTurnover,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -338,7 +343,7 @@ private fun ReportTotals(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        text = "Estimasi Laba Bersih",
+                        text = strings.reportsNetProfit,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -353,7 +358,7 @@ private fun ReportTotals(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        text = "Modal (HPP)",
+                        text = strings.reportsHppModal,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -370,12 +375,12 @@ private fun ReportTotals(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             ReportMetricCard(
-                label = "Jumlah Transaksi",
-                value = "${summary.transactionCount} Nota",
+                label = strings.reportsTxCount,
+                value = strings.reportsNoteCount(summary.transactionCount),
                 modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
-                label = "Rata-rata Transaksi",
+                label = strings.reportsAverageTx,
                 value = Rupiah.format(averageTransaction),
                 modifier = Modifier.weight(1f),
             )
@@ -439,7 +444,7 @@ private fun SalesChartCard(
     modifier: Modifier = Modifier,
 ) {
     PosCard(modifier = modifier) {
-        PosSectionHeader(title = "Grafik Penjualan")
+        PosSectionHeader(title = LocalPosStrings.current.reportsSalesChart)
         SalesLineChart(points = points)
     }
 }
@@ -449,15 +454,16 @@ private fun PaymentMethodsCard(
     shares: List<ReportsPaymentShare>,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     val slices = shares.map { share ->
         ChartSlice(
-            label = paymentMethodLabel(share.paymentMethod),
+            label = paymentMethodLabel(share.paymentMethod, strings),
             value = share.amount.toDouble(),
             color = paymentSliceColor(share.paymentMethod),
         )
     }
     PosCard(modifier = modifier) {
-        PosSectionHeader(title = "Metode Pembayaran")
+        PosSectionHeader(title = strings.reportsPaymentMethods)
         Row(verticalAlignment = Alignment.CenterVertically) {
             PaymentMethodDonut(
                 slices = slices,
@@ -483,10 +489,11 @@ private fun TopProductsCard(
     modifier: Modifier = Modifier,
 ) {
     val topItems = products.take(5)
+    val strings = LocalPosStrings.current
     PosCard(modifier = modifier) {
         PosSectionHeader(
-            title = "Produk Terlaris",
-            supportingText = "Berdasarkan nilai penjualan periode ini",
+            title = strings.reportsTopProducts,
+            supportingText = strings.reportsTopProductsHint,
         )
         Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
             topItems.forEachIndexed { index, item ->
@@ -531,7 +538,7 @@ private fun TopProductsCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = "${formatSoldQuantity(item.quantitySold)} terjual",
+                            text = strings.reportsSoldQuantity(formatSoldQuantity(item.quantitySold)),
                             style = LocalAppTextStyles.current.supportingLabel,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -567,56 +574,58 @@ private fun ExportStatus(
     exportState: ReportsExportState,
     onDismissExport: () -> Unit,
 ) {
+    val strings = LocalPosStrings.current
     when (exportState) {
         ReportsExportState.Idle -> Unit
         ReportsExportState.Running -> ExportStatusRow {
             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(PosSpacing.sm))
-            Text(text = "Mengekspor laporan…", style = LocalAppTextStyles.current.supportingLabel)
+            Text(text = strings.reportsExportingMsg, style = LocalAppTextStyles.current.supportingLabel)
         }
 
         is ReportsExportState.Succeeded -> ExportStatusRow {
             Text(
-                text = "Tersimpan di ${DownloadsReportSink.DESTINATION_LABEL}/${exportState.artifactPath}",
+                text = strings.reportsSavedTo(
+                    "${DownloadsReportSink.DESTINATION_LABEL}/${exportState.artifactPath}",
+                ),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
+            SecondaryTextAction(text = strings.actionClose, onClick = onDismissExport)
         }
 
         is ReportsExportState.Failed -> ExportStatusRow {
             Text(
-                text = exportErrorMessage(exportState.error),
+                text = exportErrorMessage(exportState.error, strings),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
             )
-            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
+            SecondaryTextAction(text = strings.actionClose, onClick = onDismissExport)
         }
 
         ReportsExportState.PermissionDenied -> ExportStatusRow {
             Text(
-                text = "Izin penyimpanan diperlukan untuk menyimpan laporan ke folder " +
-                    "${DownloadsReportSink.DESTINATION_LABEL}. Aktifkan izin lalu coba lagi.",
+                text = strings.reportsPermissionNeeded(DownloadsReportSink.DESTINATION_LABEL),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f),
             )
-            SecondaryTextAction(text = "Tutup", onClick = onDismissExport)
+            SecondaryTextAction(text = strings.actionClose, onClick = onDismissExport)
         }
     }
 }
 
-private fun exportErrorMessage(error: AppError): String = when (error) {
-    is AppError.Validation -> "Rentang tanggal tidak valid untuk diekspor."
-    is AppError.Storage -> "Ekspor gagal menyimpan berkas. Periksa ruang penyimpanan lalu coba lagi."
-    is AppError.NotFound -> "Data laporan tidak ditemukan."
-    is AppError.Hardware -> "Perangkat tidak mendukung ekspor saat ini."
-    is AppError.Network -> "Ekspor gagal. Coba lagi."
-    is AppError.Unexpected -> "Ekspor gagal. Coba lagi."
+private fun exportErrorMessage(error: AppError, strings: PosStrings): String = when (error) {
+    is AppError.Validation -> strings.reportsExportErrorValidation
+    is AppError.Storage -> strings.reportsExportErrorStorage
+    is AppError.NotFound -> strings.reportsExportErrorNotFound
+    is AppError.Hardware -> strings.reportsExportErrorHardware
+    is AppError.Network -> strings.reportsExportErrorNetwork
+    is AppError.Unexpected -> strings.reportsExportErrorUnexpected
 }
 
 @Composable

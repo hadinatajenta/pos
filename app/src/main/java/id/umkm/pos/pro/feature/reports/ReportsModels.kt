@@ -8,22 +8,43 @@ import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.ui.components.ChartPoint
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.ReceiptPrintRequest
+import id.umkm.pos.pro.ui.common.UiText
 
-enum class ReportsRangePreset(val label: String) {
-    TODAY("Hari Ini"),
-    LAST_7_DAYS("7 Hari"),
-    LAST_28_DAYS("28 Hari"),
-    CUSTOM("Pilih Tanggal"),
+enum class ReportsRangePreset {
+    TODAY,
+    LAST_7_DAYS,
+    LAST_28_DAYS,
+    CUSTOM,
+}
+
+fun ReportsRangePreset.label(strings: PosStrings): String = when (this) {
+    ReportsRangePreset.TODAY -> strings.reportsRangeTodayLower
+    ReportsRangePreset.LAST_7_DAYS -> strings.reportsPresetLast7Days
+    ReportsRangePreset.LAST_28_DAYS -> strings.reportsPresetLast30Days
+    ReportsRangePreset.CUSTOM -> strings.reportsRangeCustomHint
+}
+
+fun ReportsRangePreset.pickerLabel(strings: PosStrings): String = when (this) {
+    ReportsRangePreset.TODAY -> strings.reportsPresetToday
+    ReportsRangePreset.LAST_7_DAYS -> strings.reportsPresetLast7Days
+    ReportsRangePreset.LAST_28_DAYS -> strings.reportsPresetLast30Days
+    ReportsRangePreset.CUSTOM -> strings.reportsRangeCustomHint
 }
 
 enum class TransactionStatusFilter(
-    val label: String,
     val statuses: Set<TransactionStatus>,
 ) {
-    COMPLETED("Berhasil", setOf(TransactionStatus.COMPLETED, TransactionStatus.PARTIAL_DEBT)),
-    KASBON("Kasbon", setOf(TransactionStatus.PARTIAL_DEBT)),
-    REFUND("Refund", setOf(TransactionStatus.RETURNED)),
+    COMPLETED(setOf(TransactionStatus.COMPLETED, TransactionStatus.PARTIAL_DEBT)),
+    KASBON(setOf(TransactionStatus.PARTIAL_DEBT)),
+    REFUND(setOf(TransactionStatus.RETURNED)),
+}
+
+fun TransactionStatusFilter.label(strings: PosStrings): String = when (this) {
+    TransactionStatusFilter.COMPLETED -> strings.reportsStatusFilterCompleted
+    TransactionStatusFilter.KASBON -> strings.reportsStatusFilterKasbon
+    TransactionStatusFilter.REFUND -> strings.reportsStatusFilterRefund
 }
 
 internal fun List<Transaction>.matchingStatusFilter(
@@ -106,6 +127,6 @@ data class ReportsUiState(
     val pendingReturnTransactionId: Long? = null,
     val pendingReceiptShare: String? = null,
     val pendingReceiptPrint: ReceiptPrintRequest? = null,
-    val message: String? = null,
+    val message: UiText? = null,
     val exportState: ReportsExportState = ReportsExportState.Idle,
 )

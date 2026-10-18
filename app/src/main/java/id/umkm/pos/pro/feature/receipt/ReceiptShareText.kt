@@ -1,6 +1,7 @@
 package id.umkm.pos.pro.feature.receipt
 
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.PosStrings
 
 data class ReceiptShareItem(
     val name: String,
@@ -32,60 +33,59 @@ data class ReceiptShareData(
 object ReceiptShareText {
 
     private const val SEPARATOR = "────────────────"
-    private const val APP_NAME = "POS UMKM Pro"
 
-    fun build(data: ReceiptShareData): String {
+    fun build(data: ReceiptShareData, strings: PosStrings): String {
         val lines = mutableListOf<String>()
-        lines += "*${data.storeName.ifBlank { APP_NAME }}*"
-        lines += APP_NAME
+        lines += "*${data.storeName.ifBlank { strings.receiptDefaultStoreName }}*"
+        lines += strings.receiptDefaultStoreName
         lines += SEPARATOR
-        lines += "No. Invoice : ${data.invoiceNo}"
-        lines += "Tanggal : ${data.createdAtLabel}"
+        lines += strings.receiptInvoiceLabel(data.invoiceNo)
+        lines += strings.receiptDateLabel(data.createdAtLabel)
         data.cashierName?.takeIf { it.isNotBlank() }?.let { cashier ->
-            lines += "Kasir : $cashier"
+            lines += strings.receiptCashierLabel(cashier)
         }
         data.customerName?.takeIf { it.isNotBlank() }?.let { customer ->
-            lines += "Pelanggan : $customer"
+            lines += strings.receiptCustomerLabel(customer)
         }
-        lines += "Metode : ${data.paymentMethodLabel}"
+        lines += strings.receiptMethodLabel(data.paymentMethodLabel)
         lines += SEPARATOR
         lines += ""
-        lines += "*Rincian pesanan*"
+        lines += strings.receiptItemsTitle
         data.items.forEachIndexed { index, item ->
             lines += "${index + 1}. ${item.name}"
             lines += "   ${item.quantityLabel} × ${Rupiah.format(item.unitPrice)} = ${Rupiah.format(item.lineTotal)}"
             if (item.itemDiscount > 0L) {
-                lines += "   Diskon item : -${Rupiah.format(item.itemDiscount)}"
+                lines += "   ${strings.receiptItemDiscount(Rupiah.format(item.itemDiscount))}"
             }
         }
         lines += ""
         lines += SEPARATOR
-        lines += "Subtotal : ${Rupiah.format(data.subtotal)}"
+        lines += strings.receiptSubtotal(Rupiah.format(data.subtotal))
         if (data.invoiceDiscount > 0L) {
-            lines += "Diskon : -${Rupiah.format(data.invoiceDiscount)}"
+            lines += strings.receiptDiscount(Rupiah.format(data.invoiceDiscount))
         }
         if (data.taxTotal > 0L) {
-            lines += "Pajak : ${Rupiah.format(data.taxTotal)}"
+            lines += strings.receiptTax(Rupiah.format(data.taxTotal))
         }
         if (data.rounding != 0L) {
-            lines += "Pembulatan : ${Rupiah.format(data.rounding)}"
+            lines += strings.receiptRounding(Rupiah.format(data.rounding))
         }
-        lines += "*TOTAL : ${Rupiah.format(data.grandTotal)}*"
+        lines += strings.receiptTotal(Rupiah.format(data.grandTotal))
         lines += SEPARATOR
-        lines += "Dibayar : ${Rupiah.format(data.paidAmount)}"
+        lines += strings.receiptPaid(Rupiah.format(data.paidAmount))
         if (data.changeAmount > 0L) {
-            lines += "Kembalian : ${Rupiah.format(data.changeAmount)}"
+            lines += strings.receiptChange(Rupiah.format(data.changeAmount))
         }
         if (data.remainingDebt > 0L) {
-            lines += "Sisa utang : ${Rupiah.format(data.remainingDebt)}"
+            lines += strings.receiptRemainingDebt(Rupiah.format(data.remainingDebt))
             data.dueDateLabel?.let { dueDate ->
-                lines += "Jatuh tempo : $dueDate"
+                lines += strings.receiptDueDate(dueDate)
             }
         }
         lines += SEPARATOR
         lines += ""
-        lines += "Terima kasih sudah berbelanja."
-        lines += "Simpan pesan ini sebagai bukti pembayaran."
+        lines += strings.receiptThankYou
+        lines += strings.receiptKeepAsProof
         return lines.joinToString(separator = "\n")
     }
 }

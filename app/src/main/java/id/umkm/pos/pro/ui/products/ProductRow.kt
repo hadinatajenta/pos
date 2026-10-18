@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.stockStatusLabel
@@ -57,10 +58,14 @@ internal fun ProductRow(
 ) {
     val product = productItem.product
     var isMenuExpanded by remember { mutableStateOf(false) }
+    val strings = LocalPosStrings.current
     PosCard(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Ubah ${product.name}", onClick = { actions.onOpenEditForm(product.id) }),
+            .clickable(
+                onClickLabel = strings.productsEditNamed(product.name),
+                onClick = { actions.onOpenEditForm(product.id) },
+            ),
         contentPadding = PosSpacing.sm,
     ) {
         Row(
@@ -86,7 +91,7 @@ internal fun ProductRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = product.category?.takeIf { category -> category.isNotBlank() } ?: "Tanpa kategori",
+                    text = product.category?.takeIf { category -> category.isNotBlank() } ?: strings.commonNoCategory,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -111,7 +116,7 @@ internal fun ProductRow(
                     IconButton(onClick = { isMenuExpanded = true }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_ellipsis_vertical),
-                            contentDescription = "Menu ${product.name}",
+                            contentDescription = strings.productsMenuNamed(product.name),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -120,14 +125,14 @@ internal fun ProductRow(
                         onDismissRequest = { isMenuExpanded = false },
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Ubah") },
+                            text = { Text(strings.actionEdit) },
                             onClick = {
                                 isMenuExpanded = false
                                 actions.onOpenEditForm(product.id)
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Hapus") },
+                            text = { Text(strings.actionDelete) },
                             onClick = {
                                 isMenuExpanded = false
                                 actions.onRequestDelete(product.id)
@@ -146,6 +151,7 @@ private fun ProductStockPill(
     stockBaseQty: Double,
 ) {
     val palette = LocalPosSemanticPalette.current
+    val strings = LocalPosStrings.current
     val containerColor: Color
     val contentColor: Color
     @DrawableRes val iconRes: Int
@@ -174,11 +180,11 @@ private fun ProductStockPill(
             iconRes = R.drawable.ic_trending_down
         }
     }
-    val quantityLabel = "Stok: ${formatQuantity(stockBaseQty)}"
+    val quantityLabel = strings.productsStockSummary(formatQuantity(stockBaseQty))
     Box(
         modifier = Modifier
             .background(color = containerColor, shape = MaterialTheme.shapes.small)
-            .clearAndSetSemantics { contentDescription = "$quantityLabel, ${stockStatusLabel(stockStatus)}" },
+            .clearAndSetSemantics { contentDescription = "$quantityLabel, ${stockStatusLabel(stockStatus, strings)}" },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = PosSpacing.xs, vertical = PosSpacing.xxs),

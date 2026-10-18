@@ -46,7 +46,7 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -98,10 +98,18 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE app_settings ADD COLUMN printer_name TEXT")
+                db.execSQL("ALTER TABLE app_settings ADD COLUMN paper_width_mm INTEGER NOT NULL DEFAULT 58")
+                db.execSQL("ALTER TABLE app_settings ADD COLUMN language_code TEXT NOT NULL DEFAULT 'id'")
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .addCallback(SingletonRowsCallback)
                 .build()
 
@@ -110,8 +118,8 @@ abstract class UmkmDatabase : RoomDatabase() {
                 db.execSQL(
                     "INSERT INTO app_settings " +
                         "(id, store_name, cashier_name, tax_rate_percent, rounding_increment, " +
-                        "is_pin_enabled, printer_address, qris_image_path, qris_payload) " +
-                        "VALUES (1, '', NULL, 0, 0, 0, NULL, NULL, NULL)",
+                        "is_pin_enabled, printer_address, printer_name, paper_width_mm, language_code, qris_image_path, qris_payload) " +
+                        "VALUES (1, '', NULL, 0, 0, 0, NULL, NULL, 58, 'id', NULL, NULL)",
                 )
                 db.execSQL(
                     "INSERT INTO security_store " +
@@ -122,3 +130,4 @@ abstract class UmkmDatabase : RoomDatabase() {
         }
     }
 }
+

@@ -5,6 +5,8 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.model.ReportRange
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.util.TimeZone
@@ -97,10 +99,10 @@ class SalesCsvExporterTest {
             ),
         )
 
-        val result = exporter.exportReport(content, "/exports/laporan.csv")
+        val result = exporter.exportReport(content, "/exports/laporan.csv", IdStrings)
 
         assertThat(result).isInstanceOf(AppResult.Success::class.java)
-        assertThat(sink.writtenContent).isEqualTo(ReportCsv.buildReportCsv(content, utc))
+        assertThat(sink.writtenContent).isEqualTo(ReportCsv.buildReportCsv(content, IdStrings, utc))
         assertThat((result as AppResult.Success<BackupArtifact>).value.path).isEqualTo("/exports/laporan.csv")
     }
 
@@ -109,9 +111,29 @@ class SalesCsvExporterTest {
         val sink = RecordingCsvSink()
         val exporter = SalesCsvExporter(FakeReportRepository(), sink, utc)
 
-        val result = exporter.exportReport(ReportContent(emptyList(), emptyList()), " ")
+        val result = exporter.exportReport(ReportContent(emptyList(), emptyList()), " ", IdStrings)
 
         assertThat((result as AppResult.Failure).error).isInstanceOf(AppError.Validation::class.java)
         assertThat(sink.writtenContent).isNull()
+    }
+
+    @Test
+    fun exportReportWritesHeadersFromTheProvidedCatalogue() = runTest {
+        val sink = RecordingCsvSink()
+        val exporter = SalesCsvExporter(FakeReportRepository(), sink, utc)
+        val content = ReportContent(
+            transactions = listOf(sampleTransaction()),
+            productSummaries = listOf(
+                ReportProductSummary(productId = 10L, name = "Kopi Susu", quantitySold = 3.0, salesValue = 45_000L),
+            ),
+        )
+
+        val result = exporter.exportReport(content, "/exports/report.csv", EnStrings)
+
+        assertThat(result).isInstanceOf(AppResult.Success::class.java)
+        val lines = requireNotNull(sink.writtenContent).split("\r\n")
+        assertThat(lines[0]).isEqualTo("Date,Transaction No.,Total Sales,Payment Method,COGS,Profit")
+        assertThat(lines[1]).isEqualTo("2024-01-15 00:00:00,INV-1,20000,Cash,10000,5000")
+        assertThat(lines[3]).isEqualTo("Product Name,Qty Sold,Sales Value")
     }
 }

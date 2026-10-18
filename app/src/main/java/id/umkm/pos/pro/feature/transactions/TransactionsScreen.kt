@@ -38,11 +38,13 @@ import id.umkm.pos.pro.feature.reports.ReportsFilterSheet
 import id.umkm.pos.pro.feature.reports.ReportsRangePreset
 import id.umkm.pos.pro.feature.reports.ReportsUiState
 import id.umkm.pos.pro.feature.reports.TransactionStatusFilter
+import id.umkm.pos.pro.feature.reports.label
 import id.umkm.pos.pro.feature.reports.periodLabel
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
@@ -64,26 +66,30 @@ internal fun TransactionsScreen(
     modifier: Modifier = Modifier,
 ) {
     val timeZone = remember { TimeZone.getDefault() }
+    val strings = LocalPosStrings.current
     var isFilterSheetVisible by remember { mutableStateOf(false) }
-    val activePeriodLabel = periodLabel(uiState.preset, uiState.range, timeZone)
+    val activePeriodLabel = periodLabel(uiState.preset, uiState.range, timeZone, strings)
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= PosBreakpoints.twoPane
         val horizontalPadding = if (isExpanded) PosSpacing.lg else PosSpacing.md
         Column(modifier = Modifier.fillMaxSize()) {
             ScreenHeader(
-                title = "Transaksi",
-                supportingText = "${uiState.visibleTransactions.size} transaksi · $activePeriodLabel",
+                title = strings.transactionsTitle,
+                supportingText = strings.transactionsCountWithPeriod(
+                    uiState.visibleTransactions.size,
+                    activePeriodLabel,
+                ),
                 actions = {
                     IconButton(onClick = { isFilterSheetVisible = true }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_calendar),
-                            contentDescription = "Filter periode",
+                            contentDescription = strings.transactionsFilterPeriod,
                         )
                     }
                     HeaderActionButton(
-                        text = "Transaksi",
+                        text = strings.actionAdd,
                         iconRes = R.drawable.ic_plus,
-                        contentDescription = "Tambah transaksi",
+                        contentDescription = strings.transactionsAddAction,
                         onClick = onAddTransaction,
                     )
                 },
@@ -91,7 +97,7 @@ internal fun TransactionsScreen(
             PosSearchField(
                 value = uiState.searchQuery,
                 onValueChange = onSearchQueryChange,
-                placeholder = "Cari nomor nota atau nominal",
+                placeholder = strings.transactionsSearchPlaceholder,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
@@ -121,19 +127,19 @@ internal fun TransactionsScreen(
                 when {
                     error != null -> ErrorState(error = error, onRetry = onRefresh)
                     uiState.summary == null && uiState.isLoading ->
-                        LoadingState(label = "Memuat transaksi")
+                        LoadingState(label = strings.transactionsLoading)
 
                     uiState.transactions.isEmpty() -> EmptyState(
                         iconRes = R.drawable.ic_receipt,
-                        title = "Belum ada penjualan",
-                        supportingText = "Transaksi yang selesai di Kasir akan tampil di sini pada periode ini.",
+                        title = strings.transactionsEmptyTitle,
+                        supportingText = strings.transactionsEmptyHint,
                     )
 
                     uiState.visibleTransactions.isEmpty() -> EmptyState(
                         iconRes = R.drawable.ic_receipt,
-                        title = "Tidak ada transaksi yang cocok",
-                        supportingText = "Coba ubah kata kunci pencarian atau filter status pada periode ini.",
-                        actionLabel = "Tampilkan Semua",
+                        title = strings.transactionsNoMatchTitle,
+                        supportingText = strings.transactionsNoMatchHint,
+                        actionLabel = strings.transactionsShowAll,
                         onAction = {
                             onSelectStatusFilter(null)
                             onSearchQueryChange("")
@@ -177,6 +183,7 @@ private fun TransactionsFilterRow(
     onToggleStatusFilter: (TransactionStatusFilter) -> Unit,
     horizontalPadding: androidx.compose.ui.unit.Dp,
 ) {
+    val strings = LocalPosStrings.current
     val chipColors = FilterChipDefaults.filterChipColors(
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
         labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -215,7 +222,7 @@ private fun TransactionsFilterRow(
             FilterChip(
                 selected = statusFilter == null,
                 onClick = onSelectAll,
-                label = { Text(text = "Semua (${transactions.size})") },
+                label = { Text(text = strings.transactionsFilterAll(transactions.size)) },
                 shape = CircleShape,
                 border = null,
                 colors = chipColors,
@@ -229,7 +236,7 @@ private fun TransactionsFilterRow(
             FilterChip(
                 selected = option == statusFilter,
                 onClick = { onToggleStatusFilter(option) },
-                label = { Text(text = "${option.label} ($count)") },
+                label = { Text(text = strings.transactionsFilterOption(option.label(strings), count)) },
                 shape = CircleShape,
                 border = null,
                 colors = chipColors,

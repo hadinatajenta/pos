@@ -2,6 +2,7 @@ package id.umkm.pos.pro.feature.reports
 
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import java.util.TimeZone
@@ -28,19 +29,19 @@ object ReportCsv {
         "remaining_debt",
     )
 
-    val REPORT_TRANSACTION_COLUMNS: List<String> = listOf(
-        "Tanggal",
-        "No. Transaksi",
-        "Total Penjualan",
-        "Metode Pembayaran",
-        "HPP",
-        "Laba",
+    fun reportTransactionColumns(strings: PosStrings): List<String> = listOf(
+        strings.exportColumnDate,
+        strings.exportColumnInvoice,
+        strings.exportColumnTotalSales,
+        strings.exportColumnPaymentMethod,
+        strings.exportColumnHpp,
+        strings.exportColumnProfit,
     )
 
-    val PRODUCT_SUMMARY_COLUMNS: List<String> = listOf(
-        "Nama Produk",
-        "Qty Terjual",
-        "Nilai Penjualan",
+    fun productSummaryColumns(strings: PosStrings): List<String> = listOf(
+        strings.exportColumnProductName,
+        strings.exportColumnQtySold,
+        strings.exportColumnSalesValue,
     )
 
     val DAILY_COLUMNS: List<String> = listOf(
@@ -94,23 +95,24 @@ object ReportCsv {
 
     fun buildReportCsv(
         content: ReportContent,
+        strings: PosStrings,
         timeZone: TimeZone = TimeZone.getDefault(),
     ): String = buildString {
-        appendRecord(REPORT_TRANSACTION_COLUMNS)
+        appendRecord(reportTransactionColumns(strings))
         content.transactions.forEach { transaction ->
             appendRecord(
                 listOf(
                     ReportDates.formatTimestamp(transaction.createdAt, timeZone),
                     transaction.invoiceNo,
                     transaction.grandTotal.toString(),
-                    paymentMethodLabel(transaction.paymentMethod),
+                    paymentMethodLabel(transaction.paymentMethod, strings),
                     transaction.totalHpp.toString(),
                     transaction.netProfit.toString(),
                 ),
             )
         }
         appendRecord(emptyList())
-        appendRecord(PRODUCT_SUMMARY_COLUMNS)
+        appendRecord(productSummaryColumns(strings))
         content.productSummaries.forEach { summary ->
             appendRecord(
                 listOf(

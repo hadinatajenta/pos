@@ -46,7 +46,9 @@ import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.UiStateContent
@@ -86,17 +88,20 @@ internal fun CashierCatalogPane(
     actions: CashierActions,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(modifier = modifier.fillMaxSize()) {
         ScreenHeader(
-            title = "Kasir",
-            supportingText = catalogSupportingText(state),
+            title = strings.cashierTitle,
+            supportingText = catalogSupportingText(state, strings),
         )
         CashierSearchField(state = state, actions = actions)
         CashierCategoryChips(state = state, actions = actions)
         OfflineNotice()
         UiStateContent(
             state = state.catalog,
-            onLoading = { LoadingState(modifier = Modifier.weight(1f), label = "Memuat produk") },
+            onLoading = {
+                LoadingState(modifier = Modifier.weight(1f), label = strings.cashierLoadingProducts)
+            },
             onEmpty = {
                 CashierEmptyCatalog(state = state, actions = actions, modifier = Modifier.weight(1f))
             },
@@ -110,13 +115,13 @@ internal fun CashierCatalogPane(
     }
 }
 
-private fun catalogSupportingText(state: CashierUiState): String? {
+private fun catalogSupportingText(state: CashierUiState, strings: PosStrings): String? {
     val items = (state.catalog as? UiState.Success)?.data ?: return null
     return buildString {
-        append("${items.size} produk")
+        append(strings.cashierProductCount(items.size))
         state.catalogFilter.category?.let { append(" · $it") }
         if (state.catalogFilter.isAvailableOnly) {
-            append(" · Stok tersedia")
+            append(" · ${strings.cashierFilterInStockOnly}")
         }
     }
 }
@@ -127,6 +132,7 @@ private fun CashierCategoryChips(
     actions: CashierActions,
 ) {
     if (state.catalogCategories.isEmpty()) return
+    val strings = LocalPosStrings.current
     val chipColors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -144,7 +150,7 @@ private fun CashierCategoryChips(
             FilterChip(
                 selected = state.catalogFilter.category == null,
                 onClick = { actions.onCatalogCategoryChange(null) },
-                label = { Text("Semua") },
+                label = { Text(strings.cashierFilterAllCategories) },
                 shape = CircleShape,
                 border = null,
                 colors = chipColors,
@@ -171,6 +177,7 @@ private fun CashierSearchField(
     state: CashierUiState,
     actions: CashierActions,
 ) {
+    val strings = LocalPosStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -181,7 +188,7 @@ private fun CashierSearchField(
         PosSearchField(
             value = state.searchQuery,
             onValueChange = actions.onSearchQueryChange,
-            placeholder = "Cari produk",
+            placeholder = strings.cashierSearchPlaceholder,
             modifier = Modifier.weight(1f),
         )
         CashierFilterButton(state = state, actions = actions)
@@ -194,6 +201,7 @@ private fun CashierFilterButton(
     actions: CashierActions,
 ) {
     var isMenuVisible by remember { mutableStateOf(false) }
+    val strings = LocalPosStrings.current
     val isFilterActive = state.catalogFilter.isActive
     val containerColor = if (isFilterActive) {
         MaterialTheme.colorScheme.primaryContainer
@@ -212,12 +220,12 @@ private fun CashierFilterButton(
             shape = PosShapes.large,
             modifier = Modifier
                 .size(CATALOG_FILTER_BUTTON_SIZE)
-                .clickable(onClickLabel = "Filter produk", onClick = { isMenuVisible = true }),
+                .clickable(onClickLabel = strings.cashierFilterProducts, onClick = { isMenuVisible = true }),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     painter = painterResource(R.drawable.ic_list_filter),
-                    contentDescription = "Filter produk",
+                    contentDescription = strings.cashierFilterProducts,
                     tint = contentColor,
                     modifier = Modifier.size(PosSizes.iconMedium),
                 )
@@ -228,7 +236,7 @@ private fun CashierFilterButton(
             onDismissRequest = { isMenuVisible = false },
         ) {
             DropdownMenuItem(
-                text = { Text("Semua kategori") },
+                text = { Text(strings.cashierFilterAllCategoriesLabel) },
                 onClick = {
                     actions.onCatalogCategoryChange(null)
                     isMenuVisible = false
@@ -255,7 +263,7 @@ private fun CashierFilterButton(
             }
             HorizontalDivider()
             DropdownMenuItem(
-                text = { Text("Hanya stok tersedia") },
+                text = { Text(strings.cashierFilterInStockOnly) },
                 onClick = { actions.onCatalogAvailableOnlyChange(!state.catalogFilter.isAvailableOnly) },
                 trailingIcon = {
                     if (state.catalogFilter.isAvailableOnly) {
@@ -266,7 +274,7 @@ private fun CashierFilterButton(
             if (isFilterActive) {
                 HorizontalDivider()
                 DropdownMenuItem(
-                    text = { Text("Reset filter") },
+                    text = { Text(strings.cashierFilterReset) },
                     onClick = {
                         actions.onCatalogCategoryChange(null)
                         actions.onCatalogAvailableOnlyChange(false)
@@ -287,17 +295,18 @@ private fun CashierEmptyCatalog(
     val isSearching = state.searchQuery.isNotBlank()
     val isFiltered = state.catalogFilter.isActive
     val isNarrowed = isSearching || isFiltered
+    val strings = LocalPosStrings.current
     EmptyState(
         iconRes = R.drawable.ic_search_x,
-        title = if (isNarrowed) "Produk tidak ditemukan" else "Belum ada produk",
+        title = if (isNarrowed) strings.cashierNoProductsSearchTitle else strings.cashierNoProductsTitle,
         supportingText = when {
-            isSearching && isFiltered -> "Coba ubah kata kunci atau filter."
-            isSearching -> "Coba nama, SKU, atau barcode lain."
-            isFiltered -> "Coba ubah atau hapus filter."
-            else -> "Tambahkan produk dari tab Produk untuk mulai berjualan."
+            isSearching && isFiltered -> strings.cashierNoProductsSearchHint
+            isSearching -> strings.cashierNoProductsKeywordHint
+            isFiltered -> strings.cashierNoProductsFilterHint
+            else -> strings.cashierNoProductsEmptyHint
         },
         modifier = modifier,
-        actionLabel = if (isNarrowed) "Reset pencarian dan filter" else null,
+        actionLabel = if (isNarrowed) strings.cashierResetSearchAndFilter else null,
         onAction = if (isNarrowed) {
             {
                 actions.onSearchQueryChange("")
@@ -352,12 +361,13 @@ private fun CashierProductRow(
 ) {
     val isDepleted = (item.stockStatus == StockStatus.OUT_OF_STOCK || item.stockStatus == StockStatus.OVERSOLD) &&
         item.quantityInCart <= 0.0
+    val strings = LocalPosStrings.current
     PosCard(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isDepleted) Modifier.graphicsLayer(alpha = 0.65f) else Modifier)
             .clickable(
-                onClickLabel = "Tambah ${item.product.name}",
+                onClickLabel = strings.cashierAddProduct(item.product.name),
                 onClick = { actions.onAddProduct(item.product.id) },
             ),
         contentPadding = PosSpacing.sm,
@@ -405,12 +415,13 @@ private fun CashierProductTile(
     val product = item.product
     val isDepleted = (item.stockStatus == StockStatus.OUT_OF_STOCK || item.stockStatus == StockStatus.OVERSOLD) &&
         item.quantityInCart <= 0.0
+    val strings = LocalPosStrings.current
     PosCard(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isDepleted) Modifier.graphicsLayer(alpha = 0.65f) else Modifier)
             .clickable(
-                onClickLabel = "Tambah ${product.name}",
+                onClickLabel = strings.cashierAddProduct(product.name),
                 onClick = { actions.onAddProduct(product.id) },
             ),
         contentPadding = PosSpacing.sm,
@@ -447,7 +458,7 @@ private fun CashierProductTile(
             if (item.quantityInCart <= 0.0) {
                 CatalogCircleButton(
                     iconRes = R.drawable.ic_plus,
-                    contentDescription = "Tambah ${product.name}",
+                    contentDescription = strings.cashierAddProduct(product.name),
                     onClick = { actions.onAddProduct(product.id) },
                     isMuted = isDepleted,
                 )
@@ -459,7 +470,7 @@ private fun CashierProductTile(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = product.category ?: "Tanpa kategori",
+                text = product.category ?: strings.commonNoCategory,
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -489,6 +500,7 @@ private fun ProductStockPill(
         StockStatusBadge(status = status)
         return
     }
+    val strings = LocalPosStrings.current
     Box(
         modifier = Modifier
             .background(
@@ -498,7 +510,7 @@ private fun ProductStockPill(
             .padding(horizontal = PosSpacing.xs, vertical = 2.dp),
     ) {
         Text(
-            text = "Stok ${formatQuantity(stockBaseQty)}",
+            text = strings.cashierStockRemaining(formatQuantity(stockBaseQty)),
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -523,10 +535,11 @@ private fun CatalogQuantityControl(
     actions: CashierActions,
     isMuted: Boolean = false,
 ) {
+    val strings = LocalPosStrings.current
     if (item.quantityInCart <= 0.0) {
         CatalogCircleButton(
             iconRes = R.drawable.ic_plus,
-            contentDescription = "Tambah ${item.product.name}",
+            contentDescription = strings.cashierAddProduct(item.product.name),
             onClick = { actions.onAddProduct(item.product.id) },
             isPrimary = false,
             isMuted = isMuted,
@@ -539,7 +552,7 @@ private fun CatalogQuantityControl(
     ) {
         CatalogCircleButton(
             iconRes = R.drawable.ic_minus,
-            contentDescription = "Kurangi ${item.product.name}",
+            contentDescription = strings.cashierDecreaseProduct(item.product.name),
             onClick = { actions.onDecreaseProductQuantity(item.product.id) },
             isPrimary = false,
         )
@@ -551,7 +564,7 @@ private fun CatalogQuantityControl(
         )
         CatalogCircleButton(
             iconRes = R.drawable.ic_plus,
-            contentDescription = "Tambah ${item.product.name}",
+            contentDescription = strings.cashierAddProduct(item.product.name),
             onClick = { actions.onAddProduct(item.product.id) },
             isPrimary = true,
         )

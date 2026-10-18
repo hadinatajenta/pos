@@ -28,6 +28,7 @@ import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.feature.reports.TransactionDetail
 import id.umkm.pos.pro.feature.reports.TransactionDetailLine
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
@@ -42,6 +43,7 @@ internal fun TransactionDetailDialog(
     timeZone: TimeZone,
     onDismiss: () -> Unit,
 ) {
+    val strings = LocalPosStrings.current
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -55,7 +57,7 @@ internal fun TransactionDetailDialog(
         ) {
             if (detail == null) {
                 if (isDetailLoading) {
-                    LoadingState(label = "Memuat detail")
+                    LoadingState(label = strings.transactionsLoadingDetail)
                 }
             } else {
                 TransactionDetailContent(detail = detail, timeZone = timeZone, onDismiss = onDismiss)
@@ -74,6 +76,7 @@ private fun TransactionDetailContent(
     onDismiss: () -> Unit,
 ) {
     val transaction = detail.transaction
+    val strings = LocalPosStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -83,7 +86,7 @@ private fun TransactionDetailContent(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Detail Transaksi",
+                    text = strings.transactionsDetailTitle,
                     style = LocalAppTextStyles.current.sectionHeading,
                 )
                 Text(
@@ -102,52 +105,56 @@ private fun TransactionDetailContent(
             verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             DetailInfoRow(
-                label = "Waktu",
-                value = ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone),
+                label = strings.transactionsDate,
+                value = ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone, strings),
             )
             detail.cashierName?.takeIf { name -> name.isNotBlank() }?.let { cashierName ->
-                DetailInfoRow(label = "Kasir", value = cashierName)
+                DetailInfoRow(label = strings.transactionsFieldCashier, value = cashierName)
             }
             detail.customerName?.takeIf { name -> name.isNotBlank() }?.let { customerName ->
-                DetailInfoRow(label = "Pelanggan", value = customerName)
+                DetailInfoRow(label = strings.transactionsFieldCustomer, value = customerName)
             }
             DetailInfoRow(
-                label = "Metode Pembayaran",
-                value = paymentMethodLabel(transaction.paymentMethod),
+                label = strings.transactionsFieldPaymentMethod,
+                value = paymentMethodLabel(transaction.paymentMethod, strings),
             )
             HorizontalDivider()
             Text(
-                text = "Rincian Item",
+                text = strings.transactionsItemsTitle,
                 style = LocalAppTextStyles.current.tableHeader,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             detail.lines.forEach { line -> DetailLineRow(line = line) }
             HorizontalDivider()
-            DetailAmountRow(label = "Subtotal", value = transaction.subtotal)
+            DetailAmountRow(label = strings.transactionsFieldSubtotal, value = transaction.subtotal)
             if (transaction.invoiceDiscount > 0L) {
-                DetailAmountRow(label = "Diskon", value = -transaction.invoiceDiscount)
+                DetailAmountRow(label = strings.transactionsFieldDiscount, value = -transaction.invoiceDiscount)
             }
             if (transaction.taxTotal > 0L) {
-                DetailAmountRow(label = "Pajak", value = transaction.taxTotal)
+                DetailAmountRow(label = strings.transactionsFieldTax, value = transaction.taxTotal)
             }
             if (transaction.rounding != 0L) {
-                DetailAmountRow(label = "Pembulatan", value = transaction.rounding)
+                DetailAmountRow(label = strings.transactionsFieldRounding, value = transaction.rounding)
             }
-            DetailAmountRow(label = "Total", value = transaction.grandTotal, isEmphasized = true)
-            DetailAmountRow(label = "Dibayar", value = transaction.paidAmount)
+            DetailAmountRow(
+                label = strings.transactionsFieldTotal,
+                value = transaction.grandTotal,
+                isEmphasized = true,
+            )
+            DetailAmountRow(label = strings.transactionsFieldPaid, value = transaction.paidAmount)
             if (transaction.changeAmount > 0L) {
-                DetailAmountRow(label = "Kembalian", value = transaction.changeAmount)
+                DetailAmountRow(label = strings.transactionsFieldChange, value = transaction.changeAmount)
             }
             if (transaction.remainingDebt > 0L) {
-                DetailAmountRow(label = "Sisa Utang", value = transaction.remainingDebt)
+                DetailAmountRow(label = strings.transactionsFieldRemainingDebt, value = transaction.remainingDebt)
             }
             transaction.dueDate?.let { dueDate ->
-                DetailInfoRow(label = "Jatuh Tempo", value = formatDate(dueDate))
+                DetailInfoRow(label = strings.transactionsFieldDueDate, value = formatDate(dueDate, strings))
             }
         }
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             TextButton(onClick = onDismiss) {
-                Text(text = "Tutup", style = LocalAppTextStyles.current.buttonLabel)
+                Text(text = strings.actionClose, style = LocalAppTextStyles.current.buttonLabel)
             }
         }
     }
@@ -206,7 +213,7 @@ private fun DetailLineRow(line: TransactionDetailLine) {
         }
         if (line.itemDiscount > 0L) {
             Text(
-                text = "Diskon item -${Rupiah.format(line.itemDiscount)}",
+                text = LocalPosStrings.current.transactionsItemDiscountLine(Rupiah.format(line.itemDiscount)),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = LocalPosSemanticPalette.current.danger,
             )

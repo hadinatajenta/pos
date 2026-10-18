@@ -5,6 +5,7 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.domain.usecase.FakeClock
 import id.umkm.pos.pro.ui.FakeCatalogRepository
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.uiSampleProduct
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
@@ -110,7 +111,7 @@ class ProductsImageLifecycleTest {
         assertThat(products.currentProducts().single().imagePath).isEqualTo(images.storedPathFor("picked-1"))
         assertThat(images.deletedImagePaths).containsExactly(STORED_IMAGE_PATH)
         assertThat(viewModel.state.value.form).isNull()
-        assertThat(viewModel.state.value.message).isEqualTo("Produk disimpan")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Produk disimpan")
     }
 
     @Test
@@ -192,7 +193,8 @@ class ProductsImageLifecycleTest {
         val form = requireNotNull(viewModel.state.value.form)
         assertThat(form.imagePath).isEqualTo(STORED_IMAGE_PATH)
         assertThat(form.isImageImporting).isFalse()
-        assertThat(viewModel.state.value.message).isEqualTo("Gambar gagal dimuat. Coba pilih gambar lain.")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings))
+            .isEqualTo("Gambar gagal dimuat. Coba pilih gambar lain.")
         assertThat(images.deletedImagePaths).isEmpty()
     }
 

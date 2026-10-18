@@ -2,6 +2,7 @@ package id.umkm.pos.pro.ui.components
 
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.ReportRange
+import id.umkm.pos.pro.ui.common.PosStrings
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -31,15 +32,8 @@ object ChartBuckets {
         }
     }
 
-    fun weekdayLabel(epochDay: Long): String = when (LocalDate.ofEpochDay(epochDay).dayOfWeek.value) {
-        1 -> "Sen"
-        2 -> "Sel"
-        3 -> "Rab"
-        4 -> "Kam"
-        5 -> "Jum"
-        6 -> "Sab"
-        else -> "Min"
-    }
+    fun weekdayLabel(epochDay: Long, strings: PosStrings): String =
+        strings.dateWeekdayAbbreviations[LocalDate.ofEpochDay(epochDay).dayOfWeek.value - 1]
 
     fun dayOfMonthLabel(epochDay: Long): String = LocalDate.ofEpochDay(epochDay).dayOfMonth.toString()
 }

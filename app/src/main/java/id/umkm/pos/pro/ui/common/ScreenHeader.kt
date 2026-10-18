@@ -58,7 +58,7 @@ fun ScreenHeader(
             IconButton(onClick = onBack) {
                 Icon(
                     painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = "Kembali",
+                    contentDescription = LocalPosStrings.current.actionBack,
                 )
             }
         }

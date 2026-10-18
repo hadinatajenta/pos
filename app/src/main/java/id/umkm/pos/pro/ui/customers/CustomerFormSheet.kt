@@ -43,6 +43,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.UiText
+import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,12 +56,13 @@ internal fun CustomerFormSheet(
     actions: CustomersActions,
 ) {
     val context = LocalContext.current
-    var contactMessage by remember { mutableStateOf<String?>(null) }
+    val strings = LocalPosStrings.current
+    var contactMessage by remember { mutableStateOf<UiText?>(null) }
     val contactPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { contactUri ->
         if (contactUri == null) return@rememberLauncherForActivityResult
         val contact = readPickedContact(context, contactUri)
         if (contact == null) {
-            contactMessage = "Kontak tidak dapat dibaca. Isi nama secara manual."
+            contactMessage = UiText.from { strings -> strings.customersContactUnreadable }
         } else {
             contactMessage = null
             actions.onCustomerNameChange(contact.name)
@@ -71,7 +75,7 @@ internal fun CustomerFormSheet(
         if (isGranted) {
             contactPicker.launch(null)
         } else {
-            contactMessage = "Izin kontak ditolak. Isi nama secara manual."
+            contactMessage = UiText.from { strings -> strings.customersContactPermissionDenied }
         }
     }
     val onPickContact: () -> Unit = {
@@ -98,7 +102,7 @@ internal fun CustomerFormSheet(
                 .padding(bottom = PosSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            PosSectionHeader(title = "Pelanggan baru")
+            PosSectionHeader(title = strings.customersNewCustomer)
             PosCard(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick = onPickContact,
@@ -110,11 +114,11 @@ internal fun CustomerFormSheet(
                         modifier = Modifier.size(PosSizes.iconSmall),
                     )
                     Spacer(modifier = Modifier.width(PosSpacing.xs))
-                    Text(text = "Pilih dari kontak")
+                    Text(text = strings.customersPickFromContacts)
                 }
                 contactMessage?.let { message ->
                     Text(
-                        text = message,
+                        text = message.asText(),
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = LocalPosSemanticPalette.current.danger,
                     )
@@ -123,16 +127,16 @@ internal fun CustomerFormSheet(
                     value = form.name,
                     onValueChange = actions.onCustomerNameChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Nama") },
+                    label = { Text(strings.customersName) },
                     isError = form.validationMessage != null,
-                    supportingText = form.validationMessage?.let { message -> { Text(message) } },
+                    supportingText = form.validationMessage?.let { message -> { Text(message.asText()) } },
                     singleLine = true,
                 )
                 OutlinedTextField(
                     value = form.whatsappNumber,
                     onValueChange = actions.onCustomerWhatsappChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Nomor WhatsApp") },
+                    label = { Text(strings.customersPhoneWhatsApp) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 )
@@ -140,7 +144,7 @@ internal fun CustomerFormSheet(
                     value = form.notes,
                     onValueChange = actions.onCustomerNotesChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Catatan") },
+                    label = { Text(strings.customersNote) },
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
@@ -148,7 +152,7 @@ internal fun CustomerFormSheet(
                     onClick = actions.onCloseCustomerForm,
                     modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
                 ) {
-                    Text(text = "Batal")
+                    Text(text = strings.actionCancel)
                 }
                 Button(
                     onClick = actions.onSubmitCustomerForm,
@@ -161,7 +165,7 @@ internal fun CustomerFormSheet(
                             strokeWidth = 2.dp,
                         )
                     } else {
-                        Text(text = "Simpan", style = LocalAppTextStyles.current.buttonLabel)
+                        Text(text = strings.actionSave, style = LocalAppTextStyles.current.buttonLabel)
                     }
                 }
             }

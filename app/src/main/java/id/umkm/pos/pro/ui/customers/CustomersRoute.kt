@@ -58,7 +58,9 @@ import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.PreviewAppContainerProvider
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StatusChip
@@ -77,11 +79,18 @@ import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 
-private enum class CustomerFilterOption(val label: String) {
-    ALL("Semua"),
-    HAS_DEBT("Belum Lunas"),
-    OVERDUE("Jatuh Tempo"),
-    PAID("Lunas"),
+private enum class CustomerFilterOption {
+    ALL,
+    HAS_DEBT,
+    OVERDUE,
+    PAID,
+}
+
+private fun CustomerFilterOption.label(strings: PosStrings): String = when (this) {
+    CustomerFilterOption.ALL -> strings.customersFilterAll
+    CustomerFilterOption.HAS_DEBT -> strings.customersFilterUnpaid
+    CustomerFilterOption.OVERDUE -> strings.customersFilterOverdue
+    CustomerFilterOption.PAID -> strings.customersFilterPaid
 }
 
 @Composable
@@ -119,10 +128,11 @@ internal fun CustomersScreen(
     onBack: (() -> Unit)? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val strings = LocalPosStrings.current
     var selectedFilter by rememberSaveable { mutableStateOf(CustomerFilterOption.ALL) }
 
     LaunchedEffect(state.message) {
-        val message = state.message ?: return@LaunchedEffect
+        val message = state.message?.resolve(strings) ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message)
         actions.onMessageConsumed()
     }
@@ -130,13 +140,17 @@ internal fun CustomersScreen(
         val useTwoColumnCards = maxWidth >= 700.dp
         Column(modifier = Modifier.fillMaxSize()) {
             ScreenHeader(
-                title = if (useTwoColumnCards || onBack == null) "Pelanggan & Kasbon" else "Pelanggan",
+                title = if (useTwoColumnCards || onBack == null) {
+                    strings.customersTitle
+                } else {
+                    strings.customersTitleShort
+                },
                 onBack = onBack,
                 actions = {
                     HeaderActionButton(
-                        text = "Tambah",
+                        text = strings.customersAdd,
                         iconRes = R.drawable.ic_plus,
-                        contentDescription = "Tambah pelanggan",
+                        contentDescription = strings.customersAddAction,
                         onClick = actions.onOpenCreateCustomer,
                     )
                 },
@@ -150,7 +164,7 @@ internal fun CustomersScreen(
             )
             UiStateContent(
                 state = state.customers,
-                onLoading = { LoadingState(modifier = Modifier.weight(1f), label = "Memuat pelanggan") },
+                onLoading = { LoadingState(modifier = Modifier.weight(1f), label = strings.customersLoading) },
                 onEmpty = {
                     CustomersEmptyState(state = state, actions = actions, modifier = Modifier.weight(1f))
                 },
@@ -201,6 +215,7 @@ private fun CustomersSearchAndFilterBar(
     onSelectFilter: (CustomerFilterOption) -> Unit,
     actions: CustomersActions,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,7 +225,7 @@ private fun CustomersSearchAndFilterBar(
         PosSearchField(
             value = state.searchQuery,
             onValueChange = actions.onSearchQueryChange,
-            placeholder = "Cari nama pelanggan...",
+            placeholder = strings.customersSearchPlaceholder,
             modifier = Modifier.fillMaxWidth(),
         )
         Row(
@@ -224,7 +239,7 @@ private fun CustomersSearchAndFilterBar(
                 FilterChip(
                     selected = selected,
                     onClick = { onSelectFilter(option) },
-                    label = { Text(option.label) },
+                    label = { Text(option.label(strings)) },
                     border = null,
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = LocalPosSemanticPalette.current.neutralContainer,
@@ -244,17 +259,18 @@ private fun CustomersEmptyState(
     actions: CustomersActions,
     modifier: Modifier,
 ) {
+    val strings = LocalPosStrings.current
     val isSearching = state.searchQuery.isNotBlank()
     EmptyState(
         iconRes = if (isSearching) R.drawable.ic_search_x else R.drawable.ic_users,
-        title = if (isSearching) "Pelanggan tidak ditemukan" else "Belum ada pelanggan",
+        title = if (isSearching) strings.customersNotFoundTitle else strings.customersEmptyTitle,
         supportingText = if (isSearching) {
-            "Coba kata kunci nama pelanggan lain."
+            strings.customersNotFoundHint
         } else {
-            "Tambahkan pelanggan untuk mencatat kasbon, jatuh tempo, dan cicilan pembayaran."
+            strings.customersEmptyHint
         },
         modifier = modifier,
-        actionLabel = if (isSearching) "Hapus pencarian" else "Tambah pelanggan",
+        actionLabel = if (isSearching) strings.customersClearSearch else strings.customersAddFirst,
         onAction = if (isSearching) {
             { actions.onSearchQueryChange("") }
         } else {
@@ -273,6 +289,7 @@ private fun CustomersListContent(
     actions: CustomersActions,
     modifier: Modifier,
 ) {
+    val strings = LocalPosStrings.current
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(
@@ -297,11 +314,11 @@ private fun CustomersListContent(
                         verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
                     ) {
                         Text(
-                            text = "Tidak ada pelanggan pada filter \"${selectedFilter.label}\"",
+                            text = strings.customersFilterEmpty(selectedFilter.label(strings)),
                             style = MaterialTheme.typography.titleSmall,
                         )
                         OutlinedButton(onClick = onResetFilter) {
-                            Text("Tampilkan Semua Pelanggan")
+                            Text(strings.customersFilterShowAll)
                         }
                     }
                 }
@@ -334,6 +351,7 @@ private fun CustomersListContent(
 @Composable
 private fun CustomersReceivableSummaryCard(items: List<CustomerDebtItem>) {
     val palette = LocalPosSemanticPalette.current
+    val strings = LocalPosStrings.current
     val totalReceivable = remember(items) { items.sumOf { it.outstandingDebt } }
     val activeDebtors = remember(items) { items.count { it.outstandingDebt > 0L } }
     val overdueCount = remember(items) { items.count { it.status == DebtStatus.OVERDUE } }
@@ -347,7 +365,7 @@ private fun CustomersReceivableSummaryCard(items: List<CustomerDebtItem>) {
             IconBadge(iconRes = R.drawable.ic_banknote)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Total Piutang (Kasbon Aktif)",
+                    text = strings.customersReceivableTotal,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -360,14 +378,14 @@ private fun CustomersReceivableSummaryCard(items: List<CustomerDebtItem>) {
             if (overdueCount > 0) {
                 StatusChip(
                     iconRes = R.drawable.ic_circle_alert,
-                    label = "$overdueCount Jatuh Tempo",
+                    label = strings.customersOverdueCount(overdueCount),
                     containerColor = palette.dangerContainer,
                     contentColor = palette.danger,
                 )
             } else {
                 StatusChip(
                     iconRes = R.drawable.ic_users,
-                    label = "$activeDebtors Belum Lunas",
+                    label = strings.customersUnpaidCount(activeDebtors),
                     containerColor = if (activeDebtors > 0) palette.warningContainer else palette.successContainer,
                     contentColor = if (activeDebtors > 0) palette.warning else palette.success,
                 )
@@ -382,6 +400,7 @@ private fun CustomerDebtCard(
     actions: CustomersActions,
 ) {
     val palette = LocalPosSemanticPalette.current
+    val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -405,7 +424,7 @@ private fun CustomerDebtCard(
                 )
                 Text(
                     text = item.customer.whatsappNumber?.takeIf { it.isNotBlank() }
-                        ?: dueDateText(item.nextDueDateMillis),
+                        ?: dueDateText(item.nextDueDateMillis, strings),
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -424,13 +443,13 @@ private fun CustomerDebtCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Sisa utang",
+                    text = strings.customersOutstandingDebt,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (item.customer.whatsappNumber != null) {
                     Text(
-                        text = dueDateText(item.nextDueDateMillis),
+                        text = dueDateText(item.nextDueDateMillis, strings),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -456,7 +475,7 @@ private fun CustomerDebtCard(
                     modifier = Modifier.size(PosSizes.iconSmall),
                 )
                 Spacer(modifier = Modifier.width(PosSpacing.xs))
-                Text(text = "Catat pembayaran", style = LocalAppTextStyles.current.buttonLabel)
+                Text(text = strings.customersRecordPayment, style = LocalAppTextStyles.current.buttonLabel)
             }
         }
     }
@@ -465,6 +484,7 @@ private fun CustomerDebtCard(
 @Composable
 private fun DebtStatusChip(status: DebtStatus) {
     val palette = LocalPosSemanticPalette.current
+    val strings = LocalPosStrings.current
     val iconRes = when (status) {
         DebtStatus.PAID -> R.drawable.ic_circle_check
         DebtStatus.UNPAID -> R.drawable.ic_clock
@@ -485,14 +505,15 @@ private fun DebtStatusChip(status: DebtStatus) {
     }
     StatusChip(
         iconRes = iconRes,
-        label = debtStatusLabel(status),
+        label = debtStatusLabel(status, strings),
         containerColor = containerColor,
         contentColor = contentColor,
     )
 }
 
-private fun dueDateText(nextDueDateMillis: Long?): String =
-    nextDueDateMillis?.let { millis -> "Jatuh tempo ${formatDate(millis)}" } ?: "Tanpa jatuh tempo"
+private fun dueDateText(nextDueDateMillis: Long?, strings: PosStrings): String =
+    nextDueDateMillis?.let { millis -> strings.customersDueDateOn(formatDate(millis, strings)) }
+        ?: strings.customersNoDueDate
 
 private fun previewCustomer(id: Long, name: String, debt: Long): Customer = Customer(
     id = id,

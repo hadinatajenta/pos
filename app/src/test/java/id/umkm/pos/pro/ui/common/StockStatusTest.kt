@@ -54,12 +54,25 @@ class StockStatusTest {
 
     @Test
     fun everyStatusHasADistinctLabel() {
-        val labels = StockStatus.entries.map { stockStatusLabel(it) }
+        val indonesianLabels = StockStatus.entries.map { stockStatusLabel(it, IdStrings) }
 
-        assertThat(labels.toSet()).hasSize(StockStatus.entries.size)
-        assertThat(labels).contains("Stok Minus")
-        assertThat(labels).contains("Stok Habis")
-        assertThat(labels).contains("Stok Menipis")
-        assertThat(labels).contains("Tersedia")
+        assertThat(indonesianLabels.toSet()).hasSize(StockStatus.entries.size)
+        assertThat(indonesianLabels).contains("Stok Minus")
+        assertThat(indonesianLabels).contains("Stok Habis")
+        assertThat(indonesianLabels).contains("Stok Menipis")
+        assertThat(indonesianLabels).contains("Tersedia")
+    }
+
+    @Test
+    fun labelsFollowTheActiveCatalogue() {
+        assertThat(stockStatusLabel(StockStatus.OVERSOLD, EnStrings)).isEqualTo("Negative stock")
+        assertThat(stockStatusLabel(StockStatus.OUT_OF_STOCK, EnStrings)).isEqualTo("Out of stock")
+        assertThat(stockStatusLabel(StockStatus.LOW_STOCK, EnStrings)).isEqualTo("Low stock")
+        assertThat(stockStatusLabel(StockStatus.IN_STOCK, EnStrings)).isEqualTo("In stock")
+
+        assertThat(stockStatusLabel(StockStatus.OVERSOLD, ZhStrings)).isEqualTo("库存为负")
+        assertThat(stockStatusLabel(StockStatus.OUT_OF_STOCK, ZhStrings)).isEqualTo("缺货")
+        assertThat(stockStatusLabel(StockStatus.LOW_STOCK, ZhStrings)).isEqualTo("库存紧张")
+        assertThat(stockStatusLabel(StockStatus.IN_STOCK, ZhStrings)).isEqualTo("库存充足")
     }
 }

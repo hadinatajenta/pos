@@ -8,12 +8,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.navigation.PosDestination
+import id.umkm.pos.pro.ui.localizedLabel
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import id.umkm.pos.pro.ui.welcome.WELCOME_SCREEN_TEST_TAG
 import org.junit.Assume.assumeTrue
@@ -60,7 +65,7 @@ class AppRootTest {
         composeRule.onNodeWithTag(COMPACT_NAVIGATION_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(EXPANDED_NAVIGATION_TEST_TAG).assertDoesNotExist()
         PosDestination.entries.forEach { destination ->
-            composeRule.onNodeWithText(destination.label).assertIsDisplayed()
+            composeRule.onAllNodesWithText(destination.localizedLabel(IdStrings)).onFirst().assertIsDisplayed()
         }
     }
 
@@ -81,9 +86,10 @@ class AppRootTest {
         composeRule.onNodeWithTag(EXPANDED_NAVIGATION_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(COMPACT_NAVIGATION_TEST_TAG).assertDoesNotExist()
         PosDestination.entries.forEach { destination ->
-            composeRule.onNodeWithText(destination.label).assertIsDisplayed()
+            composeRule.onAllNodesWithText(destination.localizedLabel(IdStrings)).onFirst().assertIsDisplayed()
         }
     }
+
 
     @Test
     fun cashierIsTheDefaultDestination() {

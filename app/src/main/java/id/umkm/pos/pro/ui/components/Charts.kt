@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -198,7 +200,7 @@ fun PaymentMethodDonut(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Total",
+                text = LocalPosStrings.current.chartSeriesTotal,
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -258,6 +260,7 @@ fun ChartLegend(
 
 @Composable
 private fun YAxisLabels(maxValue: Double, height: Dp) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = Modifier
             .width(44.dp)
@@ -268,7 +271,7 @@ private fun YAxisLabels(maxValue: Double, height: Dp) {
         for (gridIndex in 0..GRID_LINES) {
             val value = maxValue * (GRID_LINES - gridIndex) / GRID_LINES
             Text(
-                text = compactRupiah(value),
+                text = compactRupiah(value, strings),
                 style = LocalAppTextStyles.current.tableHeader,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -304,7 +307,7 @@ private fun ChartEmptyState(modifier: Modifier, height: Dp) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "Belum ada data untuk ditampilkan.",
+            text = LocalPosStrings.current.chartEmpty,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -317,8 +320,12 @@ private fun xLabelIndices(count: Int): Set<Int> {
     return (0 until MAX_X_LABELS).map { (it * step).toInt() }.toSet()
 }
 
-fun compactRupiah(value: Double): String = when {
-    value >= 1_000_000.0 -> String.format(java.util.Locale.US, "%.1f jt", value / 1_000_000.0)
-    value >= 1_000.0 -> String.format(java.util.Locale.US, "%.0f rb", value / 1_000.0)
+fun compactRupiah(value: Double, strings: PosStrings): String = when {
+    value >= 1_000_000.0 ->
+        String.format(java.util.Locale.US, "%.1f %s", value / 1_000_000.0, strings.chartCompactMillion)
+
+    value >= 1_000.0 ->
+        String.format(java.util.Locale.US, "%.0f %s", value / 1_000.0, strings.chartCompactThousand)
+
     else -> String.format(java.util.Locale.US, "%.0f", value)
 }

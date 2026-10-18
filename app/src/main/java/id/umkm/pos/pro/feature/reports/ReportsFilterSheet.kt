@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -54,13 +56,14 @@ internal fun periodLabel(
     preset: ReportsRangePreset,
     range: ReportRange,
     timeZone: TimeZone,
+    strings: PosStrings,
 ): String = when (preset) {
-    ReportsRangePreset.TODAY -> "Hari ini"
-    ReportsRangePreset.LAST_7_DAYS -> "7 hari terakhir"
-    ReportsRangePreset.LAST_28_DAYS -> "28 hari terakhir"
+    ReportsRangePreset.TODAY -> strings.reportsRangeTodayLower
+    ReportsRangePreset.LAST_7_DAYS -> strings.reportsRangeDaysSuffix(7)
+    ReportsRangePreset.LAST_28_DAYS -> strings.reportsRangeDaysSuffix(28)
     ReportsRangePreset.CUSTOM ->
-        "${ReportDates.formatLocalDateShort(range.startMillis, timeZone)} - " +
-            ReportDates.formatLocalDateShort(range.endMillis, timeZone)
+        "${ReportDates.formatLocalDateShort(range.startMillis, timeZone, strings)} - " +
+            ReportDates.formatLocalDateShort(range.endMillis, timeZone, strings)
 }
 
 private val FILTER_PRESETS = listOf(
@@ -87,6 +90,7 @@ internal fun ReportsFilterSheet(
         mutableStateOf(ReportDates.epochDayForLocalMillis(range.endMillis, timeZone))
     }
     var activePicker by remember { mutableStateOf<FilterPickerTarget?>(null) }
+    val strings = LocalPosStrings.current
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -98,7 +102,7 @@ internal fun ReportsFilterSheet(
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
             Text(
-                text = "Filter Periode",
+                text = strings.reportsFilterPeriod,
                 style = LocalAppTextStyles.current.sectionHeading,
             )
             FlowRow(
@@ -108,7 +112,7 @@ internal fun ReportsFilterSheet(
             ) {
                 FILTER_PRESETS.forEach { option ->
                     RangeChip(
-                        label = option.label,
+                        label = option.pickerLabel(strings),
                         selected = option == preset,
                         onClick = {
                             onPresetSelected(option)
@@ -118,23 +122,23 @@ internal fun ReportsFilterSheet(
                 }
             }
             RangeChip(
-                label = ReportsRangePreset.CUSTOM.label,
+                label = ReportsRangePreset.CUSTOM.pickerLabel(strings),
                 selected = preset == ReportsRangePreset.CUSTOM,
                 onClick = { isCustomEditing = true },
             )
             if (isCustomEditing) {
                 FilterDateButton(
-                    title = "Mulai dari",
-                    value = ReportDates.formatEpochDayShort(draftStartEpochDay),
+                    title = strings.reportsRangeStart,
+                    value = ReportDates.formatEpochDayShort(draftStartEpochDay, strings),
                     onClick = { activePicker = FilterPickerTarget.START },
                 )
                 FilterDateButton(
-                    title = "Sampai dengan",
-                    value = ReportDates.formatEpochDayShort(draftEndEpochDay),
+                    title = strings.reportsRangeEnd,
+                    value = ReportDates.formatEpochDayShort(draftEndEpochDay, strings),
                     onClick = { activePicker = FilterPickerTarget.END },
                 )
                 PrimaryActionButton(
-                    text = "Terapkan",
+                    text = strings.actionApply,
                     onClick = {
                         onCustomRangeSelected(draftStartEpochDay, draftEndEpochDay)
                         onDismiss()
@@ -165,12 +169,12 @@ internal fun ReportsFilterSheet(
                         activePicker = null
                     },
                 ) {
-                    Text(text = "Pilih")
+                    Text(text = strings.actionPick)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { activePicker = null }) {
-                    Text(text = "Batal")
+                    Text(text = strings.actionCancel)
                 }
             },
         ) {
@@ -257,19 +261,19 @@ internal fun ExportDialog(
     onDismiss: () -> Unit,
 ) {
     var selectedFormat by remember { mutableStateOf(ReportExportFormat.CSV) }
+    val strings = LocalPosStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Ekspor Laporan") },
+        title = { Text(text = strings.reportsExportDialogTitle) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
                 Text(
-                    text = "Tonton iklan singkat, lalu berkas disimpan di folder " +
-                        "${DownloadsReportSink.DESTINATION_LABEL}.",
+                    text = strings.reportsExportAdHint(DownloadsReportSink.DESTINATION_LABEL),
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = "Format",
+                    text = strings.reportsExportFormat,
                     style = LocalAppTextStyles.current.tableHeader,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -297,7 +301,7 @@ internal fun ExportDialog(
                 onClick = { onConfirm(selectedFormat) },
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = "Tonton & Ekspor")
+                Text(text = strings.reportsExportConfirm)
             }
         },
         dismissButton = {
@@ -305,7 +309,7 @@ internal fun ExportDialog(
                 onClick = onDismiss,
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = "Batal")
+                Text(text = strings.actionCancel)
             }
         },
     )

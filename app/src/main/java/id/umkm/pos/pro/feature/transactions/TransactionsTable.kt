@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.feature.reports.ReportDates
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
@@ -99,6 +100,7 @@ internal fun TransactionsTable(
 
 @Composable
 private fun TransactionTableHeader() {
+    val strings = LocalPosStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,13 +109,13 @@ private fun TransactionTableHeader() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
-        TableHeaderCell(text = "No", modifier = Modifier.width(TABLE_NUMBER_WIDTH))
-        TableHeaderCell(text = "ID Transaksi", modifier = Modifier.weight(TABLE_ID_WEIGHT))
-        TableHeaderCell(text = "Tanggal & Waktu", modifier = Modifier.weight(TABLE_DATE_WEIGHT))
-        TableHeaderCell(text = "Metode", modifier = Modifier.weight(TABLE_METHOD_WEIGHT))
-        TableHeaderCell(text = "Status", modifier = Modifier.weight(TABLE_STATUS_WEIGHT))
+        TableHeaderCell(text = strings.transactionsTableNumber, modifier = Modifier.width(TABLE_NUMBER_WIDTH))
+        TableHeaderCell(text = strings.transactionsTableId, modifier = Modifier.weight(TABLE_ID_WEIGHT))
+        TableHeaderCell(text = strings.transactionsTableDateTime, modifier = Modifier.weight(TABLE_DATE_WEIGHT))
+        TableHeaderCell(text = strings.transactionsTableMethod, modifier = Modifier.weight(TABLE_METHOD_WEIGHT))
+        TableHeaderCell(text = strings.transactionsTableStatus, modifier = Modifier.weight(TABLE_STATUS_WEIGHT))
         TableHeaderCell(
-            text = "Total",
+            text = strings.transactionsTableTotal,
             modifier = Modifier.weight(TABLE_TOTAL_WEIGHT),
             textAlign = TextAlign.End,
         )
@@ -145,6 +147,7 @@ private fun TransactionTableRow(
     timeZone: TimeZone,
     actions: TransactionActions,
 ) {
+    val strings = LocalPosStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -169,7 +172,7 @@ private fun TransactionTableRow(
             modifier = Modifier.weight(TABLE_ID_WEIGHT),
         )
         Text(
-            text = ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone),
+            text = ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone, strings),
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -177,7 +180,7 @@ private fun TransactionTableRow(
             modifier = Modifier.weight(TABLE_DATE_WEIGHT),
         )
         Text(
-            text = paymentMethodLabel(transaction.paymentMethod),
+            text = paymentMethodLabel(transaction.paymentMethod, strings),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -246,6 +249,7 @@ private fun TransactionCompactRow(
     actions: TransactionActions,
     onOpenMenu: () -> Unit,
 ) {
+    val strings = LocalPosStrings.current
     PosCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,8 +274,8 @@ private fun TransactionCompactRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone)} · " +
-                        paymentMethodLabel(transaction.paymentMethod),
+                    text = "${ReportDates.formatLocalDateTimeShort(transaction.createdAt, timeZone, strings)} · " +
+                        paymentMethodLabel(transaction.paymentMethod, strings),
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

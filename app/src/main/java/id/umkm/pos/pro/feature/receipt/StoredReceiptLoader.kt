@@ -5,6 +5,7 @@ import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.Product
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.formatDateTime
 
@@ -16,6 +17,7 @@ internal object StoredReceiptLoader {
         productRepository: ProductRepository,
         customerRepository: CustomerRepository,
         settingsRepository: SettingsRepository,
+        strings: PosStrings,
     ): StoredReceipt? {
         val transaction = transactionRepository.getTransaction(transactionId) ?: return null
         val items = transactionRepository.getItems(transactionId)
@@ -34,8 +36,9 @@ internal object StoredReceiptLoader {
             storeName = settings.storeName,
             cashierName = settings.cashierName,
             customerName = customerName,
-            createdAtLabel = formatDateTime(transaction.createdAt),
-            dueDateLabel = transaction.dueDate?.let { dueDate -> formatDate(dueDate) },
+            createdAtLabel = formatDateTime(transaction.createdAt, strings),
+            dueDateLabel = transaction.dueDate?.let { dueDate -> formatDate(dueDate, strings) },
+            strings = strings,
         )
     }
 }

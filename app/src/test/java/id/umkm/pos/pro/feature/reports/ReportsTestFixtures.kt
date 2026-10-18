@@ -22,8 +22,15 @@ import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
 import id.umkm.pos.pro.core.model.TransactionStatus
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
+
+internal fun stringsFlowFor(strings: PosStrings = IdStrings): StateFlow<PosStrings> =
+    MutableStateFlow(strings)
 
 internal fun sampleTransaction(
     id: Long = 1L,

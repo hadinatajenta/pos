@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
@@ -98,6 +99,7 @@ internal fun ProductsQuickFilterBar(
     horizontalPadding: Dp = PosSpacing.md,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     val chipColors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
         containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer,
         labelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
@@ -116,7 +118,7 @@ internal fun ProductsQuickFilterBar(
                     actions.onStockFilterChange(ProductStockFilter.ALL)
                     actions.onCategoryFilterChange(null)
                 },
-                label = { Text("Semua (${catalog.stats.totalCount})") },
+                label = { Text(strings.productsFilterAll(catalog.stats.totalCount)) },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 border = null,
                 colors = chipColors,
@@ -133,7 +135,7 @@ internal fun ProductsQuickFilterBar(
                     }
                     actions.onStockFilterChange(next)
                 },
-                label = { Text("Stok Menipis (${catalog.stats.lowStockCount})") },
+                label = { Text(strings.productsFilterLowStock(catalog.stats.lowStockCount)) },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 border = null,
                 colors = chipColors,
@@ -150,7 +152,7 @@ internal fun ProductsQuickFilterBar(
                     }
                     actions.onStockFilterChange(next)
                 },
-                label = { Text("Stok Habis (${catalog.stats.outOfStockCount})") },
+                label = { Text(strings.productsFilterOutOfStock(catalog.stats.outOfStockCount)) },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 border = null,
                 colors = chipColors,

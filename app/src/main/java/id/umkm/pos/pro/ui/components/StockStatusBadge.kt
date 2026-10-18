@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.stockStatusLabel
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
@@ -59,7 +60,7 @@ fun StockStatusBadge(
             iconRes = R.drawable.ic_trending_down
         }
     }
-    val label = stockStatusLabel(status)
+    val label = stockStatusLabel(status, LocalPosStrings.current)
     Box(
         modifier = modifier
             .background(color = containerColor, shape = MaterialTheme.shapes.small)

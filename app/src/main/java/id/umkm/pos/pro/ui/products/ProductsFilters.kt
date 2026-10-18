@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.ui.common.EmptyState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -42,6 +43,7 @@ internal fun ProductsSearchAndSortBar(
     actions: ProductsActions,
     isCompact: Boolean = true,
 ) {
+    val strings = LocalPosStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -55,7 +57,7 @@ internal fun ProductsSearchAndSortBar(
         PosSearchField(
             value = state.searchQuery,
             onValueChange = actions.onSearchQueryChange,
-            placeholder = "Cari produk",
+            placeholder = strings.productsSearchPlaceholder,
             modifier = Modifier.weight(1f),
         )
         SortDropdownButton(
@@ -71,6 +73,7 @@ private fun SortDropdownButton(
     onSortOrderChange: (ProductSortOrder) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    val strings = LocalPosStrings.current
     Box {
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainer,
@@ -78,7 +81,7 @@ private fun SortDropdownButton(
             shape = MaterialTheme.shapes.large,
             modifier = Modifier
                 .heightIn(min = SORT_BUTTON_MIN_HEIGHT)
-                .clickable(onClickLabel = "Urutkan produk", onClick = { isExpanded = true }),
+                .clickable(onClickLabel = strings.productsSort, onClick = { isExpanded = true }),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
@@ -92,7 +95,7 @@ private fun SortDropdownButton(
                 )
                 Spacer(modifier = Modifier.width(PosSpacing.xs))
                 Text(
-                    text = sortOrder.label,
+                    text = sortOrder.label(strings),
                     style = LocalAppTextStyles.current.supportingLabel,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -114,7 +117,7 @@ private fun SortDropdownButton(
         ) {
             ProductSortOrder.entries.forEach { order ->
                 DropdownMenuItem(
-                    text = { Text(order.label) },
+                    text = { Text(order.label(strings)) },
                     trailingIcon = { SelectedOptionIcon(isSelected = order == sortOrder) },
                     onClick = {
                         isExpanded = false
@@ -139,11 +142,12 @@ private fun SelectedOptionIcon(isSelected: Boolean) {
 
 @Composable
 internal fun ProductsFilterEmptyState(actions: ProductsActions) {
+    val strings = LocalPosStrings.current
     EmptyState(
         iconRes = R.drawable.ic_funnel,
-        title = "Tidak ada produk pada filter ini",
-        supportingText = "Pilih kategori atau filter stok lain, atau tampilkan semua produk.",
-        actionLabel = "Tampilkan semua",
+        title = strings.productsFilterEmptyTitle,
+        supportingText = strings.productsFilterEmptyHint,
+        actionLabel = strings.productsFilterShowAll,
         onAction = {
             actions.onStockFilterChange(ProductStockFilter.ALL)
             actions.onCategoryFilterChange(null)

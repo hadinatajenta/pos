@@ -23,15 +23,23 @@ import kotlinx.coroutines.withContext
 
 abstract class EscPosReceiptPrinter(
     private val renderer: ReceiptRenderer,
-    private val paperWidth: ReceiptPaperWidth,
+    paperWidth: ReceiptPaperWidth,
     private val printMode: PrintMode,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val ownerScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : ReceiptPrinter, AutoCloseable {
 
+    var paperWidth: ReceiptPaperWidth = paperWidth
+        protected set
+
+    override fun setPaperWidth(paperWidthMm: Int) {
+        this.paperWidth = ReceiptPaperWidth.fromMm(paperWidthMm)
+    }
+
     private val connectionStateFlow = MutableStateFlow(PrinterConnection.DISCONNECTED)
 
     override val connectionState: Flow<PrinterConnection> = connectionStateFlow.asStateFlow()
+
 
     protected val scope: CoroutineScope get() = ownerScope
 

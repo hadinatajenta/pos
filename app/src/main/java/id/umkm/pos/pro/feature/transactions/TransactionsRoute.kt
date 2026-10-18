@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import id.umkm.pos.pro.feature.reports.ReportsPresenter
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.rememberReceiptPrintLauncher
 import id.umkm.pos.pro.ui.returns.ReturnRoute
 import java.util.TimeZone
@@ -26,6 +28,7 @@ fun TransactionsRoute(
     modifier: Modifier = Modifier,
 ) {
     val uiState by presenter.uiState.collectAsState()
+    val strings = LocalPosStrings.current
     val timeZone = remember { TimeZone.getDefault() }
     val printReceipt = rememberReceiptPrintLauncher()
     val actions = remember(presenter) {
@@ -83,11 +86,11 @@ fun TransactionsRoute(
     if (message != null) {
         AlertDialog(
             onDismissRequest = presenter::onMessageConsumed,
-            title = { Text(text = "Transaksi") },
-            text = { Text(text = message) },
+            title = { Text(text = strings.transactionsTitle) },
+            text = { Text(text = message.asText()) },
             confirmButton = {
                 TextButton(onClick = presenter::onMessageConsumed) {
-                    Text(text = "Tutup")
+                    Text(text = strings.actionClose)
                 }
             },
         )

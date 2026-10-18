@@ -49,6 +49,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
@@ -84,6 +86,7 @@ internal fun CashierPaymentSheet(
     state: CashierUiState,
     actions: CashierActions,
 ) {
+    val strings = LocalPosStrings.current
     ModalBottomSheet(
         onDismissRequest = actions.onClosePaymentSheet,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -97,7 +100,7 @@ internal fun CashierPaymentSheet(
                 .padding(bottom = PosSpacing.xl),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            PosSectionHeader(title = "Pembayaran")
+            PosSectionHeader(title = strings.cashierPaymentTitle)
             PosCard(modifier = Modifier.fillMaxWidth()) {
                 PaymentTotal(grandTotal = state.grandTotal)
                 HorizontalDivider()
@@ -109,15 +112,16 @@ internal fun CashierPaymentSheet(
                 PaymentConditionalFields(state = state, actions = actions)
                 PaymentSummary(state = state)
             }
-            state.submitErrorMessage?.let { message ->
+            val submitErrorMessage = state.submitErrorMessage?.asTextOrNull()
+            if (submitErrorMessage != null) {
                 Text(
-                    text = message,
+                    text = submitErrorMessage,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             PrimaryActionButton(
-                text = "Konfirmasi pembayaran",
+                text = strings.cashierConfirmPayment,
                 onClick = actions.onConfirmCharge,
                 enabled = state.lineCount > 0,
                 loading = state.isSubmitting,
@@ -128,12 +132,13 @@ internal fun CashierPaymentSheet(
 
 @Composable
 private fun PaymentTotal(grandTotal: Long) {
+    val strings = LocalPosStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = "Total", style = LocalAppTextStyles.current.sectionHeading)
+        Text(text = strings.cashierTotal, style = LocalAppTextStyles.current.sectionHeading)
         AutoSizeNumberText(
             text = Rupiah.format(grandTotal),
             style = LocalAppTextStyles.current.financialValueLarge,
@@ -149,8 +154,9 @@ private fun PaymentMethodChips(
     onSelect: (PaymentMethod) -> Unit,
     isQrisAvailable: Boolean,
 ) {
+    val strings = LocalPosStrings.current
     Text(
-        text = "Metode pembayaran",
+        text = strings.cashierPaymentMethodLabel,
         style = LocalAppTextStyles.current.supportingLabel,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -163,7 +169,7 @@ private fun PaymentMethodChips(
                 selected = method == selectedMethod,
                 onClick = { onSelect(method) },
                 enabled = method != PaymentMethod.QRIS || isQrisAvailable,
-                label = { Text(paymentMethodLabel(method)) },
+                label = { Text(paymentMethodLabel(method, strings)) },
                 leadingIcon = if (method == selectedMethod) {
                     {
                         Icon(
@@ -185,6 +191,7 @@ private fun PaymentConditionalFields(
     state: CashierUiState,
     actions: CashierActions,
 ) {
+    val strings = LocalPosStrings.current
     val draft = state.paymentDraft
     when (draft.method) {
         PaymentMethod.CASH -> {
@@ -196,7 +203,7 @@ private fun PaymentConditionalFields(
             AmountReceivedField(
                 value = draft.amountReceivedInput,
                 onValueChange = actions.onAmountReceivedChange,
-                label = "Jumlah diterima",
+                label = strings.cashierAmountReceived,
             )
         }
 
@@ -213,7 +220,7 @@ private fun PaymentConditionalFields(
             AmountReceivedField(
                 value = draft.amountReceivedInput,
                 onValueChange = actions.onAmountReceivedChange,
-                label = "Jumlah dibayar sekarang",
+                label = strings.cashierAmountPaidNow,
             )
             if (expectedRemainingAmount(state) > 0L) {
                 DueDateField(
@@ -231,8 +238,8 @@ private fun PaymentConditionalFields(
             AmountReceivedField(
                 value = draft.amountReceivedInput,
                 onValueChange = actions.onAmountReceivedChange,
-                label = "Titipan diterima",
-                supportingText = "Biarkan kosong bila belum ada pembayaran.",
+                label = strings.cashierDepositReceived,
+                supportingText = strings.cashierDepositOptionalHint,
             )
             if (expectedRemainingAmount(state) > 0L) {
                 DueDateField(
@@ -259,10 +266,11 @@ private fun QuickCashChipsRow(
     onSelectAmount: (Long) -> Unit,
 ) {
     if (grandTotal <= 0L) return
+    val strings = LocalPosStrings.current
     val suggestions = remember(grandTotal) { quickCashSuggestions(grandTotal) }
     Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
         Text(
-            text = "Nominal cepat",
+            text = strings.cashierQuickNominal,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -273,7 +281,7 @@ private fun QuickCashChipsRow(
             FilterChip(
                 selected = currentInput == grandTotal.toString(),
                 onClick = { onSelectAmount(grandTotal) },
-                label = { Text("Uang Pas") },
+                label = { Text(strings.cashierExactMoney) },
             )
             suggestions.forEach { amount ->
                 FilterChip(
@@ -295,9 +303,10 @@ private fun QuickPartialChipsRow(
 ) {
     val suggestions = remember(grandTotal) { quickPartialSuggestions(grandTotal) }
     if (suggestions.isEmpty()) return
+    val strings = LocalPosStrings.current
     Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
         Text(
-            text = "Pilihan nominal",
+            text = strings.cashierQuickNominalOptions,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -355,9 +364,10 @@ private fun QrisPaymentSection(
     amountRupiah: Long,
 ) {
     val palette = LocalPosSemanticPalette.current
+    val strings = LocalPosStrings.current
     if (payload == null) {
         Text(
-            text = "QRIS belum diatur. Unggah foto QRIS statis di Pengaturan terlebih dahulu.",
+            text = strings.cashierQrisNotConfigured,
             style = LocalAppTextStyles.current.supportingLabel,
             color = palette.danger,
         )
@@ -379,7 +389,7 @@ private fun QrisPaymentSection(
             if (image == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "Menyiapkan QRIS...",
+                        text = strings.cashierPreparingQris,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -387,7 +397,7 @@ private fun QrisPaymentSection(
             } else {
                 Image(
                     bitmap = image,
-                    contentDescription = "QRIS pembayaran",
+                    contentDescription = strings.cashierQrisDescription,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -397,7 +407,7 @@ private fun QrisPaymentSection(
             style = LocalAppTextStyles.current.financialValue,
         )
         Text(
-            text = "Nominal sudah terisi otomatis",
+            text = strings.cashierAmountAutoFilled,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -430,6 +440,7 @@ private fun CustomerField(
     customerName: String?,
     onClick: () -> Unit,
 ) {
+    val strings = LocalPosStrings.current
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
@@ -441,7 +452,7 @@ private fun CustomerField(
         )
         Spacer(modifier = Modifier.width(PosSpacing.sm))
         Text(
-            text = customerName ?: "Pilih pelanggan",
+            text = customerName ?: strings.cashierSelectCustomer,
             style = LocalAppTextStyles.current.buttonLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -455,6 +466,7 @@ private fun DueDateField(
     dueDateMillis: Long?,
     onClick: () -> Unit,
 ) {
+    val strings = LocalPosStrings.current
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().heightIn(min = PosSizes.touchTarget),
@@ -466,7 +478,8 @@ private fun DueDateField(
         )
         Spacer(modifier = Modifier.width(PosSpacing.sm))
         Text(
-            text = dueDateMillis?.let { millis -> "Jatuh tempo ${formatDate(millis)}" } ?: "Atur jatuh tempo",
+            text = dueDateMillis?.let { millis -> strings.cashierDueDateSet(formatDate(millis, strings)) }
+                ?: strings.cashierSetDueDate,
             style = LocalAppTextStyles.current.buttonLabel,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -478,6 +491,7 @@ private fun DueDateField(
 @Composable
 private fun PaymentSummary(state: CashierUiState) {
     val grandTotal = state.grandTotal
+    val strings = LocalPosStrings.current
     val paidAmount = displayPaidAmount(state)
     val changeAmount = if (state.paymentDraft.method == PaymentMethod.CASH && paidAmount != null) {
         (paidAmount - grandTotal).coerceAtLeast(0L)
@@ -491,13 +505,13 @@ private fun PaymentSummary(state: CashierUiState) {
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
     ) {
         if (paidAmount != null && paidAmount != grandTotal) {
-            SummaryLine(label = "Dibayar", value = Rupiah.format(paidAmount))
+            SummaryLine(label = strings.cashierPaid, value = Rupiah.format(paidAmount))
         }
         if (changeAmount > 0L) {
-            SummaryLine(label = "Kembalian", value = Rupiah.format(changeAmount), emphasized = true)
+            SummaryLine(label = strings.cashierChange, value = Rupiah.format(changeAmount), emphasized = true)
         }
         if (remainingAmount > 0L) {
-            SummaryLine(label = "Sisa tagihan", value = Rupiah.format(remainingAmount))
+            SummaryLine(label = strings.cashierRemainingAmount, value = Rupiah.format(remainingAmount))
         }
     }
 }
@@ -536,6 +550,7 @@ internal fun CashierCustomerPicker(
     actions: CashierActions,
 ) {
     if (!state.isCustomerPickerVisible) return
+    val strings = LocalPosStrings.current
     var isCreateOpen by rememberSaveable(state.payableCustomers.isEmpty()) {
         mutableStateOf(state.payableCustomers.isEmpty())
     }
@@ -564,12 +579,12 @@ internal fun CashierCustomerPicker(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Pilih pelanggan",
+                    text = strings.cashierSelectCustomer,
                     modifier = Modifier.weight(1f),
                 )
                 if (state.payableCustomers.isNotEmpty()) {
                     SecondaryTextAction(
-                        text = if (isCreateOpen) "Tutup" else "+ Pelanggan Baru",
+                        text = if (isCreateOpen) strings.actionClose else strings.cashierNewCustomerToggle,
                         onClick = { isCreateOpen = !isCreateOpen },
                     )
                 }
@@ -583,21 +598,21 @@ internal fun CashierCustomerPicker(
                 if (isCreateOpen) {
                     PosCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Tambah Pelanggan Baru",
+                            text = strings.cashierAddNewCustomer,
                             style = LocalAppTextStyles.current.body,
                         )
                         OutlinedTextField(
                             value = newName,
                             onValueChange = { newName = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Nama pelanggan") },
+                            label = { Text(strings.cashierCustomerNameLabel) },
                             singleLine = true,
                         )
                         OutlinedTextField(
                             value = newPhone,
                             onValueChange = { newPhone = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("No. WhatsApp (opsional)") },
+                            label = { Text(strings.cashierCustomerWhatsappLabel) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Phone,
@@ -605,7 +620,7 @@ internal fun CashierCustomerPicker(
                             ),
                         )
                         PrimaryActionButton(
-                            text = "Simpan & Pilih",
+                            text = strings.cashierSaveAndSelectCustomer,
                             onClick = {
                                 actions.onQuickCreateCustomer(newName.trim(), newPhone.trim())
                             },
@@ -619,20 +634,20 @@ internal fun CashierCustomerPicker(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Cari nama atau WhatsApp") },
+                        label = { Text(strings.cashierSearchCustomerPlaceholder) },
                         singleLine = true,
                     )
                 }
 
                 if (state.payableCustomers.isEmpty()) {
                     Text(
-                        text = "Belum ada pelanggan tersimpan. Isi nama di atas untuk membuat pelanggan baru.",
+                        text = strings.cashierNoCustomersHint,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (filteredCustomers.isEmpty()) {
                     Text(
-                        text = "Pelanggan tidak ditemukan.",
+                        text = strings.cashierCustomerNotFound,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -650,7 +665,7 @@ internal fun CashierCustomerPicker(
                                     if (!customer.whatsappNumber.isNullOrBlank()) {
                                         add(customer.whatsappNumber)
                                     }
-                                    add("Utang ${Rupiah.format(customer.totalDebt)}")
+                                    add(strings.cashierCustomerDebtChip(Rupiah.format(customer.totalDebt)))
                                 }.joinToString(" • ")
                                 Text(
                                     text = details,
@@ -665,7 +680,7 @@ internal fun CashierCustomerPicker(
         },
         confirmButton = {
             TextButton(onClick = actions.onCloseCustomerPicker) {
-                Text(text = "Batal")
+                Text(text = strings.actionCancel)
             }
         },
     )
@@ -678,6 +693,7 @@ internal fun CashierDueDatePicker(
     actions: CashierActions,
 ) {
     if (!state.isDueDatePickerVisible) return
+    val strings = LocalPosStrings.current
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = state.paymentDraft.dueDateMillis,
     )
@@ -694,12 +710,12 @@ internal fun CashierDueDatePicker(
                     }
                 },
             ) {
-                Text(text = "Atur jatuh tempo")
+                Text(text = strings.cashierSetDueDate)
             }
         },
         dismissButton = {
             TextButton(onClick = actions.onCloseDueDatePicker) {
-                Text(text = "Batal")
+                Text(text = strings.actionCancel)
             }
         },
     ) {

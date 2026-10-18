@@ -1,23 +1,40 @@
 package id.umkm.pos.pro.ui.products
 
-fun productFormErrorSummary(errors: Map<ProductFormField, String>): String =
-    "Lengkapi ${errors.size} kolom wajib sebelum menyimpan."
+import id.umkm.pos.pro.ui.common.UiText
 
-fun validateProductForm(form: ProductFormState): Map<ProductFormField, String> {
-    val errors = mutableMapOf<ProductFormField, String>()
+fun productFormErrorSummary(errors: Map<ProductFormField, UiText>): UiText =
+    UiText.from { strings -> strings.productsValidationSummary(errors.size) }
+
+fun validateProductForm(form: ProductFormState): Map<ProductFormField, UiText> {
+    val errors = mutableMapOf<ProductFormField, UiText>()
     if (form.name.isBlank()) {
-        errors[ProductFormField.NAME] = "Masukkan nama produk."
+        errors[ProductFormField.NAME] = UiText.from { strings -> strings.productsValidationName }
     }
     if (form.baseUnit.isBlank()) {
-        errors[ProductFormField.BASE_UNIT] = "Masukkan satuan dasar."
+        errors[ProductFormField.BASE_UNIT] = UiText.from { strings -> strings.productsValidationBaseUnit }
     }
-    validateAmount(form.basePrice, ProductFormField.BASE_PRICE, "Masukkan harga jual yang valid.", errors)
-    validateAmount(form.baseHpp, ProductFormField.BASE_HPP, "Masukkan harga pokok yang valid.", errors)
-    validateQuantity(form.stockQuantity, ProductFormField.STOCK_QUANTITY, "Masukkan jumlah stok yang valid.", errors)
+    validateAmount(
+        form.basePrice,
+        ProductFormField.BASE_PRICE,
+        UiText.from { strings -> strings.productsValidationBasePrice },
+        errors,
+    )
+    validateAmount(
+        form.baseHpp,
+        ProductFormField.BASE_HPP,
+        UiText.from { strings -> strings.productsValidationBaseHpp },
+        errors,
+    )
+    validateQuantity(
+        form.stockQuantity,
+        ProductFormField.STOCK_QUANTITY,
+        UiText.from { strings -> strings.productsValidationStock },
+        errors,
+    )
     validateQuantity(
         form.minStockAlert,
         ProductFormField.MIN_STOCK_ALERT,
-        "Masukkan jumlah peringatan yang valid.",
+        UiText.from { strings -> strings.productsValidationMinStockAlert },
         errors,
     )
 
@@ -28,15 +45,20 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, String> {
         form.variantPrice.isNotBlank()
     if (isUnitRequested) {
         if (form.variantName.isBlank()) {
-            errors[ProductFormField.VARIANT_NAME] = "Masukkan nama satuan."
+            errors[ProductFormField.VARIANT_NAME] = UiText.from { strings -> strings.productsValidationUnitName }
         }
         validatePositiveQuantity(
             form.conversionFactor,
             ProductFormField.CONVERSION_FACTOR,
-            "Masukkan faktor konversi lebih dari nol.",
+            UiText.from { strings -> strings.productsValidationConversionFactor },
             errors,
         )
-        validateAmount(form.variantPrice, ProductFormField.VARIANT_PRICE, "Masukkan harga satuan yang valid.", errors)
+        validateAmount(
+            form.variantPrice,
+            ProductFormField.VARIANT_PRICE,
+            UiText.from { strings -> strings.productsValidationUnitPrice },
+            errors,
+        )
     }
 
     val isWholesaleRequested = form.wholesaleMinQty.isNotBlank() || form.wholesalePrice.isNotBlank()
@@ -44,13 +66,13 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, String> {
         validatePositiveCount(
             form.wholesaleMinQty,
             ProductFormField.WHOLESALE_MIN_QTY,
-            "Masukkan minimal grosir paling sedikit 1.",
+            UiText.from { strings -> strings.productsValidationWholesaleMinQty },
             errors,
         )
         validateAmount(
             form.wholesalePrice,
             ProductFormField.WHOLESALE_PRICE,
-            "Masukkan harga grosir yang valid.",
+            UiText.from { strings -> strings.productsValidationWholesalePrice },
             errors,
         )
     }
@@ -60,8 +82,8 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, String> {
 private fun validateAmount(
     value: String,
     field: ProductFormField,
-    message: String,
-    errors: MutableMap<ProductFormField, String>,
+    message: UiText,
+    errors: MutableMap<ProductFormField, UiText>,
 ) {
     val parsed = value.trim().toLongOrNull()
     if (parsed == null || parsed < 0L) {
@@ -72,8 +94,8 @@ private fun validateAmount(
 private fun validateQuantity(
     value: String,
     field: ProductFormField,
-    message: String,
-    errors: MutableMap<ProductFormField, String>,
+    message: UiText,
+    errors: MutableMap<ProductFormField, UiText>,
 ) {
     val parsed = value.trim().toDoubleOrNull()
     if (parsed == null || parsed < 0.0) {
@@ -84,8 +106,8 @@ private fun validateQuantity(
 private fun validatePositiveQuantity(
     value: String,
     field: ProductFormField,
-    message: String,
-    errors: MutableMap<ProductFormField, String>,
+    message: UiText,
+    errors: MutableMap<ProductFormField, UiText>,
 ) {
     val parsed = value.trim().toDoubleOrNull()
     if (parsed == null || parsed <= 0.0) {
@@ -96,8 +118,8 @@ private fun validatePositiveQuantity(
 private fun validatePositiveCount(
     value: String,
     field: ProductFormField,
-    message: String,
-    errors: MutableMap<ProductFormField, String>,
+    message: UiText,
+    errors: MutableMap<ProductFormField, UiText>,
 ) {
     val parsed = value.trim().toIntOrNull()
     if (parsed == null || parsed < 1) {

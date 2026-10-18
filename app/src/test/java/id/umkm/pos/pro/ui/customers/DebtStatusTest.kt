@@ -2,6 +2,7 @@ package id.umkm.pos.pro.ui.customers
 
 import com.google.common.truth.Truth.assertThat
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.uiSampleCustomer
 import id.umkm.pos.pro.ui.uiSampleDebtTransaction
 import org.junit.Test
@@ -74,7 +75,7 @@ class DebtStatusTest {
 
     @Test
     fun debtStatusLabelsAreDistinct() {
-        val labels = DebtStatus.entries.map { debtStatusLabel(it) }
+        val labels = DebtStatus.entries.map { status -> debtStatusLabel(status, IdStrings) }
 
         assertThat(labels.toSet()).hasSize(DebtStatus.entries.size)
         assertThat(labels).containsExactly("Lunas", "Belum Dibayar", "Dibayar Sebagian", "Jatuh Tempo")

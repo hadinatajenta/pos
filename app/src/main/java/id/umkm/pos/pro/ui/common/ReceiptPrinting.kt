@@ -26,13 +26,14 @@ data class ReceiptPrintRequest(
 @Composable
 fun rememberReceiptPrintLauncher(): (ReceiptPrintRequest) -> Unit {
     val context: Context = LocalContext.current
-    return remember(context) {
+    val strings: PosStrings = LocalPosStrings.current
+    return remember(context, strings) {
         val launchSystemPrint: (ReceiptPrintRequest) -> Unit = { request ->
             val printManager = context.getSystemService(PrintManager::class.java)
             if (printManager != null) {
                 printManager.print(
                     request.documentName,
-                    ReceiptPrintAdapter(request.content),
+                    ReceiptPrintAdapter(request.content, strings.receiptRenderFailed),
                     PrintAttributes.Builder().build(),
                 )
             }
@@ -41,7 +42,10 @@ fun rememberReceiptPrintLauncher(): (ReceiptPrintRequest) -> Unit {
     }
 }
 
-private class ReceiptPrintAdapter(private val content: String) : PrintDocumentAdapter() {
+private class ReceiptPrintAdapter(
+    private val content: String,
+    private val renderFailureMessage: String,
+) : PrintDocumentAdapter() {
 
     override fun onLayout(
         oldAttributes: PrintAttributes?,
@@ -79,7 +83,7 @@ private class ReceiptPrintAdapter(private val content: String) : PrintDocumentAd
             document.close()
             callback.onWriteFinished(pages ?: arrayOf(PageRange.ALL_PAGES))
         } catch (error: IOException) {
-            callback.onWriteFailed(error.message ?: "struk gagal dirender")
+            callback.onWriteFailed(error.message ?: renderFailureMessage)
         }
     }
 

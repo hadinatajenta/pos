@@ -53,7 +53,10 @@ interface ReceiptPrinter {
     suspend fun connect(printer: PrinterInfo): AppResult<Unit>
     suspend fun disconnect()
     suspend fun print(receipt: ReceiptDocument): AppResult<Unit>
+    fun getAvailablePrinters(): List<PrinterInfo> = emptyList()
+    fun setPaperWidth(paperWidthMm: Int) {}
 }
+
 
 interface ReceiptRenderer {
     fun renderText(receipt: ReceiptDocument, widthChars: Int): String

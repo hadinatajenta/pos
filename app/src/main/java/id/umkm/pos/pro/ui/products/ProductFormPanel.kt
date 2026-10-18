@@ -30,6 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.UiText
+import id.umkm.pos.pro.ui.common.asText
+import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -43,8 +47,6 @@ import id.umkm.pos.pro.R
 
 private val PHOTO_PREVIEW_SIZE = 96.dp
 private const val FIELD_MARKER_SEPARATOR = " · "
-private const val REQUIRED_FIELD_MARKER = "Wajib"
-private const val OPTIONAL_FIELD_MARKER = "Opsional"
 
 @Composable
 internal fun ProductFormPanel(
@@ -53,6 +55,7 @@ internal fun ProductFormPanel(
     actions: ProductsActions,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
@@ -60,17 +63,20 @@ internal fun ProductFormPanel(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (form.isEditing) "Ubah produk" else "Produk baru",
+                    text = if (form.isEditing) strings.productsEditProduct else strings.productsNewProduct,
                     style = LocalAppTextStyles.current.screenTitle,
                 )
                 Text(
-                    text = "Kolom bertanda $REQUIRED_FIELD_MARKER harus diisi.",
+                    text = strings.productsRequiredFieldNotice,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(onClick = actions.onDismissForm) {
-                Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Tutup formulir produk")
+                Icon(
+                    painter = painterResource(R.drawable.ic_close),
+                    contentDescription = strings.productsCloseForm,
+                )
             }
         }
         HorizontalDivider()
@@ -97,7 +103,7 @@ internal fun ProductFormPanel(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
             PrimaryActionButton(
-                text = if (form.isEditing) "Simpan perubahan" else "Simpan produk",
+                text = if (form.isEditing) strings.productsSaveChanges else strings.productsSaveNew,
                 onClick = actions.onSubmitForm,
                 loading = isSaving,
                 modifier = Modifier.weight(1f),
@@ -106,7 +112,7 @@ internal fun ProductFormPanel(
                 onClick = actions.onDismissForm,
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = "Batal", style = LocalAppTextStyles.current.buttonLabel)
+                Text(text = strings.actionCancel, style = LocalAppTextStyles.current.buttonLabel)
             }
         }
     }
@@ -117,51 +123,52 @@ private fun BasicsSection(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
+    val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
-        PosSectionHeader(title = "Dasar")
+        PosSectionHeader(title = strings.productsSectionBasics)
         ProductPhotoField(form = form, actions = actions)
         FormTextField(
-            label = "Nama",
+            label = strings.productsFieldName,
             value = form.name,
             onValueChange = { actions.onFormFieldChange(ProductFormField.NAME, it) },
             error = form.errorFor(ProductFormField.NAME),
             isRequired = true,
         )
         FormTextField(
-            label = "SKU",
+            label = strings.productsSku,
             value = form.sku,
             onValueChange = { actions.onFormFieldChange(ProductFormField.SKU, it) },
             error = form.errorFor(ProductFormField.SKU),
             isRequired = false,
-            supportingText = "Dibuat otomatis bila dikosongkan.",
+            supportingText = strings.productsSkuAutoHint,
         )
         FormTextField(
-            label = "Barcode",
+            label = strings.productsBarcode,
             value = form.barcode,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BARCODE, it) },
             error = form.errorFor(ProductFormField.BARCODE),
             isRequired = false,
         )
         FormTextField(
-            label = "Kategori",
+            label = strings.productsCategory,
             value = form.category,
             onValueChange = { actions.onFormFieldChange(ProductFormField.CATEGORY, it) },
             error = form.errorFor(ProductFormField.CATEGORY),
             isRequired = false,
         )
         FormTextField(
-            label = "Satuan dasar",
+            label = strings.productsFieldBaseUnit,
             value = form.baseUnit,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_UNIT, it) },
             error = form.errorFor(ProductFormField.BASE_UNIT),
             isRequired = true,
-            supportingText = "Contoh: pcs, kg, atau liter.",
+            supportingText = strings.productsBaseUnitHint,
         )
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Aktif", style = LocalAppTextStyles.current.body)
+                Text(text = strings.productsActive, style = LocalAppTextStyles.current.body)
                 Text(
-                    text = "Produk nonaktif tidak muncul di kasir.",
+                    text = strings.productsActiveDesc,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -176,6 +183,7 @@ private fun ProductPhotoField(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
+    val strings = LocalPosStrings.current
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { pickedUri ->
         pickedUri?.let { uri -> actions.onProductImagePicked(uri.toString()) }
     }
@@ -188,13 +196,13 @@ private fun ProductPhotoField(
         verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         Text(
-            text = "Foto produk$FIELD_MARKER_SEPARATOR$OPTIONAL_FIELD_MARKER",
+            text = "${strings.productsPhoto}$FIELD_MARKER_SEPARATOR${strings.commonOptional}",
             style = LocalAppTextStyles.current.body,
         )
         ProductThumbnail(category = form.category, size = PHOTO_PREVIEW_SIZE, imagePath = form.imagePath)
         if (form.isImageRemoved) {
             Text(
-                text = "Foto akan dihapus saat produk disimpan.",
+                text = strings.productsPhotoWillBeRemoved,
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -208,18 +216,18 @@ private fun ProductPhotoField(
             }
             if (form.imagePath == null) {
                 PhotoActionButton(
-                    text = "Pilih gambar",
+                    text = strings.productsPhotoPick,
                     enabled = isPickingAllowed,
                     onClick = launchImagePicker,
                 )
             } else {
                 PhotoActionButton(
-                    text = "Ganti",
+                    text = strings.productsPhotoChange,
                     enabled = isPickingAllowed,
                     onClick = launchImagePicker,
                 )
                 PhotoActionButton(
-                    text = "Hapus",
+                    text = strings.productsPhotoRemove,
                     enabled = isPickingAllowed,
                     onClick = actions.onProductImageRemove,
                 )
@@ -244,7 +252,7 @@ private fun PhotoActionButton(
 }
 
 @Composable
-private fun ValidationSummary(errors: Map<ProductFormField, String>) {
+private fun ValidationSummary(errors: Map<ProductFormField, UiText>) {
     val palette = LocalPosSemanticPalette.current
     Row(
         modifier = Modifier
@@ -261,7 +269,7 @@ private fun ValidationSummary(errors: Map<ProductFormField, String>) {
             modifier = Modifier.size(PosSizes.iconSmall),
         )
         Text(
-            text = productFormErrorSummary(errors),
+            text = productFormErrorSummary(errors).asText(),
             style = LocalAppTextStyles.current.supportingLabel,
             color = palette.danger,
         )
@@ -273,10 +281,11 @@ private fun PricingSection(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
+    val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
-        PosSectionHeader(title = "Harga & Satuan")
+        PosSectionHeader(title = strings.productsPricingAndUnits)
         FormTextField(
-            label = "Harga jual",
+            label = strings.productsBasePrice,
             value = form.basePrice,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_PRICE, it) },
             error = form.errorFor(ProductFormField.BASE_PRICE),
@@ -284,13 +293,13 @@ private fun PricingSection(
             isRequired = true,
         )
         FormTextField(
-            label = "Harga pokok",
+            label = strings.productsBaseHpp,
             value = form.baseHpp,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_HPP, it) },
             error = form.errorFor(ProductFormField.BASE_HPP),
             keyboardType = KeyboardType.Number,
             isRequired = true,
-            supportingText = "Harga pokok (HPP) per satuan dasar.",
+            supportingText = strings.productsHppHint,
         )
         TextButton(onClick = actions.onFormAdvancedToggle) {
             Icon(
@@ -299,7 +308,7 @@ private fun PricingSection(
                 modifier = Modifier.size(PosSizes.iconSmall),
             )
             Spacer(modifier = Modifier.width(PosSpacing.xs))
-            Text(text = "Opsi lainnya")
+            Text(text = strings.productsOtherOptions)
         }
         if (form.isAdvancedExpanded) {
             AdvancedUnitFields(form = form, actions = actions)
@@ -312,29 +321,30 @@ private fun AdvancedUnitFields(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
     ) {
         FormTextField(
-            label = "Nama satuan",
+            label = strings.productsUnitName,
             value = form.variantName,
             onValueChange = { actions.onFormFieldChange(ProductFormField.VARIANT_NAME, it) },
             error = form.errorFor(ProductFormField.VARIANT_NAME),
             isRequired = false,
-            supportingText = "Contoh: dus atau karton.",
+            supportingText = strings.productsUnitNameHint,
         )
         FormTextField(
-            label = "Faktor konversi",
+            label = strings.productsConversionFactor,
             value = form.conversionFactor,
             onValueChange = { actions.onFormFieldChange(ProductFormField.CONVERSION_FACTOR, it) },
             error = form.errorFor(ProductFormField.CONVERSION_FACTOR),
             keyboardType = KeyboardType.Decimal,
             isRequired = false,
-            supportingText = "Jumlah satuan dasar per satuan, contoh 10.",
+            supportingText = strings.productsConversionFactorHint,
         )
         FormTextField(
-            label = "Harga satuan",
+            label = strings.productsUnitPrice,
             value = form.variantPrice,
             onValueChange = { actions.onFormFieldChange(ProductFormField.VARIANT_PRICE, it) },
             error = form.errorFor(ProductFormField.VARIANT_PRICE),
@@ -342,7 +352,7 @@ private fun AdvancedUnitFields(
             isRequired = false,
         )
         FormTextField(
-            label = "Minimal grosir",
+            label = strings.productsWholesaleMinQty,
             value = form.wholesaleMinQty,
             onValueChange = { actions.onFormFieldChange(ProductFormField.WHOLESALE_MIN_QTY, it) },
             error = form.errorFor(ProductFormField.WHOLESALE_MIN_QTY),
@@ -350,7 +360,7 @@ private fun AdvancedUnitFields(
             isRequired = false,
         )
         FormTextField(
-            label = "Harga grosir",
+            label = strings.productsWholesalePrice,
             value = form.wholesalePrice,
             onValueChange = { actions.onFormFieldChange(ProductFormField.WHOLESALE_PRICE, it) },
             error = form.errorFor(ProductFormField.WHOLESALE_PRICE),
@@ -365,10 +375,11 @@ private fun StockSection(
     form: ProductFormState,
     actions: ProductsActions,
 ) {
+    val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
-        PosSectionHeader(title = "Stok")
+        PosSectionHeader(title = strings.productsSectionStock)
         FormTextField(
-            label = "Jumlah stok",
+            label = strings.productsStockQty,
             value = form.stockQuantity,
             onValueChange = { actions.onFormFieldChange(ProductFormField.STOCK_QUANTITY, it) },
             error = form.errorFor(ProductFormField.STOCK_QUANTITY),
@@ -376,13 +387,13 @@ private fun StockSection(
             isRequired = true,
         )
         FormTextField(
-            label = "Peringatan stok menipis",
+            label = strings.productsMinStockAlert,
             value = form.minStockAlert,
             onValueChange = { actions.onFormFieldChange(ProductFormField.MIN_STOCK_ALERT, it) },
             error = form.errorFor(ProductFormField.MIN_STOCK_ALERT),
             keyboardType = KeyboardType.Decimal,
             isRequired = true,
-            supportingText = "Ditandai stok menipis saat jumlah ini tercapai.",
+            supportingText = strings.productsLowStockHint,
         )
     }
 }
@@ -392,14 +403,15 @@ private fun FormTextField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    error: String?,
+    error: UiText?,
     isRequired: Boolean,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     supportingText: String? = null,
 ) {
-    val helperText = error ?: supportingText
-    val marker = if (isRequired) REQUIRED_FIELD_MARKER else OPTIONAL_FIELD_MARKER
+    val strings = LocalPosStrings.current
+    val helperText = error?.asTextOrNull() ?: supportingText
+    val marker = if (isRequired) strings.commonRequired else strings.commonOptional
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,

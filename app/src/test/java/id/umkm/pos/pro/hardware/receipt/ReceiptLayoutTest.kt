@@ -106,6 +106,31 @@ class ReceiptLayoutTest {
         assertThat(renderedAt32.split('\n').size).isGreaterThan(renderedAt48.split('\n').size)
     }
 
+    @Test
+    fun stringDisplayWidthCountsCjkAsDoubleWidth() {
+        assertThat(ReceiptLayout.stringDisplayWidth("AB")).isEqualTo(2)
+        assertThat(ReceiptLayout.stringDisplayWidth("总计")).isEqualTo(4)
+        assertThat(ReceiptLayout.stringDisplayWidth("Total: 50")).isEqualTo(9)
+    }
+
+    @Test
+    fun padToWidthProperlyPadsCjkText() {
+        val paddedEnd = ReceiptLayout.padToWidth("总计", 10, ReceiptAlignment.END)
+        assertThat(paddedEnd).isEqualTo("      总计")
+        assertThat(ReceiptLayout.stringDisplayWidth(paddedEnd)).isEqualTo(10)
+
+        val paddedCenter = ReceiptLayout.padToWidth("总计", 10, ReceiptAlignment.CENTER)
+        assertThat(paddedCenter).isEqualTo("   总计   ")
+        assertThat(ReceiptLayout.stringDisplayWidth(paddedCenter)).isEqualTo(10)
+    }
+
+    @Test
+    fun wrapTextBreaksCjkTextByDisplayWidth() {
+        assertThat(ReceiptLayout.wrapText("总计 合计", 5))
+            .containsExactly("总计", "合计")
+            .inOrder()
+    }
+
     private fun longReceipt(): ReceiptDocument = ReceiptDocument(
         storeName = "Toko Sumber Rejeki Makmur",
         lines = listOf(
@@ -115,3 +140,4 @@ class ReceiptLayoutTest {
         ),
     )
 }
+

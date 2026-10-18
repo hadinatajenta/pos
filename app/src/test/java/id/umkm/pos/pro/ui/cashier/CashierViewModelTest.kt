@@ -2,12 +2,15 @@ package id.umkm.pos.pro.ui.cashier
 
 import com.google.common.truth.Truth.assertThat
 import id.umkm.pos.pro.core.contract.UiState
+import id.umkm.pos.pro.core.model.AppLanguage
+import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.domain.usecase.FakeClock
+import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.FakeCatalogRepository
 import id.umkm.pos.pro.ui.FakeCustomerStore
 import id.umkm.pos.pro.ui.FakeReceiptPrinter
@@ -16,6 +19,8 @@ import id.umkm.pos.pro.ui.FakeScannerInput
 import id.umkm.pos.pro.ui.FakeSettingsRepository
 import id.umkm.pos.pro.ui.FakeTransactionStore
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.uiSampleCustomer
 import id.umkm.pos.pro.ui.uiSampleProduct
@@ -44,10 +49,12 @@ class CashierViewModelTest {
     private val renderer = FakeReceiptRenderer()
     private val scanner = FakeScannerInput()
 
-    private fun createViewModel(): CashierViewModel = CashierViewModel(
+    private fun createViewModel(
+        settingsRepository: FakeSettingsRepository = settings,
+    ): CashierViewModel = CashierViewModel(
         productRepository = products,
         customerRepository = customers,
-        settingsRepository = settings,
+        settingsRepository = settingsRepository,
         priceEngine = DefaultPriceEngine(),
         checkoutUseCase = CheckoutUseCase(products, transactions, DefaultPriceEngine(), clock),
         receiptPrinter = printer,
@@ -65,7 +72,7 @@ class CashierViewModelTest {
         assertThat(state.cartLines).hasSize(1)
         assertThat(state.cartLines.single().productName).isEqualTo("Kopi Susu")
         assertThat(state.grandTotal).isEqualTo(2_000L)
-        assertThat(state.message).isEqualTo("Kopi Susu ditambahkan")
+        assertThat(state.message?.resolve(IdStrings)).isEqualTo("Kopi Susu ditambahkan")
     }
 
     @Test
@@ -223,7 +230,8 @@ class CashierViewModelTest {
 
         scanner.emitScan("000000")
 
-        assertThat(viewModel.state.value.message).isEqualTo("Tidak ada produk dengan kode 000000")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings))
+            .isEqualTo("Tidak ada produk dengan kode 000000")
         assertThat(viewModel.state.value.cartLines).isEmpty()
     }
 
@@ -236,7 +244,8 @@ class CashierViewModelTest {
         viewModel.onAmountReceivedChange("1000")
         viewModel.onConfirmCharge()
 
-        assertThat(viewModel.state.value.submitErrorMessage).isEqualTo("Jumlah diterima kurang dari total.")
+        assertThat(viewModel.state.value.submitErrorMessage?.resolve(IdStrings))
+            .isEqualTo("Jumlah diterima kurang dari total.")
         assertThat(viewModel.state.value.cartLines).hasSize(1)
         assertThat(transactions.savedTransactions()).isEmpty()
     }
@@ -272,6 +281,33 @@ class CashierViewModelTest {
     }
 
     @Test
+    fun englishLanguageSettingProducesAnEnglishShareText() = runTest(mainDispatcherRule.testDispatcher) {
+        val englishSettings = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                storeName = "Toko Uji",
+                cashierName = null,
+                taxRatePercent = 0,
+                roundingIncrement = 0L,
+                isPinEnabled = false,
+                printerAddress = null,
+                languageCode = AppLanguage.ENGLISH.code,
+                qrisImagePath = null,
+            ),
+        )
+        val viewModel = createViewModel(settingsRepository = englishSettings)
+        viewModel.onAddProduct(1L)
+        viewModel.onOpenPaymentSheet()
+        viewModel.onAmountReceivedChange("5000")
+
+        viewModel.onConfirmCharge()
+
+        val shareText = viewModel.state.value.receipt?.shareText.orEmpty()
+        assertThat(shareText).contains("Order details")
+        assertThat(shareText).contains(EnStrings.receiptChange(Rupiah.format(3_000L)))
+        assertThat(shareText).doesNotContain(IdStrings.receiptItemsTitle)
+    }
+
+    @Test
     fun kasbonWithoutACustomerIsRejected() = runTest(mainDispatcherRule.testDispatcher) {
         val viewModel = createViewModel()
         viewModel.onAddProduct(1L)
@@ -280,7 +316,7 @@ class CashierViewModelTest {
         viewModel.onPaymentMethodChange(PaymentMethod.KASBON)
         viewModel.onConfirmCharge()
 
-        assertThat(viewModel.state.value.submitErrorMessage)
+        assertThat(viewModel.state.value.submitErrorMessage?.resolve(IdStrings))
             .isEqualTo("Pilih pelanggan untuk sisa tagihan.")
         assertThat(transactions.savedTransactions()).isEmpty()
     }
@@ -317,7 +353,8 @@ class CashierViewModelTest {
 
         assertThat(printer.lastPrintedDocument).isNotNull()
         assertThat(printer.lastPrintedDocument?.storeName).isEqualTo("Toko Uji")
-        assertThat(viewModel.state.value.receiptMessage).isEqualTo("Struk terkirim ke printer.")
+        assertThat(viewModel.state.value.receiptMessage?.resolve(IdStrings))
+            .isEqualTo("Struk terkirim ke printer.")
     }
 
     @Test
@@ -373,7 +410,7 @@ class CashierViewModelTest {
         val state = viewModel.state.value
         assertThat(state.cartLines).isEmpty()
         assertThat(state.pricedCart).isNull()
-        assertThat(state.message).isEqualTo("Stok Kopi Susu habis")
+        assertThat(state.message?.resolve(IdStrings)).isEqualTo("Stok Kopi Susu habis")
     }
 
     @Test
@@ -391,7 +428,8 @@ class CashierViewModelTest {
 
         val state = viewModel.state.value
         assertThat(state.cartLines.single().quantity).isEqualTo(1.0)
-        assertThat(state.message).isEqualTo("Stok Kopi Susu tidak mencukupi (tersisa 1 pcs)")
+        assertThat(state.message?.resolve(IdStrings))
+            .isEqualTo("Stok Kopi Susu tidak mencukupi (tersisa 1 pcs)")
     }
 
     @Test
@@ -422,7 +460,7 @@ class CashierViewModelTest {
         assertThat(state.isCustomerPickerVisible).isFalse()
         assertThat(state.paymentDraft.customerId).isNotNull()
         assertThat(state.selectedCustomerName).isEqualTo("Budi")
-        assertThat(state.message).isEqualTo("Pelanggan Budi ditambahkan & dipilih")
+        assertThat(state.message?.resolve(IdStrings)).isEqualTo("Pelanggan Budi ditambahkan & dipilih")
         val addedCustomer = state.payableCustomers.single()
         assertThat(addedCustomer.name).isEqualTo("Budi")
         assertThat(addedCustomer.whatsappNumber).isEqualTo("08123456789")

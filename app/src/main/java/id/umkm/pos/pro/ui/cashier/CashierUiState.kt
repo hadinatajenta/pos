@@ -7,6 +7,7 @@ import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.ui.common.StockStatus
+import id.umkm.pos.pro.ui.common.UiText
 
 data class CashierProductItem(
     val product: Product,
@@ -65,7 +66,7 @@ data class CartLineEditorState(
     val selectedUnitId: Long?,
     val negotiatedUnitPriceInput: String,
     val itemDiscountInput: String,
-    val validationMessage: String?,
+    val validationMessage: UiText?,
 )
 
 data class CashierReceipt(
@@ -94,11 +95,12 @@ data class CashierUiState(
     val isCustomerPickerVisible: Boolean = false,
     val isDueDatePickerVisible: Boolean = false,
     val isSubmitting: Boolean = false,
-    val submitErrorMessage: String? = null,
+    val submitErrorMessage: UiText? = null,
     val receipt: CashierReceipt? = null,
     val isPrintingReceipt: Boolean = false,
-    val receiptMessage: String? = null,
-    val message: String? = null,
+    val receiptMessage: UiText? = null,
+    val message: UiText? = null,
+    val shouldSuppressMessageSnackbar: Boolean = false,
     val qrisPayload: String? = null,
 ) {
     val lineCount: Int get() = cartLines.size

@@ -35,6 +35,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
+import id.umkm.pos.pro.ui.common.UiText
+import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
@@ -59,6 +63,7 @@ internal fun RecordPaymentSheet(
     actions: CustomersActions,
 ) {
     val configuration = LocalConfiguration.current
+    val strings = LocalPosStrings.current
     val maxSheetHeight = (configuration.screenHeightDp * RECORD_PAYMENT_SHEET_HEIGHT_FRACTION).dp
     ModalBottomSheet(
         onDismissRequest = actions.onCloseRecordPayment,
@@ -71,7 +76,7 @@ internal fun RecordPaymentSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Catat pembayaran",
+                        text = strings.customersRecordPayment,
                         style = LocalAppTextStyles.current.screenTitle,
                     )
                     Text(
@@ -81,7 +86,10 @@ internal fun RecordPaymentSheet(
                     )
                 }
                 IconButton(onClick = actions.onCloseRecordPayment) {
-                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = "Tutup formulir pembayaran")
+                    Icon(
+                        painter = painterResource(R.drawable.ic_close),
+                        contentDescription = strings.customersClosePaymentForm,
+                    )
                 }
             }
             HorizontalDivider()
@@ -93,21 +101,25 @@ internal fun RecordPaymentSheet(
                     .padding(horizontal = PosSpacing.md, vertical = PosSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
             ) {
-                OutstandingDebtCard(outstandingDebt = draft.outstandingDebt)
+                OutstandingDebtCard(
+                    outstandingDebt = draft.outstandingDebt,
+                    strings = strings,
+                )
                 if (draft.transactions.isEmpty()) {
                     Text(
-                        text = "Pelanggan ini tidak punya utang yang perlu dibayar.",
+                        text = strings.customersNoDebtToPay,
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     PosCard(modifier = Modifier.fillMaxWidth()) {
-                        PosSectionHeader(title = "Pilih utang")
+                        PosSectionHeader(title = strings.customersSelectDebt)
                         draft.transactions.forEach { item ->
                             TransactionOptionRow(
                                 item = item,
                                 isSelected = item.transactionId == draft.selectedTransactionId,
                                 onSelect = { actions.onSelectTransaction(item.transactionId) },
+                                strings = strings,
                             )
                         }
                     }
@@ -116,12 +128,12 @@ internal fun RecordPaymentSheet(
                     value = draft.amountInput,
                     onValueChange = actions.onAmountChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Jumlah diterima") },
+                    label = { Text(strings.cashierAmountReceived) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 PaymentShortcut(
-                    label = "Bayar penuh utang terpilih",
+                    label = strings.customersPayFullShortcut,
                     remainingDebt = draft.transactions
                         .firstOrNull { it.transactionId == draft.selectedTransactionId }
                         ?.remainingDebt,
@@ -130,16 +142,17 @@ internal fun RecordPaymentSheet(
                 PaymentMethodSelector(
                     selectedMethod = draft.method,
                     onSelect = actions.onPaymentMethodChange,
+                    strings = strings,
                 )
                 OutlinedTextField(
                     value = draft.note,
                     onValueChange = actions.onNoteChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Catatan") },
+                    label = { Text(strings.customersNote) },
                 )
                 draft.validationMessage?.let { message ->
                     Text(
-                        text = message,
+                        text = message.asText(),
                         style = LocalAppTextStyles.current.supportingLabel,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -147,7 +160,7 @@ internal fun RecordPaymentSheet(
             }
             HorizontalDivider()
             PrimaryActionButton(
-                text = "Konfirmasi pembayaran",
+                text = strings.customersConfirmPayment,
                 onClick = actions.onConfirmPayment,
                 enabled = draft.transactions.isNotEmpty(),
                 loading = isSubmitting,
@@ -158,7 +171,10 @@ internal fun RecordPaymentSheet(
 }
 
 @Composable
-private fun OutstandingDebtCard(outstandingDebt: Long) {
+private fun OutstandingDebtCard(
+    outstandingDebt: Long,
+    strings: PosStrings,
+) {
     PosCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -166,7 +182,7 @@ private fun OutstandingDebtCard(outstandingDebt: Long) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "Sisa utang",
+                text = strings.customersOutstandingDebt,
                 style = LocalAppTextStyles.current.sectionHeading,
             )
             AutoSizeNumberText(
@@ -183,6 +199,7 @@ private fun TransactionOptionRow(
     item: OutstandingTransactionItem,
     isSelected: Boolean,
     onSelect: () -> Unit,
+    strings: PosStrings,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect),
@@ -193,7 +210,7 @@ private fun TransactionOptionRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = item.invoiceNo, style = LocalAppTextStyles.current.body)
             Text(
-                text = dueDateText(item),
+                text = dueDateText(item, strings),
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = if (item.isOverdue) {
                     MaterialTheme.colorScheme.error
@@ -228,9 +245,10 @@ private fun PaymentShortcut(
 private fun PaymentMethodSelector(
     selectedMethod: PaymentMethod,
     onSelect: (PaymentMethod) -> Unit,
+    strings: PosStrings,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
-        PosSectionHeader(title = "Metode pembayaran")
+        PosSectionHeader(title = strings.cashierPaymentMethodLabel)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
@@ -239,7 +257,7 @@ private fun PaymentMethodSelector(
                 FilterChip(
                     selected = method == selectedMethod,
                     onClick = { onSelect(method) },
-                    label = { Text(paymentMethodLabel(method)) },
+                    label = { Text(paymentMethodLabel(method, strings)) },
                     leadingIcon = if (method == selectedMethod) {
                         {
                             Icon(
@@ -257,11 +275,11 @@ private fun PaymentMethodSelector(
     }
 }
 
-private fun dueDateText(item: OutstandingTransactionItem): String {
+private fun dueDateText(item: OutstandingTransactionItem, strings: PosStrings): String {
     val dueDate = item.dueDateMillis
     return when {
-        dueDate == null -> "Tanpa jatuh tempo"
-        item.isOverdue -> "Terlambat sejak ${formatDate(dueDate)}"
-        else -> "Jatuh tempo ${formatDate(dueDate)}"
+        dueDate == null -> strings.customersNoDueDate
+        item.isOverdue -> strings.customersOverdueSince(formatDate(dueDate, strings))
+        else -> strings.customersDueDateOn(formatDate(dueDate, strings))
     }
 }

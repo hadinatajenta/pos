@@ -33,10 +33,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.BuildConfig
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.data.seed.DemoClearSummary
 import id.umkm.pos.pro.data.seed.DemoDataSeeder
 import id.umkm.pos.pro.data.seed.DemoSeedSummary
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.UiText
+import id.umkm.pos.pro.ui.common.asText
+import id.umkm.pos.pro.ui.common.toUiText
 import id.umkm.pos.pro.ui.components.IconBadge
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
@@ -57,10 +62,11 @@ internal fun DemoDataSection(modifier: Modifier = Modifier) {
 @Composable
 private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
     val seeder = LocalDemoDataSeeder.current ?: return
+    val strings = LocalPosStrings.current
     val scope = rememberCoroutineScope()
     val palette = LocalPosSemanticPalette.current
     var isBusy by remember { mutableStateOf(false) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var statusMessage by remember { mutableStateOf<UiText?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
     PosCard(modifier = modifier.fillMaxWidth()) {
@@ -71,7 +77,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
         ) {
             IconBadge(iconRes = R.drawable.ic_flask)
             Text(
-                text = "Data Demo",
+                text = strings.demoDataTitle,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.weight(1f),
             )
@@ -114,7 +120,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.width(PosSpacing.xs))
                 Text(
-                    text = "Muat Demo",
+                    text = strings.demoDataLoad,
                     style = LocalAppTextStyles.current.buttonLabel,
                     maxLines = 1,
                 )
@@ -141,7 +147,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.width(PosSpacing.xs))
                 Text(
-                    text = "Hapus Demo",
+                    text = strings.demoDataClear,
                     style = LocalAppTextStyles.current.buttonLabel,
                     maxLines = 1,
                 )
@@ -155,7 +161,7 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = message,
+                    text = message.asText(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
@@ -167,9 +173,9 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text(text = "Hapus data demo?") },
+            title = { Text(text = strings.demoDataClearConfirmTitle) },
             text = {
-                Text(text = "Transaksi, pelanggan, dan produk bertanda DEMO akan dihapus. Data asli toko tidak diubah.")
+                Text(text = strings.demoDataClearConfirmMsg)
             },
             confirmButton = {
                 TextButton(
@@ -183,35 +189,44 @@ private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
                         }
                     },
                 ) {
-                    Text(text = "Hapus")
+                    Text(text = strings.actionDelete)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text(text = "Batal")
+                    Text(text = strings.actionCancel)
                 }
             },
         )
     }
 }
 
-private fun AppResult<DemoSeedSummary>.toStatusMessage(message: (DemoSeedSummary) -> String): String =
+private fun AppResult<DemoSeedSummary>.toStatusMessage(message: (DemoSeedSummary) -> UiText): UiText =
     when (this) {
         is AppResult.Success -> message(value)
-        is AppResult.Failure -> failureMessage(error.message)
+        is AppResult.Failure -> error.demoDataFailureText()
     }
 
-private fun AppResult<DemoClearSummary>.toClearStatusMessage(message: (DemoClearSummary) -> String): String =
+private fun AppResult<DemoClearSummary>.toClearStatusMessage(message: (DemoClearSummary) -> UiText): UiText =
     when (this) {
         is AppResult.Success -> message(value)
-        is AppResult.Failure -> failureMessage(error.message)
+        is AppResult.Failure -> error.demoDataFailureText()
     }
 
-private fun seedLoadedMessage(summary: DemoSeedSummary): String =
-    "Dimuat: ${summary.products} produk, ${summary.customers} pelanggan, " +
-        "${summary.transactions} transaksi, ${summary.returns} retur"
+private fun AppError.demoDataFailureText(): UiText =
+    UiText.from { strings -> strings.demoDataFailed(toUiText().resolve(strings)) }
 
-private fun clearSummaryMessage(summary: DemoClearSummary): String =
-    "Dihapus: ${summary.products} produk, ${summary.customers} pelanggan, ${summary.transactions} transaksi"
+private fun seedLoadedMessage(summary: DemoSeedSummary): UiText =
+    UiText.from { strings ->
+        strings.demoDataLoaded(
+            summary.products,
+            summary.customers,
+            summary.transactions,
+            summary.returns,
+        )
+    }
 
-private fun failureMessage(detail: String): String = "Gagal: $detail"
+private fun clearSummaryMessage(summary: DemoClearSummary): UiText =
+    UiText.from { strings ->
+        strings.demoDataCleared(summary.products, summary.customers, summary.transactions)
+    }

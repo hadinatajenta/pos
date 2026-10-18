@@ -21,7 +21,10 @@ fun SettingsRoute(
                 SettingsViewModel(
                     settingsRepository = container.settingsRepository,
                     qrisService = container.qrisService,
+                    receiptPrinter = container.receiptPrinter,
+                    receiptRenderer = container.receiptRenderer,
                 )
+
             }
         },
     )

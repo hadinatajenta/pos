@@ -5,6 +5,7 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.model.ReportRange
+import id.umkm.pos.pro.ui.common.PosStrings
 import kotlinx.coroutines.CancellationException
 import java.util.TimeZone
 
@@ -49,12 +50,13 @@ class SalesCsvExporter(
     suspend fun exportReport(
         content: ReportContent,
         targetPath: String,
+        strings: PosStrings,
     ): AppResult<BackupArtifact> {
         if (targetPath.isBlank()) {
             return AppResult.Failure(AppError.Validation("export path must not be blank"))
         }
 
-        val csv = ReportCsv.buildReportCsv(content, timeZone)
+        val csv = ReportCsv.buildReportCsv(content, strings, timeZone)
 
         val byteCount = try {
             csvSink.write(targetPath, csv)

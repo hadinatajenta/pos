@@ -28,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.feature.reports.Rupiah
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.UiText
+import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
@@ -48,10 +51,12 @@ private val HERO_VALUE_MAX_WIDTH = 240.dp
 internal fun CashierReceiptSheet(
     receipt: CashierReceipt,
     isPrintingReceipt: Boolean,
-    receiptMessage: String?,
+    receiptMessage: UiText?,
     actions: CashierActions,
     onShareReceipt: (String) -> Unit,
 ) {
+    val strings = LocalPosStrings.current
+    val receiptMessageText = receiptMessage?.asTextOrNull()
     ModalBottomSheet(
         onDismissRequest = actions.onNewSale,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -72,7 +77,7 @@ internal fun CashierReceiptSheet(
                 tint = LocalPosSemanticPalette.current.success,
             )
             Text(
-                text = "Transaksi selesai",
+                text = strings.cashierTransactionSuccess,
                 style = LocalAppTextStyles.current.sectionHeading,
                 textAlign = TextAlign.Center,
             )
@@ -84,33 +89,33 @@ internal fun CashierReceiptSheet(
             ReceiptHeroStatusCard(receipt = receipt)
             PosCard(modifier = Modifier.fillMaxWidth()) {
                 ReceiptSummaryLine(
-                    label = "Metode bayar",
-                    value = paymentMethodLabel(receipt.paymentMethod),
+                    label = strings.cashierPaymentMethodSummary,
+                    value = paymentMethodLabel(receipt.paymentMethod, strings),
                 )
                 if (receipt.itemCount > 0) {
                     ReceiptSummaryLine(
-                        label = "Jumlah item",
-                        value = "${receipt.itemCount} item",
+                        label = strings.cashierItemCountLabel,
+                        value = strings.cashierItemCountValue(receipt.itemCount),
                     )
                 }
                 ReceiptSummaryLine(
-                    label = "Total",
+                    label = strings.cashierTotal,
                     value = Rupiah.format(receipt.grandTotal),
                     emphasized = true,
                 )
                 ReceiptSummaryLine(
-                    label = "Dibayar",
+                    label = strings.cashierPaid,
                     value = Rupiah.format(receipt.paidAmount),
                 )
                 if (receipt.changeAmount > 0L) {
                     ReceiptSummaryLine(
-                        label = "Kembalian",
+                        label = strings.cashierChange,
                         value = Rupiah.format(receipt.changeAmount),
                     )
                 }
                 if (receipt.remainingDebt > 0L) {
                     ReceiptSummaryLine(
-                        label = "Sisa tagihan",
+                        label = strings.cashierRemainingAmount,
                         value = Rupiah.format(receipt.remainingDebt),
                     )
                 }
@@ -137,7 +142,7 @@ internal fun CashierReceiptSheet(
                         )
                         Spacer(modifier = Modifier.width(PosSpacing.xs))
                         Text(
-                            text = "Cetak struk",
+                            text = strings.cashierPrintReceipt,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -154,19 +159,19 @@ internal fun CashierReceiptSheet(
                     )
                     Spacer(modifier = Modifier.width(PosSpacing.xs))
                     Text(
-                        text = "Bagikan Struk",
+                        text = strings.cashierShareReceipt,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
             PrimaryActionButton(
-                text = "Transaksi baru",
+                text = strings.cashierNewSale,
                 onClick = actions.onNewSale,
             )
-            if (receiptMessage != null) {
+            if (receiptMessageText != null) {
                 Text(
-                    text = receiptMessage,
+                    text = receiptMessageText,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -178,6 +183,7 @@ internal fun CashierReceiptSheet(
 
 @Composable
 private fun ReceiptHeroStatusCard(receipt: CashierReceipt) {
+    val strings = LocalPosStrings.current
     val containerColor = if (receipt.changeAmount > 0L) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
@@ -189,14 +195,14 @@ private fun ReceiptHeroStatusCard(receipt: CashierReceipt) {
         MaterialTheme.colorScheme.onSecondaryContainer
     }
     val label = when {
-        receipt.changeAmount > 0L -> "Kembalian"
-        receipt.remainingDebt > 0L -> "Sisa Kasbon"
-        else -> "Status Pembayaran"
+        receipt.changeAmount > 0L -> strings.cashierChange
+        receipt.remainingDebt > 0L -> strings.cashierRemainingDebt
+        else -> strings.cashierPaymentStatusLabel
     }
     val valueText = when {
         receipt.changeAmount > 0L -> Rupiah.format(receipt.changeAmount)
         receipt.remainingDebt > 0L -> Rupiah.format(receipt.remainingDebt)
-        else -> "Lunas (${paymentMethodLabel(receipt.paymentMethod)})"
+        else -> strings.cashierPaidInFull(paymentMethodLabel(receipt.paymentMethod, strings))
     }
 
     Surface(

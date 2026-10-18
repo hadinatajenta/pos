@@ -38,9 +38,11 @@ import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.UiStateContent
+import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
@@ -81,9 +83,11 @@ internal fun ProductsScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(state.message) {
-        val message = state.message ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message)
+    val strings = LocalPosStrings.current
+    val messageText = state.message?.asTextOrNull()
+    LaunchedEffect(messageText) {
+        if (messageText == null) return@LaunchedEffect
+        snackbarHostState.showSnackbar(messageText)
         actions.onMessageConsumed()
     }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -91,13 +95,15 @@ internal fun ProductsScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             OfflineNotice()
             ScreenHeader(
-                title = "Produk",
-                supportingText = state.catalog.successDataOrNull()?.let { "${it.stats.totalCount} produk terdaftar" },
+                title = strings.productsTitle,
+                supportingText = state.catalog.successDataOrNull()?.let { catalog ->
+                    strings.productsRegisteredCount(catalog.stats.totalCount)
+                },
                 actions = {
                     HeaderActionButton(
-                        text = "Tambah",
+                        text = strings.productsAdd,
                         iconRes = R.drawable.ic_plus,
-                        contentDescription = "Tambah Produk",
+                        contentDescription = strings.productsAddAction,
                         onClick = actions.onOpenCreateForm,
                     )
                 },
@@ -137,9 +143,10 @@ private fun ProductsCatalogSection(
     isCompact: Boolean,
     modifier: Modifier,
 ) {
+    val strings = LocalPosStrings.current
     UiStateContent(
         state = state.catalog,
-        onLoading = { LoadingState(modifier = modifier, label = "Memuat produk") },
+        onLoading = { LoadingState(modifier = modifier, label = strings.productsLoading) },
         onEmpty = { ProductsEmptyCatalog(state = state, actions = actions, modifier = modifier) },
         onError = { error -> ErrorState(error = error, onRetry = actions.onRetry, modifier = modifier) },
         onSuccess = { catalog ->
@@ -161,16 +168,17 @@ private fun ProductsEmptyCatalog(
     modifier: Modifier,
 ) {
     val isSearching = state.searchQuery.isNotBlank()
+    val strings = LocalPosStrings.current
     EmptyState(
         iconRes = if (isSearching) R.drawable.ic_search_x else R.drawable.ic_package,
-        title = if (isSearching) "Produk tidak ditemukan" else "Belum ada produk",
+        title = if (isSearching) strings.productsNotFoundTitle else strings.productsEmptyTitle,
         supportingText = if (isSearching) {
-            "Coba kata kunci lain atau periksa ejaan nama produk."
+            strings.productsNotFoundHint
         } else {
-            "Tambahkan produk pertama untuk mencatat harga dan stok."
+            strings.productsEmptyHint
         },
         modifier = modifier,
-        actionLabel = if (isSearching) "Hapus pencarian" else "Tambah produk",
+        actionLabel = if (isSearching) strings.productsClearSearch else strings.productsAddFirst,
         onAction = if (isSearching) {
             { actions.onSearchQueryChange("") }
         } else {
@@ -181,12 +189,13 @@ private fun ProductsEmptyCatalog(
 
 @Composable
 private fun DeleteProductDialog(actions: ProductsActions) {
+    val strings = LocalPosStrings.current
     AlertDialog(
         onDismissRequest = actions.onCancelDelete,
-        title = { Text(text = "Hapus produk") },
+        title = { Text(text = strings.productsDeleteConfirmTitle) },
         text = {
             Text(
-                text = "Produk akan dihapus dari katalog. Riwayat penjualan tetap tersimpan.",
+                text = strings.productsDeleteConfirmMsg,
                 style = LocalAppTextStyles.current.supportingLabel,
             )
         },
@@ -195,7 +204,7 @@ private fun DeleteProductDialog(actions: ProductsActions) {
                 onClick = actions.onConfirmDelete,
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = "Hapus")
+                Text(text = strings.actionDelete)
             }
         },
         dismissButton = {
@@ -203,7 +212,7 @@ private fun DeleteProductDialog(actions: ProductsActions) {
                 onClick = actions.onCancelDelete,
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = "Batal")
+                Text(text = strings.actionCancel)
             }
         },
     )

@@ -5,6 +5,9 @@ import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.model.DailySales
 import id.umkm.pos.pro.core.model.SalesSummary
 import id.umkm.pos.pro.ui.MainDispatcherRule
+import id.umkm.pos.pro.ui.common.EnStrings
+import id.umkm.pos.pro.ui.common.IdStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -105,9 +108,32 @@ class ReportsPresenterChartTest {
         assertThat(state.summary).isEqualTo(SalesSummary(0L, 0L, 0L, 0))
     }
 
+    @Test
+    fun weeklyRangeLabelsFollowTheSelectedCatalogue() = runTest(mainDispatcherRule.testDispatcher) {
+        val presenter = createPresenter(
+            FakeReportRepository(
+                dailySales = listOf(
+                    DailySales(epochDay = 19_731L, totalSales = 512_000L, netProfit = 180_000L, transactionCount = 3),
+                    DailySales(epochDay = 19_737L, totalSales = 1_180_000L, netProfit = 410_000L, transactionCount = 6),
+                ),
+            ),
+            this,
+            EnStrings,
+        )
+
+        presenter.selectPreset(ReportsRangePreset.LAST_7_DAYS)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        val points = presenter.uiState.value.salesChartPoints
+        assertThat(points.map { point -> point.label })
+            .containsExactly("Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon")
+            .inOrder()
+    }
+
     private fun createPresenter(
         repository: ReportRepository,
         coroutineScope: CoroutineScope,
+        strings: PosStrings = IdStrings,
     ): ReportsPresenter = ReportsPresenter(
         reportRepository = repository,
         transactionRepository = FakeTransactionRepository(),
@@ -119,6 +145,7 @@ class ReportsPresenterChartTest {
         adController = RecordingAdController(),
         coroutineScope = coroutineScope,
         clock = clock,
+        stringsFlow = stringsFlowFor(strings),
         timeZone = utc,
     )
 }

@@ -1,37 +1,38 @@
 package id.umkm.pos.pro.ui.returns
 
 import id.umkm.pos.pro.domain.pos.ReturnLineRequest
+import id.umkm.pos.pro.ui.common.UiText
 
-private const val INVALID_QUANTITY_MESSAGE = "Enter a valid quantity."
-private const val POSITIVE_QUANTITY_MESSAGE = "Enter a quantity greater than zero."
-private const val EXCEEDS_PURCHASED_MESSAGE = "The return quantity cannot exceed the purchased quantity."
-private const val NOTHING_SELECTED_MESSAGE = "Choose at least one item to return."
+private val invalidQuantityMessage = UiText.from { strings -> strings.returnValidationInvalidQuantity }
+private val positiveQuantityMessage = UiText.from { strings -> strings.returnValidationPositiveQuantity }
+private val exceedsPurchasedMessage = UiText.from { strings -> strings.returnValidationExceedsPurchased }
+private val nothingSelectedMessage = UiText.from { strings -> strings.returnValidationNothingSelected }
 
 data class ReturnValidation(
-    val lineErrors: Map<Long, String>,
-    val formError: String?,
+    val lineErrors: Map<Long, UiText>,
+    val formError: UiText?,
 ) {
     val isValid: Boolean get() = lineErrors.isEmpty() && formError == null
 }
 
 fun validateReturn(lines: List<ReturnLineInput>): ReturnValidation {
-    val lineErrors = LinkedHashMap<Long, String>()
+    val lineErrors = LinkedHashMap<Long, UiText>()
     var returnedLineCount = 0
     for (line in lines) {
         val trimmedQuantity = line.returnQty.trim()
         if (trimmedQuantity.isEmpty()) continue
         val parsedQuantity = trimmedQuantity.toDoubleOrNull()
         if (parsedQuantity == null || !parsedQuantity.isFinite()) {
-            lineErrors[line.transactionItemId] = INVALID_QUANTITY_MESSAGE
+            lineErrors[line.transactionItemId] = invalidQuantityMessage
         } else if (parsedQuantity <= 0.0) {
-            lineErrors[line.transactionItemId] = POSITIVE_QUANTITY_MESSAGE
+            lineErrors[line.transactionItemId] = positiveQuantityMessage
         } else if (parsedQuantity > line.purchasedQty) {
-            lineErrors[line.transactionItemId] = EXCEEDS_PURCHASED_MESSAGE
+            lineErrors[line.transactionItemId] = exceedsPurchasedMessage
         } else {
             returnedLineCount += 1
         }
     }
-    val formError = if (returnedLineCount == 0 && lineErrors.isEmpty()) NOTHING_SELECTED_MESSAGE else null
+    val formError = if (returnedLineCount == 0 && lineErrors.isEmpty()) nothingSelectedMessage else null
     return ReturnValidation(lineErrors = lineErrors, formError = formError)
 }
 

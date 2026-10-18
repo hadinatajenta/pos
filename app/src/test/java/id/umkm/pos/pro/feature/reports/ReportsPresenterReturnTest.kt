@@ -146,6 +146,7 @@ class ReportsPresenterReturnTest {
         adController = RecordingAdController(),
         coroutineScope = coroutineScope,
         clock = clock,
+        stringsFlow = stringsFlowFor(),
         timeZone = utc,
     )
 }

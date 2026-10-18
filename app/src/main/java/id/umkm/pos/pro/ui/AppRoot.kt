@@ -1,5 +1,6 @@
 package id.umkm.pos.pro.ui
 
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,8 +71,16 @@ import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.welcome.WelcomeScreen
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import id.umkm.pos.pro.core.model.AppLanguage
+import id.umkm.pos.pro.ui.common.LocalCurrentLanguage
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
+import id.umkm.pos.pro.ui.common.stringsFor
+import kotlinx.coroutines.flow.MutableStateFlow
+
 
 const val COMPACT_NAVIGATION_TEST_TAG = "compact-navigation-bar"
 const val EXPANDED_NAVIGATION_TEST_TAG = "expanded-navigation-rail"
@@ -92,68 +102,99 @@ fun AppRoot(modifier: Modifier = Modifier) {
     var hasCompletedOnboarding by rememberSaveable {
         mutableStateOf(onboardingStore.hasCompletedOnboarding())
     }
-    if (!hasCompletedOnboarding) {
-        WelcomeScreen(
-            onStart = {
-                onboardingStore.markOnboardingCompleted()
-                hasCompletedOnboarding = true
-            },
-            modifier = modifier,
-        )
-        return
-    }
-    var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.KASIR) }
-    val connectivityMonitor = rememberAndroidConnectivityMonitor()
-    val shareReceipt = rememberReceiptSharer()
-    val context = LocalContext.current
-    val salesScope = rememberCoroutineScope()
-    val downloadsSink = remember(context) { DownloadsReportSink(context.applicationContext) }
-    val salesPresenter = remember(container, downloadsSink, salesScope) {
-        ReportsPresenter(
-            reportRepository = container.reportRepository,
-            transactionRepository = container.transactionRepository,
-            productRepository = container.productRepository,
-            customerRepository = container.customerRepository,
-            settingsRepository = container.settingsRepository,
-            csvExporter = SalesCsvExporter(container.reportRepository, downloadsSink),
-            xlsxExporter = XlsxReportExporter(downloadsSink),
-            adController = container.adController,
-            coroutineScope = salesScope,
-            clock = container.clock,
-        )
-    }
-    CompositionLocalProvider(LocalConnectivityMonitor provides connectivityMonitor) {
-        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-            val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = MaterialTheme.colorScheme.background,
-                contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
-                bottomBar = {
-                    if (!isExpandedWindow) {
-                        PrimaryNavigationBar(
-                            selectedDestination = selectedDestination,
-                            onDestinationSelected = { destination -> selectedDestination = destination },
-                        )
-                    }
+    androidx.compose.animation.AnimatedContent(
+        targetState = hasCompletedOnboarding,
+        transitionSpec = {
+            androidx.compose.animation.fadeIn(
+                animationSpec = androidx.compose.animation.core.tween(280),
+            ) togetherWith androidx.compose.animation.fadeOut(
+                animationSpec = androidx.compose.animation.core.tween(200),
+            )
+        },
+        modifier = modifier.fillMaxSize(),
+        label = "onboardingToMainAppTransition",
+    ) { completed ->
+        if (!completed) {
+            WelcomeScreen(
+                onStart = {
+                    onboardingStore.markOnboardingCompleted()
+                    hasCompletedOnboarding = true
                 },
-            ) { contentPadding ->
-                Row(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                    if (isExpandedWindow) {
-                        PrimaryNavigationRail(
-                            selectedDestination = selectedDestination,
-                            onDestinationSelected = { destination -> selectedDestination = destination },
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@AnimatedContent
+        }
+        var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.KASIR) }
+        val connectivityMonitor = rememberAndroidConnectivityMonitor()
+        val shareReceipt = rememberReceiptSharer()
+        val context = LocalContext.current
+        val salesScope = rememberCoroutineScope()
+        val downloadsSink = remember(context) { DownloadsReportSink(context.applicationContext) }
+        val settings by container.settingsRepository.observeSettings().collectAsState(initial = null)
+        val currentLanguage = remember(settings?.languageCode) {
+            AppLanguage.fromCode(settings?.languageCode)
+        }
+        val posStrings = remember(currentLanguage) {
+            stringsFor(currentLanguage)
+        }
+        val posStringsFlow = remember(container) { MutableStateFlow(posStrings) }
+        SideEffect {
+            posStringsFlow.value = posStrings
+        }
+        val salesPresenter = remember(container, downloadsSink, salesScope, posStringsFlow) {
+            ReportsPresenter(
+                reportRepository = container.reportRepository,
+                transactionRepository = container.transactionRepository,
+                productRepository = container.productRepository,
+                customerRepository = container.customerRepository,
+                settingsRepository = container.settingsRepository,
+                csvExporter = SalesCsvExporter(container.reportRepository, downloadsSink),
+                xlsxExporter = XlsxReportExporter(downloadsSink),
+                adController = container.adController,
+                coroutineScope = salesScope,
+                clock = container.clock,
+                stringsFlow = posStringsFlow,
+            )
+        }
+
+        CompositionLocalProvider(
+            LocalConnectivityMonitor provides connectivityMonitor,
+            LocalCurrentLanguage provides currentLanguage,
+            LocalPosStrings provides posStrings,
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+
+                val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
+                    bottomBar = {
+                        if (!isExpandedWindow) {
+                            PrimaryNavigationBar(
+                                selectedDestination = selectedDestination,
+                                onDestinationSelected = { destination -> selectedDestination = destination },
+                            )
+                        }
+                    },
+                ) { contentPadding ->
+                    Row(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+                        if (isExpandedWindow) {
+                            PrimaryNavigationRail(
+                                selectedDestination = selectedDestination,
+                                onDestinationSelected = { destination -> selectedDestination = destination },
+                            )
+                        }
+                        DestinationHost(
+                            destination = selectedDestination,
+                            salesPresenter = salesPresenter,
+                            onShareReceipt = shareReceipt,
+                            onOpenCashier = { selectedDestination = PosDestination.KASIR },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .imePadding(),
                         )
                     }
-                    DestinationHost(
-                        destination = selectedDestination,
-                        salesPresenter = salesPresenter,
-                        onShareReceipt = shareReceipt,
-                        onOpenCashier = { selectedDestination = PosDestination.KASIR },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .imePadding(),
-                    )
                 }
             }
         }
@@ -242,7 +283,7 @@ private fun BottomNavigationItem(
                 modifier = Modifier.size(PosSizes.iconMedium),
             )
             Text(
-                text = destination.label,
+                text = destination.localizedLabel(LocalPosStrings.current),
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -251,6 +292,7 @@ private fun BottomNavigationItem(
                     letterSpacing = 0.sp,
                 ),
             )
+
         }
     }
 }
@@ -327,7 +369,7 @@ private fun RailNavItem(
                 modifier = Modifier.size(PosSizes.iconMedium),
             )
             Text(
-                text = destination.label,
+                text = destination.localizedLabel(LocalPosStrings.current),
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -358,3 +400,12 @@ private fun DestinationHost(
         PosDestination.LAINNYA -> MoreRoute(modifier = modifier)
     }
 }
+
+fun PosDestination.localizedLabel(strings: PosStrings): String = when (this) {
+    PosDestination.KASIR -> strings.navCashier
+    PosDestination.PRODUK -> strings.navProducts
+    PosDestination.TRANSAKSI -> strings.navTransactions
+    PosDestination.LAPORAN -> strings.navReports
+    PosDestination.LAINNYA -> strings.navMore
+}
+

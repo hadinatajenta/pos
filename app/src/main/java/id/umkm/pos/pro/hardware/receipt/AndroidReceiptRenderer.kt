@@ -42,6 +42,10 @@ class AndroidReceiptRenderer : ReceiptRenderer {
         }
     }
 
+    fun renderPreviewBitmap(receipt: ReceiptDocument, widthPx: Int): Bitmap =
+        drawReceipt(receipt, widthPx)
+
+
     private fun drawReceipt(receipt: ReceiptDocument, widthPx: Int): Bitmap {
         require(widthPx > 0) { "Receipt width must be positive" }
         val charactersPerLine = if (widthPx >= WIDE_BITMAP_THRESHOLD_PX) {

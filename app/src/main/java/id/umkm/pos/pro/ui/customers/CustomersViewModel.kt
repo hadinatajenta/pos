@@ -12,9 +12,11 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.domain.usecase.RecordDebtPaymentUseCase
+import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.mapList
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.common.toAppError
+import id.umkm.pos.pro.ui.common.toUiText
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -128,17 +130,17 @@ class CustomersViewModel(
         if (_state.value.isSubmitting) return
         val transactionId = draft.selectedTransactionId
         if (transactionId == null) {
-            updatePaymentValidation("Pilih utang yang akan dibayar.")
+            updatePaymentValidation(UiText.from { strings -> strings.customersValidationSelectDebt })
             return
         }
         val amount = draft.amountInput.toLongOrNull()
         if (amount == null || amount <= 0L) {
-            updatePaymentValidation("Masukkan jumlah pembayaran lebih dari nol.")
+            updatePaymentValidation(UiText.from { strings -> strings.customersValidationAmountPositive })
             return
         }
         val remainingDebt = draft.transactions.firstOrNull { it.transactionId == transactionId }?.remainingDebt ?: 0L
         if (amount > remainingDebt) {
-            updatePaymentValidation("Jumlah pembayaran melebihi sisa utang.")
+            updatePaymentValidation(UiText.from { strings -> strings.customersValidationAmountExceeds })
             return
         }
         viewModelScope.launch {
@@ -152,13 +154,17 @@ class CustomersViewModel(
                 )
             ) {
                 is AppResult.Success -> _state.update {
-                    it.copy(isSubmitting = false, recordPayment = null, message = "Pembayaran dicatat")
+                    it.copy(
+                        isSubmitting = false,
+                        recordPayment = null,
+                        message = UiText.from { strings -> strings.customersPaymentRecorded },
+                    )
                 }
 
                 is AppResult.Failure -> _state.update {
                     it.copy(
                         isSubmitting = false,
-                        recordPayment = draft.copy(validationMessage = result.error.message),
+                        recordPayment = draft.copy(validationMessage = result.error.toUiText()),
                     )
                 }
             }
@@ -199,7 +205,11 @@ class CustomersViewModel(
         if (_state.value.isSubmitting) return
         if (form.name.isBlank()) {
             _state.update { current ->
-                current.copy(customerForm = form.copy(validationMessage = "Masukkan nama pelanggan."))
+                current.copy(
+                    customerForm = form.copy(
+                        validationMessage = UiText.from { strings -> strings.customersValidationName },
+                    ),
+                )
             }
             return
         }
@@ -214,7 +224,13 @@ class CustomersViewModel(
                     notes = form.notes.trim().ifBlank { null },
                 ),
             )
-            _state.update { it.copy(isSubmitting = false, customerForm = null, message = "Pelanggan disimpan") }
+            _state.update {
+                it.copy(
+                    isSubmitting = false,
+                    customerForm = null,
+                    message = UiText.from { strings -> strings.customersSaved },
+                )
+            }
         }
     }
 
@@ -222,7 +238,7 @@ class CustomersViewModel(
         _state.update { it.copy(message = null) }
     }
 
-    private fun updatePaymentValidation(message: String) {
+    private fun updatePaymentValidation(message: UiText) {
         _state.update { current ->
             val draft = current.recordPayment ?: return@update current
             current.copy(recordPayment = draft.copy(validationMessage = message))

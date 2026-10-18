@@ -18,5 +18,5 @@ fun <T, R> UiState<List<T>>.mapList(transform: (T) -> R): UiState<List<R>> = whe
 }
 
 fun Throwable.toAppError(): AppError = AppError.Unexpected(
-    message?.takeIf { it.isNotBlank() } ?: "Something went wrong. Please try again.",
+    message?.takeIf { it.isNotBlank() } ?: "Unexpected failure",
 )

@@ -2,6 +2,7 @@ package id.umkm.pos.pro.ui.customers
 
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.Transaction
+import id.umkm.pos.pro.ui.common.PosStrings
 
 enum class DebtStatus {
     PAID,
@@ -22,11 +23,11 @@ fun resolveDebtStatus(
     return DebtStatus.UNPAID
 }
 
-fun debtStatusLabel(status: DebtStatus): String = when (status) {
-    DebtStatus.PAID -> "Lunas"
-    DebtStatus.UNPAID -> "Belum Dibayar"
-    DebtStatus.PARTIALLY_PAID -> "Dibayar Sebagian"
-    DebtStatus.OVERDUE -> "Jatuh Tempo"
+fun debtStatusLabel(status: DebtStatus, strings: PosStrings): String = when (status) {
+    DebtStatus.PAID -> strings.debtStatusPaid
+    DebtStatus.UNPAID -> strings.debtStatusUnpaid
+    DebtStatus.PARTIALLY_PAID -> strings.debtStatusPartiallyPaid
+    DebtStatus.OVERDUE -> strings.debtStatusOverdue
 }
 
 fun nextDueDateMillis(transactions: List<Transaction>): Long? = transactions

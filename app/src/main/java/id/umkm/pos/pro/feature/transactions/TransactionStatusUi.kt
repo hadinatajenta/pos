@@ -6,13 +6,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.TransactionStatus
+import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.StatusChip
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 
-internal fun transactionStatusLabel(status: TransactionStatus): String = when (status) {
-    TransactionStatus.COMPLETED -> "Lunas"
-    TransactionStatus.PARTIAL_DEBT -> "Kasbon"
-    TransactionStatus.RETURNED -> "Dikembalikan"
+internal fun transactionStatusLabel(status: TransactionStatus, strings: PosStrings): String = when (status) {
+    TransactionStatus.COMPLETED -> strings.transactionsStatusCompleted
+    TransactionStatus.PARTIAL_DEBT -> strings.transactionsStatusDebt
+    TransactionStatus.RETURNED -> strings.transactionsStatusReturned
 }
 
 @Composable
@@ -55,7 +57,7 @@ internal fun TransactionStatusChip(
     }
     StatusChip(
         iconRes = iconRes,
-        label = transactionStatusLabel(status),
+        label = transactionStatusLabel(status, LocalPosStrings.current),
         containerColor = containerColor,
         contentColor = contentColor,
         modifier = modifier,
