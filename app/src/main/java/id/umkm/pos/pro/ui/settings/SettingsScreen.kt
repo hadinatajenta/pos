@@ -39,6 +39,8 @@ private enum class SettingsDestination {
     PRINTER,
     QRIS,
     STORE,
+    BACKUP,
+    ABOUT,
 }
 
 @Composable
@@ -148,6 +150,16 @@ private fun SettingsDetail(
             onBack = onBack,
             modifier = Modifier.fillMaxSize(),
         )
+        SettingsDestination.BACKUP -> SettingsBackupScreen(
+            state = state,
+            actions = actions,
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+        )
+        SettingsDestination.ABOUT -> SettingsAboutScreen(
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
@@ -215,6 +227,22 @@ private fun SettingsHubColumn(
                 isSelected = selectedDestination == SettingsDestination.STORE,
                 badge = { StoreTaxBadge(taxRatePercent = settings?.taxRatePercent ?: 0) },
                 onClick = { onSelectDestination(SettingsDestination.STORE) },
+            )
+
+            MenuListRow(
+                title = strings.settingsBackupTitle,
+                description = strings.settingsBackupMenuDescription,
+                iconRes = R.drawable.ic_download,
+                isSelected = selectedDestination == SettingsDestination.BACKUP,
+                onClick = { onSelectDestination(SettingsDestination.BACKUP) },
+            )
+
+            MenuListRow(
+                title = strings.settingsAboutTitle,
+                description = strings.settingsAboutMenuDescription,
+                iconRes = R.drawable.ic_lock,
+                isSelected = selectedDestination == SettingsDestination.ABOUT,
+                onClick = { onSelectDestination(SettingsDestination.ABOUT) },
             )
         }
     }

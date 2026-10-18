@@ -16,6 +16,9 @@ class SettingsActions(
     val onOpenReceiptPreview: () -> Unit = {},
     val onDismissReceiptPreview: () -> Unit = {},
     val onRefreshPrinters: () -> Unit = {},
+    val onExportBackup: () -> Unit = {},
+    val onImportBackup: (String) -> Unit = {},
+    val onDismissBackupState: () -> Unit = {},
 ) {
     companion object {
         fun from(viewModel: SettingsViewModel): SettingsActions = SettingsActions(
@@ -32,6 +35,9 @@ class SettingsActions(
             onOpenReceiptPreview = viewModel::onOpenReceiptPreview,
             onDismissReceiptPreview = viewModel::onDismissReceiptPreview,
             onRefreshPrinters = viewModel::refreshPrinters,
+            onExportBackup = viewModel::onExportBackup,
+            onImportBackup = viewModel::onImportBackup,
+            onDismissBackupState = viewModel::onDismissBackupState,
         )
     }
 }

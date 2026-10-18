@@ -3,6 +3,8 @@ package id.umkm.pos.pro.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.umkm.pos.pro.core.contract.AppResult
+import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
 import id.umkm.pos.pro.core.contract.PrinterTransport
@@ -11,6 +13,7 @@ import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.model.AppLanguage
+import id.umkm.pos.pro.data.backup.BackupFileNames
 import id.umkm.pos.pro.hardware.receipt.AndroidReceiptRenderer
 import id.umkm.pos.pro.hardware.receipt.ReceiptPaperWidth
 import id.umkm.pos.pro.hardware.receipt.SampleReceiptBuilder
@@ -26,6 +29,8 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val qrisService: QrisService,
+    private val dataBackupService: DataBackupService,
+    private val clock: Clock,
     private val receiptPrinter: ReceiptPrinter? = null,
     private val receiptRenderer: ReceiptRenderer? = null,
 ) : ViewModel() {
@@ -352,6 +357,41 @@ class SettingsViewModel(
 
     fun onMessageConsumed() {
         _uiState.update { current -> current.copy(message = null, errorMessage = null) }
+    }
+
+    fun onExportBackup() {
+        viewModelScope.launch {
+            _uiState.update { current -> current.copy(backupState = BackupUiState.Exporting) }
+            val fileName = BackupFileNames.forTimestamp(clock.nowMillis())
+            when (val result = dataBackupService.exportJson(fileName)) {
+                is AppResult.Success -> _uiState.update { current ->
+                    current.copy(backupState = BackupUiState.Exported(result.value.path))
+                }
+
+                is AppResult.Failure -> _uiState.update { current ->
+                    current.copy(backupState = BackupUiState.Failed(result.error))
+                }
+            }
+        }
+    }
+
+    fun onImportBackup(sourceUri: String) {
+        viewModelScope.launch {
+            _uiState.update { current -> current.copy(backupState = BackupUiState.Importing) }
+            when (val result = dataBackupService.importJson(sourceUri)) {
+                is AppResult.Success -> _uiState.update { current ->
+                    current.copy(backupState = BackupUiState.Imported(result.value.totalRows))
+                }
+
+                is AppResult.Failure -> _uiState.update { current ->
+                    current.copy(backupState = BackupUiState.Failed(result.error))
+                }
+            }
+        }
+    }
+
+    fun onDismissBackupState() {
+        _uiState.update { current -> current.copy(backupState = BackupUiState.Idle) }
     }
 
     internal fun onRemoveMessages() = onMessageConsumed()

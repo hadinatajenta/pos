@@ -16,6 +16,8 @@ interface PosStrings {
     val actionSave: String
     val actionCancel: String
     val actionClose: String
+    val actionOpen: String
+    val actionShare: String
     val actionDelete: String
     val actionEdit: String
     val actionRetry: String
@@ -422,7 +424,6 @@ interface PosStrings {
     val reportsNoteCount: (Int) -> String
     val reportsTopProductsHint: String
     val reportsSoldQuantity: (String) -> String
-    val reportsSavedTo: (String) -> String
     val reportsPermissionNeeded: (String) -> String
     val reportsExportDialogTitle: String
     val reportsExportAdHint: (String) -> String
@@ -448,6 +449,31 @@ interface PosStrings {
     val settingsMenuQrisDescription: String
     val settingsMenuStoreDescription: String
     val settingsMenuStoreTax: (Int) -> String
+    val settingsBackupTitle: String
+    val settingsBackupMenuDescription: String
+    val settingsBackupExportSection: String
+    val settingsBackupExportHint: String
+    val settingsBackupExportButton: String
+    val settingsBackupExporting: String
+    val settingsBackupExportedTitle: String
+    val settingsBackupImportSection: String
+    val settingsBackupImportHint: String
+    val settingsBackupImportButton: String
+    val settingsBackupImporting: String
+    val settingsBackupImportedTitle: String
+    val settingsBackupImportedRows: (Int) -> String
+    val settingsBackupConfirmTitle: String
+    val settingsBackupConfirmMessage: String
+    val settingsBackupConfirmAction: String
+    val settingsBackupErrorInvalid: String
+    val settingsBackupErrorStorage: String
+    val settingsBackupErrorUnexpected: String
+    val settingsAboutTitle: String
+    val settingsAboutMenuDescription: String
+    val settingsAboutVersion: String
+    val settingsPrivacyTitle: String
+    val settingsPrivacyDescription: String
+    val settingsPrivacyUnavailable: String
     val settingsStoreProfileTitle: String
     val settingsStoreNameLabel: String
     val settingsStoreNamePlaceholder: String
@@ -606,6 +632,10 @@ interface PosStrings {
 
     // Report export
     val exportFilePrefix: String
+    val exportDone: String
+    val exportDestination: (String) -> String
+    val exportOpenFailed: String
+    val exportShareFailed: String
     val exportTransactionSheetName: String
     val exportProductSheetName: String
     val exportColumnDate: String

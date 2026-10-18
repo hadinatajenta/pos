@@ -8,6 +8,7 @@ import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PriceEngine
@@ -58,6 +59,7 @@ internal object PreviewAppContainer : AppContainer {
     override val receiptPrinter: ReceiptPrinter get() = previewUnavailable("receiptPrinter")
     override val receiptRenderer: ReceiptRenderer get() = previewUnavailable("receiptRenderer")
     override val scannerInput: ScannerInput get() = previewUnavailable("scannerInput")
+    override val dataBackupService: DataBackupService get() = previewUnavailable("dataBackupService")
     override val clock: Clock get() = previewUnavailable("clock")
 
     private fun previewUnavailable(member: String): Nothing =

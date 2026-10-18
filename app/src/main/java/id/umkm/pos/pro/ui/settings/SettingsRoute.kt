@@ -21,6 +21,8 @@ fun SettingsRoute(
                 SettingsViewModel(
                     settingsRepository = container.settingsRepository,
                     qrisService = container.qrisService,
+                    dataBackupService = container.dataBackupService,
+                    clock = container.clock,
                     receiptPrinter = container.receiptPrinter,
                     receiptRenderer = container.receiptRenderer,
                 )

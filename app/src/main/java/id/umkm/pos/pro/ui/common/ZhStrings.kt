@@ -11,6 +11,8 @@ object ZhStrings : PosStrings {
     override val actionSave = "保存"
     override val actionCancel = "取消"
     override val actionClose = "关闭"
+    override val actionOpen = "打开"
+    override val actionShare = "分享"
     override val actionDelete = "删除"
     override val actionEdit = "编辑"
     override val actionRetry = "重试"
@@ -411,7 +413,6 @@ object ZhStrings : PosStrings {
     override val reportsNoteCount = { count: Int -> "$count 张单据" }
     override val reportsTopProductsHint = "按该时段销售金额排序"
     override val reportsSoldQuantity = { quantity: String -> "已售 $quantity" }
-    override val reportsSavedTo = { path: String -> "已保存至 $path" }
     override val reportsPermissionNeeded = { folder: String ->
         "保存报表到 $folder 需要存储权限。请开启权限后重试。"
     }
@@ -438,6 +439,31 @@ object ZhStrings : PosStrings {
     override val settingsMenuQrisDescription = "管理店铺静态 QRIS 图片"
     override val settingsMenuStoreDescription = "店铺名称、收银员、税率与尾数舍入"
     override val settingsMenuStoreTax = { percent: Int -> "税率 $percent%" }
+    override val settingsBackupTitle = "备份与恢复"
+    override val settingsBackupMenuDescription = "导出和导入店铺数据（JSON）"
+    override val settingsBackupExportSection = "导出备份"
+    override val settingsBackupExportHint = "将全部店铺数据（商品、交易、客户、设置）保存为 Download 文件夹中的一个 JSON 文件。"
+    override val settingsBackupExportButton = "导出备份（JSON）"
+    override val settingsBackupExporting = "正在保存备份..."
+    override val settingsBackupExportedTitle = "备份完成"
+    override val settingsBackupImportSection = "导入备份"
+    override val settingsBackupImportHint = "从 JSON 备份文件恢复数据，当前设备上的数据将被替换。"
+    override val settingsBackupImportButton = "选择备份文件"
+    override val settingsBackupImporting = "正在恢复数据..."
+    override val settingsBackupImportedTitle = "数据已恢复"
+    override val settingsBackupImportedRows = { count: Int -> "已恢复 $count 行数据。" }
+    override val settingsBackupConfirmTitle = "替换全部数据？"
+    override val settingsBackupConfirmMessage = "当前所有商品、交易、客户和设置都将被备份文件替换，且无法撤销。"
+    override val settingsBackupConfirmAction = "确认恢复"
+    override val settingsBackupErrorInvalid = "备份文件无效或不完整。"
+    override val settingsBackupErrorStorage = "无法访问文件，请检查存储空间后重试。"
+    override val settingsBackupErrorUnexpected = "备份失败，请重试。"
+    override val settingsAboutTitle = "关于与隐私"
+    override val settingsAboutMenuDescription = "应用版本与隐私政策"
+    override val settingsAboutVersion = "版本"
+    override val settingsPrivacyTitle = "隐私政策"
+    override val settingsPrivacyDescription = "在浏览器中打开隐私政策"
+    override val settingsPrivacyUnavailable = "没有可打开此链接的应用。"
     override val settingsStoreProfileTitle = "店铺信息与收银规则"
     override val settingsStoreNameLabel = "店铺名称 / 商号"
     override val settingsStoreNamePlaceholder = "例如：福气杂货店"
@@ -595,6 +621,10 @@ object ZhStrings : PosStrings {
     override val receiptTestThankYou = "感谢您的光临"
 
     override val exportFilePrefix = "报表"
+    override val exportDone = "导出完成"
+    override val exportDestination = { folder: String -> "已保存到 $folder 文件夹" }
+    override val exportOpenFailed = "找不到该文件，或无法打开。"
+    override val exportShareFailed = "找不到该文件，或无法分享。"
     override val exportTransactionSheetName = "交易明细"
     override val exportProductSheetName = "商品汇总"
     override val exportColumnDate = "日期"

@@ -8,18 +8,15 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,23 +45,28 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
+import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
+import id.umkm.pos.pro.ui.common.openDownloadedFile
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
+import id.umkm.pos.pro.ui.common.shareDownloadedFile
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.ChartLegend
 import id.umkm.pos.pro.ui.components.ChartPoint
 import id.umkm.pos.pro.ui.components.ChartSlice
+import id.umkm.pos.pro.ui.components.ExportFailedRow
+import id.umkm.pos.pro.ui.components.ExportRunningRow
+import id.umkm.pos.pro.ui.components.ExportedFileCard
 import id.umkm.pos.pro.ui.components.IconBadge
 import id.umkm.pos.pro.ui.components.PaymentMethodDonut
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.SalesLineChart
-import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.components.paymentSliceColor
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
@@ -575,47 +578,28 @@ private fun ExportStatus(
     onDismissExport: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
+    val context = LocalContext.current
     when (exportState) {
         ReportsExportState.Idle -> Unit
-        ReportsExportState.Running -> ExportStatusRow {
-            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            Spacer(modifier = Modifier.width(PosSpacing.sm))
-            Text(text = strings.reportsExportingMsg, style = LocalAppTextStyles.current.supportingLabel)
-        }
+        ReportsExportState.Running -> ExportRunningRow(message = strings.reportsExportingMsg)
 
-        is ReportsExportState.Succeeded -> ExportStatusRow {
-            Text(
-                text = strings.reportsSavedTo(
-                    "${DownloadsReportSink.DESTINATION_LABEL}/${exportState.artifactPath}",
-                ),
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryTextAction(text = strings.actionClose, onClick = onDismissExport)
-        }
+        is ReportsExportState.Succeeded -> ExportedFileCard(
+            fileName = exportState.artifactPath,
+            destinationLabel = strings.exportDestination(DownloadsFileSink.DESTINATION_LABEL),
+            onOpen = { openDownloadedFile(context, exportState.artifactPath) },
+            onShare = { shareDownloadedFile(context, exportState.artifactPath) },
+            onDismiss = onDismissExport,
+        )
 
-        is ReportsExportState.Failed -> ExportStatusRow {
-            Text(
-                text = exportErrorMessage(exportState.error, strings),
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryTextAction(text = strings.actionClose, onClick = onDismissExport)
-        }
+        is ReportsExportState.Failed -> ExportFailedRow(
+            message = exportErrorMessage(exportState.error, strings),
+            onDismiss = onDismissExport,
+        )
 
-        ReportsExportState.PermissionDenied -> ExportStatusRow {
-            Text(
-                text = strings.reportsPermissionNeeded(DownloadsReportSink.DESTINATION_LABEL),
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryTextAction(text = strings.actionClose, onClick = onDismissExport)
-        }
+        ReportsExportState.PermissionDenied -> ExportFailedRow(
+            message = strings.reportsPermissionNeeded(DownloadsFileSink.DESTINATION_LABEL),
+            onDismiss = onDismissExport,
+        )
     }
 }
 
@@ -626,17 +610,6 @@ private fun exportErrorMessage(error: AppError, strings: PosStrings): String = w
     is AppError.Hardware -> strings.reportsExportErrorHardware
     is AppError.Network -> strings.reportsExportErrorNetwork
     is AppError.Unexpected -> strings.reportsExportErrorUnexpected
-}
-
-@Composable
-private fun ExportStatusRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
 }
 
 private fun previewReportsState(): ReportsUiState {

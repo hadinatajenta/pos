@@ -5,6 +5,9 @@ import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppContainer
+import id.umkm.pos.pro.core.contract.BackupArtifact
+import id.umkm.pos.pro.core.contract.BackupImportSummary
+import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
@@ -205,6 +208,14 @@ internal object AppRootFakeContainer : AppContainer {
         override fun markOnboardingCompleted() {
             isOnboardingCompleted = true
         }
+    }
+
+    override val dataBackupService: DataBackupService = object : DataBackupService {
+        override suspend fun exportJson(displayName: String): AppResult<BackupArtifact> =
+            AppResult.Failure(AppError.Unexpected("instrumented test container"))
+
+        override suspend fun importJson(sourceUri: String): AppResult<BackupImportSummary> =
+            AppResult.Failure(AppError.Unexpected("instrumented test container"))
     }
 
     override val qrisService: QrisService = object : QrisService {

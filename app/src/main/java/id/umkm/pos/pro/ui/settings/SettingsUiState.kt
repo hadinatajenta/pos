@@ -16,6 +16,7 @@ data class SettingsUiState(
     val isPrintingTest: Boolean = false,
     val receiptPreviewBitmap: Bitmap? = null,
     val isPreviewDialogOpen: Boolean = false,
+    val backupState: BackupUiState = BackupUiState.Idle,
 ) {
     val isQrisConfigured: Boolean get() = settings?.qrisPayload != null
 }

@@ -2,7 +2,11 @@ package id.umkm.pos.pro.ui
 
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
+import id.umkm.pos.pro.core.contract.BackupArtifact
+import id.umkm.pos.pro.core.contract.BackupImportSummary
+import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
+import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
 import id.umkm.pos.pro.core.contract.ProductRepository
@@ -225,6 +229,41 @@ class FakeSettingsRepository(
 
     override suspend fun updateSettings(settings: AppSettings) {
         this.settings.value = settings
+    }
+}
+
+class FakeDataBackupService(
+    var exportResult: AppResult<BackupArtifact> = AppResult.Success(
+        BackupArtifact(path = "umkm-pos-backup-20261019-120000.json", byteCount = 128L),
+    ),
+    var importResult: AppResult<BackupImportSummary> = AppResult.Success(
+        BackupImportSummary(mapOf("products" to 3, "transactions" to 2)),
+    ),
+) : DataBackupService {
+
+    var lastExportedName: String? = null
+    var lastImportedUri: String? = null
+
+    override suspend fun exportJson(displayName: String): AppResult<BackupArtifact> {
+        lastExportedName = displayName
+        return when (val result = exportResult) {
+            is AppResult.Success -> AppResult.Success(result.value.copy(path = displayName))
+            is AppResult.Failure -> result
+        }
+    }
+
+    override suspend fun importJson(sourceUri: String): AppResult<BackupImportSummary> {
+        lastImportedUri = sourceUri
+        return importResult
+    }
+}
+
+class FakeClock(private var currentMillis: Long = 1_700_000_000_000L) : Clock {
+
+    override fun nowMillis(): Long = currentMillis
+
+    fun setNow(millis: Long) {
+        currentMillis = millis
     }
 }
 

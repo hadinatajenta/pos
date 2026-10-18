@@ -11,6 +11,8 @@ object EnStrings : PosStrings {
     override val actionSave = "Save"
     override val actionCancel = "Cancel"
     override val actionClose = "Close"
+    override val actionOpen = "Open"
+    override val actionShare = "Share"
     override val actionDelete = "Delete"
     override val actionEdit = "Edit"
     override val actionRetry = "Retry"
@@ -411,7 +413,6 @@ object EnStrings : PosStrings {
     override val reportsNoteCount = { count: Int -> "$count receipts" }
     override val reportsTopProductsHint = "Based on sales value for this period"
     override val reportsSoldQuantity = { quantity: String -> "$quantity sold" }
-    override val reportsSavedTo = { path: String -> "Saved to $path" }
     override val reportsPermissionNeeded = { folder: String ->
         "Storage permission is required to save the report to $folder. Enable the permission and try again."
     }
@@ -440,6 +441,31 @@ object EnStrings : PosStrings {
     override val settingsMenuQrisDescription = "Manage your store's static QRIS image"
     override val settingsMenuStoreDescription = "Store name, cashier, tax, and rounding"
     override val settingsMenuStoreTax = { percent: Int -> "Tax $percent%" }
+    override val settingsBackupTitle = "Backup & Restore"
+    override val settingsBackupMenuDescription = "Export and import store data (JSON)"
+    override val settingsBackupExportSection = "Export Backup"
+    override val settingsBackupExportHint = "Save all store data (products, transactions, customers, settings) to a single JSON file in the Download folder."
+    override val settingsBackupExportButton = "Export Backup (JSON)"
+    override val settingsBackupExporting = "Saving backup..."
+    override val settingsBackupExportedTitle = "Backup complete"
+    override val settingsBackupImportSection = "Import Backup"
+    override val settingsBackupImportHint = "Restore data from a JSON backup file. The data currently on the device will be replaced."
+    override val settingsBackupImportButton = "Choose Backup File"
+    override val settingsBackupImporting = "Restoring data..."
+    override val settingsBackupImportedTitle = "Data restored"
+    override val settingsBackupImportedRows = { count: Int -> "$count rows restored." }
+    override val settingsBackupConfirmTitle = "Replace all data?"
+    override val settingsBackupConfirmMessage = "All current products, transactions, customers, and settings will be replaced by the backup file. This cannot be undone."
+    override val settingsBackupConfirmAction = "Yes, Restore"
+    override val settingsBackupErrorInvalid = "The backup file is invalid or incomplete."
+    override val settingsBackupErrorStorage = "Could not access the file. Check the storage and try again."
+    override val settingsBackupErrorUnexpected = "The backup could not be completed. Try again."
+    override val settingsAboutTitle = "About & Privacy"
+    override val settingsAboutMenuDescription = "App version and privacy policy"
+    override val settingsAboutVersion = "Version"
+    override val settingsPrivacyTitle = "Privacy Policy"
+    override val settingsPrivacyDescription = "Open the privacy policy in a browser"
+    override val settingsPrivacyUnavailable = "No app can open this link."
     override val settingsStoreProfileTitle = "Store Profile & Cashier Rules"
     override val settingsStoreNameLabel = "Store / Business Name"
     override val settingsStoreNamePlaceholder = "For example: Berkah Jaya Store"
@@ -597,6 +623,10 @@ object EnStrings : PosStrings {
     override val receiptTestThankYou = "Thank You For Your Business"
 
     override val exportFilePrefix = "report"
+    override val exportDone = "Export complete"
+    override val exportDestination = { folder: String -> "Saved in the $folder folder" }
+    override val exportOpenFailed = "The file was not found or cannot be opened."
+    override val exportShareFailed = "The file was not found or cannot be shared."
     override val exportTransactionSheetName = "Transactions"
     override val exportProductSheetName = "Product Summary"
     override val exportColumnDate = "Date"

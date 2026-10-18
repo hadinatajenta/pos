@@ -5,6 +5,9 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.QrisImport
 import id.umkm.pos.pro.core.contract.QrisService
+import id.umkm.pos.pro.data.backup.BackupFileNames
+import id.umkm.pos.pro.ui.FakeClock
+import id.umkm.pos.pro.ui.FakeDataBackupService
 import id.umkm.pos.pro.ui.FakeReceiptPrinter
 import id.umkm.pos.pro.ui.FakeSettingsRepository
 import id.umkm.pos.pro.ui.MainDispatcherRule
@@ -23,6 +26,10 @@ class SettingsViewModelTest {
 
     private val settings = FakeSettingsRepository()
 
+    private val backupService = FakeDataBackupService()
+
+    private val clock = FakeClock()
+
     private var importResult: AppResult<QrisImport> =
         AppResult.Success(QrisImport(imagePath = "/data/qris.jpg", payload = "000201payload"))
 
@@ -36,7 +43,8 @@ class SettingsViewModelTest {
         }
     }
 
-    private fun createViewModel(): SettingsViewModel = SettingsViewModel(settings, qrisService)
+    private fun createViewModel(): SettingsViewModel =
+        SettingsViewModel(settings, qrisService, backupService, clock)
 
     @Test
     fun importingAStaticQrisStoresTheImageAndPayload() = runTest(mainDispatcherRule.testDispatcher) {
@@ -178,6 +186,8 @@ class SettingsViewModelTest {
         val viewModel = SettingsViewModel(
             settingsRepository = settings,
             qrisService = qrisService,
+            dataBackupService = backupService,
+            clock = clock,
             receiptPrinter = printer,
         )
 
@@ -201,6 +211,8 @@ class SettingsViewModelTest {
         val viewModel = SettingsViewModel(
             settingsRepository = settings,
             qrisService = qrisService,
+            dataBackupService = backupService,
+            clock = clock,
             receiptPrinter = printer,
         )
 
@@ -219,6 +231,8 @@ class SettingsViewModelTest {
         val viewModel = SettingsViewModel(
             settingsRepository = settings,
             qrisService = qrisService,
+            dataBackupService = backupService,
+            clock = clock,
             receiptPrinter = printer,
         )
 
@@ -232,5 +246,64 @@ class SettingsViewModelTest {
         viewModel.onDismissReceiptPreview()
         assertThat(viewModel.uiState.value.isPreviewDialogOpen).isFalse()
     }
-}
 
+    @Test
+    fun exportingBackupWritesATimestampedJsonFile() = runTest(mainDispatcherRule.testDispatcher) {
+        clock.setNow(1_700_000_000_000L)
+        val viewModel = createViewModel()
+
+        viewModel.onExportBackup()
+
+        val expectedName = BackupFileNames.forTimestamp(1_700_000_000_000L)
+        assertThat(backupService.lastExportedName).isEqualTo(expectedName)
+        val backupState = viewModel.uiState.value.backupState
+        assertThat(backupState).isInstanceOf(BackupUiState.Exported::class.java)
+        assertThat((backupState as BackupUiState.Exported).fileName).isEqualTo(expectedName)
+    }
+
+    @Test
+    fun exportingBackupReportsAStorageFailure() = runTest(mainDispatcherRule.testDispatcher) {
+        backupService.exportResult = AppResult.Failure(AppError.Storage("disk full"))
+        val viewModel = createViewModel()
+
+        viewModel.onExportBackup()
+
+        val backupState = viewModel.uiState.value.backupState
+        assertThat(backupState).isInstanceOf(BackupUiState.Failed::class.java)
+        assertThat((backupState as BackupUiState.Failed).error).isInstanceOf(AppError.Storage::class.java)
+    }
+
+    @Test
+    fun importingBackupReportsTheRestoredRowCount() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.onImportBackup("content://backup.json")
+
+        assertThat(backupService.lastImportedUri).isEqualTo("content://backup.json")
+        val backupState = viewModel.uiState.value.backupState
+        assertThat(backupState).isInstanceOf(BackupUiState.Imported::class.java)
+        assertThat((backupState as BackupUiState.Imported).rowCount).isEqualTo(5)
+    }
+
+    @Test
+    fun importingAnInvalidBackupReportsAValidationFailure() = runTest(mainDispatcherRule.testDispatcher) {
+        backupService.importResult = AppResult.Failure(AppError.Validation("invalid"))
+        val viewModel = createViewModel()
+
+        viewModel.onImportBackup("content://broken.json")
+
+        val backupState = viewModel.uiState.value.backupState
+        assertThat(backupState).isInstanceOf(BackupUiState.Failed::class.java)
+        assertThat((backupState as BackupUiState.Failed).error).isInstanceOf(AppError.Validation::class.java)
+    }
+
+    @Test
+    fun dismissingTheBackupStateReturnsToIdle() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onExportBackup()
+
+        viewModel.onDismissBackupState()
+
+        assertThat(viewModel.uiState.value.backupState).isEqualTo(BackupUiState.Idle)
+    }
+}

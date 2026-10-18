@@ -6,6 +6,7 @@ import id.umkm.pos.pro.core.contract.AccountingService
 import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PriceEngine
@@ -22,6 +23,8 @@ import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.data.image.ProductImageStore
+import id.umkm.pos.pro.data.backup.JsonDataBackupService
+import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import id.umkm.pos.pro.data.local.OnboardingPreferences
 import id.umkm.pos.pro.data.local.repository.CustomerRepositoryImpl
@@ -106,6 +109,11 @@ class DefaultAppContainer(
     override val onboardingStore: OnboardingStore = OnboardingPreferences(applicationContext)
 
     override val qrisService: QrisService = AndroidQrisService(applicationContext)
+
+    private val downloadsSink: DownloadsFileSink = DownloadsFileSink(applicationContext)
+
+    override val dataBackupService: DataBackupService =
+        JsonDataBackupService(applicationContext, database, downloadsSink, clock)
 
     init {
         applicationScope.launch {

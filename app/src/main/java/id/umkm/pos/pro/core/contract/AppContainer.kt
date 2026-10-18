@@ -18,5 +18,6 @@ interface AppContainer {
     val adController: AdController
     val onboardingStore: OnboardingStore
     val qrisService: QrisService
+    val dataBackupService: DataBackupService
     val clock: Clock
 }

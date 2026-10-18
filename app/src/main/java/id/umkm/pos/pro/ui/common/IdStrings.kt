@@ -11,6 +11,8 @@ object IdStrings : PosStrings {
     override val actionSave = "Simpan"
     override val actionCancel = "Batal"
     override val actionClose = "Tutup"
+    override val actionOpen = "Buka"
+    override val actionShare = "Bagikan"
     override val actionDelete = "Hapus"
     override val actionEdit = "Ubah"
     override val actionRetry = "Coba Lagi"
@@ -411,7 +413,6 @@ object IdStrings : PosStrings {
     override val reportsNoteCount = { count: Int -> "$count Nota" }
     override val reportsTopProductsHint = "Berdasarkan nilai penjualan periode ini"
     override val reportsSoldQuantity = { quantity: String -> "$quantity terjual" }
-    override val reportsSavedTo = { path: String -> "Tersimpan di $path" }
     override val reportsPermissionNeeded = { folder: String ->
         "Izin penyimpanan diperlukan untuk menyimpan laporan ke folder $folder. Aktifkan izin lalu coba lagi."
     }
@@ -440,6 +441,31 @@ object IdStrings : PosStrings {
     override val settingsMenuQrisDescription = "Kelola gambar QRIS statis toko"
     override val settingsMenuStoreDescription = "Nama toko, kasir, pajak, dan pembulatan"
     override val settingsMenuStoreTax = { percent: Int -> "Pajak $percent%" }
+    override val settingsBackupTitle = "Cadangkan & Pulihkan"
+    override val settingsBackupMenuDescription = "Ekspor dan impor data toko (JSON)"
+    override val settingsBackupExportSection = "Ekspor Backup"
+    override val settingsBackupExportHint = "Simpan seluruh data toko (produk, transaksi, pelanggan, pengaturan) ke satu berkas JSON di folder Download."
+    override val settingsBackupExportButton = "Ekspor Backup (JSON)"
+    override val settingsBackupExporting = "Menyimpan backup..."
+    override val settingsBackupExportedTitle = "Backup selesai"
+    override val settingsBackupImportSection = "Impor Backup"
+    override val settingsBackupImportHint = "Pulihkan data dari berkas backup JSON. Data yang saat ini ada akan diganti."
+    override val settingsBackupImportButton = "Pilih Berkas Backup"
+    override val settingsBackupImporting = "Memulihkan data..."
+    override val settingsBackupImportedTitle = "Data berhasil dipulihkan"
+    override val settingsBackupImportedRows = { count: Int -> "$count baris data dipulihkan." }
+    override val settingsBackupConfirmTitle = "Ganti semua data?"
+    override val settingsBackupConfirmMessage = "Semua produk, transaksi, pelanggan, dan pengaturan saat ini akan diganti dengan isi berkas backup. Tindakan ini tidak bisa dibatalkan."
+    override val settingsBackupConfirmAction = "Ya, Pulihkan"
+    override val settingsBackupErrorInvalid = "Berkas backup tidak valid atau tidak lengkap."
+    override val settingsBackupErrorStorage = "Gagal mengakses berkas. Periksa ruang penyimpanan lalu coba lagi."
+    override val settingsBackupErrorUnexpected = "Proses backup gagal. Coba lagi."
+    override val settingsAboutTitle = "Tentang & Privasi"
+    override val settingsAboutMenuDescription = "Versi aplikasi dan kebijakan privasi"
+    override val settingsAboutVersion = "Versi"
+    override val settingsPrivacyTitle = "Kebijakan Privasi"
+    override val settingsPrivacyDescription = "Buka kebijakan privasi di peramban"
+    override val settingsPrivacyUnavailable = "Tidak ada aplikasi yang bisa membuka tautan ini."
     override val settingsStoreProfileTitle = "Profil Toko & Aturan Kasir"
     override val settingsStoreNameLabel = "Nama Toko / Usaha"
     override val settingsStoreNamePlaceholder = "Contoh: Toko Berkah Jaya"
@@ -597,6 +623,10 @@ object IdStrings : PosStrings {
     override val receiptTestThankYou = "Terima Kasih Atas Kunjungan Anda"
 
     override val exportFilePrefix = "laporan"
+    override val exportDone = "Ekspor selesai"
+    override val exportDestination = { folder: String -> "Tersimpan di folder $folder" }
+    override val exportOpenFailed = "Berkas tidak ditemukan atau tidak bisa dibuka."
+    override val exportShareFailed = "Berkas tidak ditemukan atau tidak bisa dibagikan."
     override val exportTransactionSheetName = "Transaksi"
     override val exportProductSheetName = "Ringkasan Produk"
     override val exportColumnDate = "Tanggal"
