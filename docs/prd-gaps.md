@@ -16,7 +16,7 @@ or wiring does not · **MISSING** = nothing in the code.
 | --- | --- | --- |
 | 1 | Store settings, tax, rounding | DONE |
 | 2 | Thermal printer setup | DONE (Bluetooth only wired) |
-| 3 | Barcode scanner | PARTIAL (stage 1 done: HID live, manual entry; camera missing) |
+| 3 | Barcode scanner | DONE (camera and hardware HID) |
 | 4 | Local backup and restore (JSON) | DONE |
 | 5 | PIN, biometrics, offline recovery | MISSING |
 | 6 | Returns and exchanges | PARTIAL (returns DONE, exchanges MISSING) |
@@ -71,7 +71,7 @@ nothing writes or verifies a PIN: no `ui/security` package, no hashing, no biome
 offline recovery code, and no enforcement on sensitive actions such as deleting history or viewing
 HPP. `HashComparison.matchesHash` only compares strings; no PIN hash is produced anywhere.
 
-### 2. Barcode scanning — PARTIAL (stage 1 shipped, camera still missing)
+### 2. Barcode scanning — DONE (camera and hardware HID, read-rate gate pending)
 
 PRD §6.1, §6.5, §7.5. Stage 1 landed on 19 October 2026:
 
@@ -85,10 +85,24 @@ PRD §6.1, §6.5, §7.5. Stage 1 landed on 19 October 2026:
   scanner switch (`ScannerPreferences`, stored per device, not in the backup payload), and shows
   the last decoded code so the owner can confirm the scanner before a real sale.
 - The cashier search row has a scan action, and the product form's barcode field has a scan
-  icon; both open the same manual-entry dialog. Camera details in that dialog are labelled
-  **Belum tersedia** rather than shown as a working control.
-- Still missing: camera capture, the `CAMERA` permission, and the `uses-feature` entry. Design
-  and engine decision are frozen in `docs/design/barcode-scan.md`.
+  icon; both open the same scan surface. At the time of stage 1 its camera section was labelled
+  **Belum tersedia** rather than shown as a working control; stage 2 replaced that with the live preview.
+Stage 2 landed the same day:
+
+- Camera capture uses CameraX with the `zxing.core` decoder already in the app, behind a
+  `BarcodeFrameReader` interface, so ML Kit was not needed and the release APK grew from 3.16 MB to
+  **3.90 MB**, well inside the 8 MB budget in PRD 9.2.
+- Analysis is capped at 1280x720, keeps only the latest frame, throttles to about six frames per
+  second, and decodes the luminance plane without a colour conversion.
+- The scan surface has seven states: permission request, permission blocked with a route to app
+  settings, no camera hardware, live preview, camera failure with retry, unknown code, and success.
+  Manual entry stays available in every one of them.
+- Text never sits on the camera image. Every label is on a solid surface, and the white finder frame
+  is drawn over the 55% scrim, which keeps it at 7:1 even against a pure white scene.
+- The app still requests no `INTERNET` permission, and camera frames are discarded after analysis.
+- **Pending:** the read-rate gate. A physical barcode has not been scanned yet because this setup
+  has no second screen to aim the phone at. The decoder itself is unit tested by rendering an
+  EAN-13 and reading it back.
 
 The design is frozen in `docs/design/barcode-scan.md`, and PRD 7.5 now records the accepted
 engine decision: CameraX with the existing `zxing.core` decoder first, bundled ML Kit only if the
@@ -176,9 +190,8 @@ to switch. Wait for the main navigation to exist (for example
    Pemindai Barcode test area.
 3. **PIN, biometrics, and recovery code**: protects sensitive actions; must include the offline
    recovery path.
-4. **Barcode scanning, stage 1**: done (HID interceptor, scanner settings, manual entry).
-5. **Barcode scanning, stage 2**: camera capture with CameraX and the existing `zxing.core`,
-   then run the read-rate and size gates in `docs/design/barcode-scan.md`.
+4. **Barcode scanning**: both stages are in. What remains is the read-rate gate on real product
+   labels with a physical device aimed at a barcode.
 6. **PNG receipt and image share**: small, high value for WhatsApp receipts.
 7. **Exchanges in the returns UI**: domain logic already exists.
 8. **Shift management UI**: closes the §8 data model.

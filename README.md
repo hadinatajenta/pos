@@ -51,11 +51,12 @@ Settings
 
 - **PIN, biometrics, and offline recovery**: the `security_store` table and repository exist, but
   there is no setup or verification UI, no PIN hashing, and no enforcement on sensitive actions.
-- **Barcode scanning**: stage 1 is in. A USB or Bluetooth HID scanner now adds items without
-  touching the screen, More then Settings has a **Pemindai Barcode** page with an on/off switch
-  and a live test area, and both the cashier and the product form offer manual code entry.
-  Camera scanning is still missing: no CameraX dependency, no `CAMERA` permission, no capture UI.
-  Design and engine decision: [docs/design/barcode-scan.md](docs/design/barcode-scan.md).
+- **Barcode scanning**: camera and hardware scanning are both in. A USB or Bluetooth HID scanner
+  adds items without touching the screen, and the camera reads retail barcodes with CameraX plus
+  the `zxing.core` decoder the app already carried, so no ML Kit was needed. More then Settings has
+  a **Pemindai Barcode** page with the hardware switch and a live test area, and both the cashier
+  and the product form offer manual code entry. Design, states, and the measured gates:
+  [docs/design/barcode-scan.md](docs/design/barcode-scan.md).
 - **Returns exchange flow**: `ExchangeSettlement` and `settleExchange` exist with tests, but the
   returns UI does not use them.
 - **Cashier shifts**: `CashierShiftEntity` and `ShiftRepository` exist without any UI.

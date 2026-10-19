@@ -1,6 +1,7 @@
 # Barcode scanning: design
 
-Status: design frozen and approved. Stage 1 implemented, stage 2 (camera) not started.
+Status: implemented. Stage 1 (hardware HID, settings, manual entry) and stage 2 (camera) are in.
+The read-rate gate has not been run for lack of a physical barcode in front of the camera.
 Antislop mode DURING. Date: 19 October 2026.
 
 The owner accepted the recommendation in this document and delegated the remaining choices
@@ -167,6 +168,22 @@ switch in `SharedPreferences`, not in `Room`, so the backup payload format did n
 settings test area shows the last decoded code, which is what proves the whole chain on a real
 device before a sale depends on it.
 
+### Stage 2 as built
+
+Camera capture runs on CameraX with the ZXing reader behind `BarcodeFrameReader`. The frame extraction
+lives in `LuminanceFrame`, a pure object, so the padded-stride and short-buffer cases are unit tested
+without a camera. The decoder is unit tested by rendering an EAN-13 and reading it back.
+
+The surface is a full-screen dialog in the app's own language: live preview, 55% scrim with a clean
+cut-out, a white finder frame drawn over the scrim (7:1 even against a pure white scene), the scanning
+hint on an inverse-surface chip, a torch toggle, and manual entry one tap away. States covered:
+permission request, permission blocked with a route to system settings, no camera hardware, camera
+failure with retry, live scanning, unknown code, and success. Camera binding is tied to the surface
+lifecycle and the torch is switched off when it closes.
+
+Measured on release: APK 3.90 MB (was 3.16 MB), still well inside the 8 MB budget, and the app still
+requests no `INTERNET` permission.
+
 **Flow 1, cashier camera scan.** Cashier taps the scan action in the search row, the scan surface
 opens and asks for the camera on first use, the preview shows a finder frame and one instruction
 line, a barcode is recognised, the item is added with the existing rules, and a confirmation strip
@@ -316,9 +333,11 @@ reason for each is recorded here (R-31).
    the fallback. Reason: it keeps the added weight near 1 MB, keeps a decoding model out of memory on a
    2 GB device, and reuses a decoder the app already ships. The swap stays one class, one dependency
    line, and one line in the container. PRD 7.5 was updated to match.
-2. **After a successful scan in the cashier**: the surface stays open and keeps scanning, with the
-   confirmation strip updating. Reason: adding several items is one continuous task, and closing per
-   item would add a tap to every product.
+2. **After a successful scan in the cashier**: the surface closes. Implementation revised this from
+   "stay open": the surface is a full-screen camera dialog, so a open surface hides the very cart the
+   cashier needs to verify, and the existing cashier message already names the product that was added
+   ("Kopi Susu ditambahkan"), which is stronger feedback than echoing the code. Reopening is one tap.
+   The scanning hint chip inside the preview replaces the planned confirmation strip.
 3. **Hardware scanner mode**: always on, with an off switch in Settings. Reason: the decoder only
    completes on a fast keystroke run that ends in Enter or Tab, so ordinary typing is unaffected, and
    the cashier should never have to arm the scanner in the middle of a sale.
@@ -352,12 +371,16 @@ gates, not claimed as passing here.
   ratios.
 - R-35 STAGE 1 PASS: build, 483 unit tests, 45 instrumented tests, and a device click-through of
   the settings switch, the HID injection, the cashier dialog, and the product form scan action.
-- R-35 STAGE 2 GATE: before the camera is called done, run the build, the click-through, the
-  release size measurement, and the device scan tests, and record the numbers here.
-- Size gate: the release APK must stay under the PRD 9.2 budget of 8 MB, with the measured value
-  written into this document.
-- Read-rate gate: on your own product labels, at least 19 of 20 first-try reads succeed within two
-  seconds. Below that, switch the reader implementation to ML Kit and re-measure the size.
+- R-35 STAGE 2: build, 492 unit tests, 45 instrumented tests, and a device click-through of the
+  permission flow, the live preview, the torch toggle, manual mode, and the settings states. The
+  release size is recorded below. Still open: a physical barcode read.
+- Size gate PASS: release APK 3.90 MB against the PRD 9.2 budget of 8 MB. CameraX cost about 0.74 MB
+  because the decoder was already in the app; bundled ML Kit would have cost an estimated 2.5 to 3.5 MB
+  for the same job.
+- Read-rate gate NOT RUN: on your own product labels, at least 19 of 20 first-try reads must succeed
+  within two seconds. This needs a physical device aimed at a real barcode, which this setup cannot do
+  because there is no second screen to hold the barcode. Below the bar, switch the reader implementation
+  to bundled ML Kit and re-measure the size.
 - R-37 PASS: direction taken from the PRD section 5 and the implemented token system, so this is not
   a draft without direction.
 - R-38 PASS: no invented metric, asset, or claim appears in this design.

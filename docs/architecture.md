@@ -165,15 +165,14 @@ are consumed on navigation.
 
 ## Barcode scanning
 
-Stage 1 (hardware HID, scanner settings, manual entry) is implemented. Camera capture is not, and
-the design plus the accepted engine decision are frozen in `docs/design/barcode-scan.md`.
-Structural points that belong in this document:
+Camera capture and hardware HID are both implemented. The design, the accepted engine decision, and
+the measured gates live in `docs/design/barcode-scan.md`. Structural points that belong here:
 
 - The scanner contract stays unchanged: `ScannerInput.scanEvents: Flow<ScanEvent>` with
   `ScanSource.CAMERA` and `ScanSource.HARDWARE_HID`. No contract change is planned.
-- Camera capture and decoding will live in `hardware/scanner/` behind a `BarcodeFrameReader`
-  interface, so ML Kit or ZXing types never reach `ui/`, following the same split as
-  `hardware/receipt`.
+- Camera capture and decoding live in `hardware/scanner/` behind a `BarcodeFrameReader` interface,
+  so ZXing types never reach `ui/`, following the same split as `hardware/receipt`. Frame extraction
+  is a separate pure object so it can be unit tested without a camera.
 - The cashier consumes `scanEvents` through `addScannedCode`, and `MainActivity.dispatchKeyEvent`
   forwards key events to `HardwareScannerInput`. Camera scans will reuse the same ViewModel entry
   point instead of adding a second add-to-cart path.
@@ -181,8 +180,8 @@ Structural points that belong in this document:
   per-device hardware scanner switch, so the backup payload format is unchanged.
 - Accepted decoder: the existing `zxing.core`, with bundled ML Kit as the documented fallback.
   PRD 7.5 records the decision and the acceptance gate.
-- Order of work: stage 1 shipped with no new dependency and no size change; stage 2 is camera
-  capture behind a `BarcodeFrameReader`.
+- Dependencies: `zxing.core` (already present for QR generation) and CameraX, which took the release
+  APK from 3.16 MB to 3.90 MB.
 
 ## Calculation order
 
