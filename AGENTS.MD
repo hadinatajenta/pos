@@ -103,3 +103,19 @@ A task is not done merely because code was generated or the project compiles. It
 - UI changes have been visually checked at relevant viewport sizes.
 - Data safety, errors, empty states, and loading states have been considered.
 - The final response summarizes changes, verification, and known limitations.
+
+## Physical device rules (mandatory)
+
+A connected device can hold real test data that the owner cares about. Never run a command that removes
+an app or wipes its data unless the owner explicitly asks for it.
+
+- Replacing a build is fine: `adb -s <serial> install -r --user 0 <apk>`. It keeps the app data.
+- Do not run `adb uninstall`, `adb shell pm clear`, or `adb shell pm uninstall` on a connected device.
+  If a build genuinely cannot be replaced, stop and ask the owner first.
+- `connectedDebugAndroidTest` removes the app APKs after the run by default, which deletes the owner's
+  data. Always run it as:
+  `./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true`
+- On a device with a Secure Folder or a second profile, always pass `--user 0` so the app lands in the
+  owner's own profile instead of the other one.
+- Device settings changed for a test (dark mode, font scale, permissions) are restored before the
+  session ends, and the owner is told what was changed.

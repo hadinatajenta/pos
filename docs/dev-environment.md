@@ -45,6 +45,18 @@ more than two parallel resource workers start, so `gradle.properties` pins
 
 ## Hardware and camera verification
 
+Keep the owner's device intact. Replacing a build with `install -r` preserves app data, but
+`connectedDebugAndroidTest` removes the app APKs after the run unless it is started with:
+
+```bash
+ANDROID_SERIAL=<serial> ./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true
+```
+
+Never run `adb uninstall` or `adb shell pm clear` on a connected device without the owner asking.
+Pass `--user 0` to `adb install` so the app lands in the owner's profile rather than a Secure Folder,
+and restore any device setting you changed (dark mode, font scale) before finishing.
+
 - The camera path needs a physical device. There is no emulator image in this setup.
 - A USB or Bluetooth HID scanner can be simulated without hardware by sending fast keystrokes and a
   terminator, which is what the keyboard-wedge decoder expects:
