@@ -57,7 +57,7 @@ import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.components.ProductThumbnail
 import id.umkm.pos.pro.ui.components.StockStatusBadge
-import id.umkm.pos.pro.ui.scanner.BarcodeEntryDialog
+import id.umkm.pos.pro.ui.scanner.BarcodeScanDialog
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosShapes
@@ -115,7 +115,7 @@ internal fun CashierCatalogPane(
         )
     }
     if (state.isScanDialogVisible) {
-        BarcodeEntryDialog(
+        BarcodeScanDialog(
             submitLabel = strings.scannerManualAdd,
             onSubmit = actions.onScannedCode,
             onDismiss = actions.onDismissScanDialog,

@@ -68,13 +68,24 @@ interface PosStrings {
     val scannerManualAdd: String
     val scannerManualUse: String
     val scannerCameraTitle: String
-    val scannerCameraUnavailable: String
+    val scannerPermissionTitle: String
+    val scannerPermissionDetail: String
+    val scannerPermissionGrant: String
+    val scannerPermissionBlocked: String
+    val scannerPermissionOpenSettings: String
+    val scannerCameraError: String
+    val scannerNoCameraDetail: String
+    val scannerCameraScanning: String
+    val scannerTorchEnable: String
+    val scannerTorchDisable: String
+    val scannerManualModeOn: String
+    val scannerManualModeOff: String
+    val scannerCameraAvailable: String
     val scannerCameraUnavailableDetail: String
     val scannerHidHint: String
     val settingsScannerTitle: String
     val settingsScannerMenuDescription: String
     val settingsScannerCameraSection: String
-    val settingsScannerCameraDetail: String
     val settingsScannerHidSection: String
     val settingsScannerHidDetail: String
     val settingsScannerHidToggle: String

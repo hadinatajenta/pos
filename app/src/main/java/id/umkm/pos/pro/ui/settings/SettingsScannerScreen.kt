@@ -75,15 +75,15 @@ internal fun SettingsScannerScreen(
                             style = LocalAppTextStyles.current.sectionHeading,
                         )
                         StatusChip(
-                            iconRes = R.drawable.ic_clock,
-                            label = strings.scannerCameraUnavailable,
-                            containerColor = palette.neutralContainer,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            iconRes = R.drawable.ic_circle_check,
+                            label = strings.scannerCameraAvailable,
+                            containerColor = palette.successContainer,
+                            contentColor = palette.successText,
                         )
                     }
                 }
                 Text(
-                    text = strings.settingsScannerCameraDetail,
+                    text = strings.scannerPermissionDetail,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -53,7 +53,7 @@ import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.asTextOrNull
-import id.umkm.pos.pro.ui.scanner.BarcodeEntryDialog
+import id.umkm.pos.pro.ui.scanner.BarcodeScanDialog
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -251,7 +251,7 @@ private fun BasicsSection(
             },
         )
         if (isBarcodeScanOpen) {
-            BarcodeEntryDialog(
+            BarcodeScanDialog(
                 submitLabel = strings.scannerManualUse,
                 onSubmit = { code ->
                     isBarcodeScanOpen = false
