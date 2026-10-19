@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,39 +32,11 @@ fun StockStatusBadge(
     status: StockStatus,
     modifier: Modifier = Modifier,
 ) {
-    val palette = LocalPosSemanticPalette.current
-    val containerColor: Color
-    val contentColor: Color
-    @DrawableRes val iconRes: Int
-    when (status) {
-        StockStatus.IN_STOCK -> {
-            containerColor = palette.successContainer
-            contentColor = palette.success
-            iconRes = R.drawable.ic_circle_check
-        }
-
-        StockStatus.LOW_STOCK -> {
-            containerColor = palette.warningContainer
-            contentColor = palette.warning
-            iconRes = R.drawable.ic_triangle_alert
-        }
-
-        StockStatus.OUT_OF_STOCK -> {
-            containerColor = palette.dangerContainer
-            contentColor = palette.danger
-            iconRes = R.drawable.ic_circle_x
-        }
-
-        StockStatus.OVERSOLD -> {
-            containerColor = palette.dangerContainer
-            contentColor = palette.danger
-            iconRes = R.drawable.ic_trending_down
-        }
-    }
+    val visuals = stockStatusVisuals(status)
     val label = stockStatusLabel(status, LocalPosStrings.current)
     Box(
         modifier = modifier
-            .background(color = containerColor, shape = MaterialTheme.shapes.small)
+            .background(color = visuals.containerColor, shape = MaterialTheme.shapes.small)
             .clearAndSetSemantics { contentDescription = label },
     ) {
         Row(
@@ -71,8 +44,50 @@ fun StockStatusBadge(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
-            Icon(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(14.dp), tint = contentColor)
-            Text(text = label, style = LocalAppTextStyles.current.supportingLabel, color = contentColor)
+            Icon(
+                painter = painterResource(visuals.iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = visuals.contentColor,
+            )
+            Text(text = label, style = LocalAppTextStyles.current.supportingLabel, color = visuals.contentColor)
         }
+    }
+}
+
+@Immutable
+internal data class StockStatusVisuals(
+    val containerColor: Color,
+    val contentColor: Color,
+    @DrawableRes val iconRes: Int,
+)
+
+@Composable
+internal fun stockStatusVisuals(status: StockStatus): StockStatusVisuals {
+    val palette = LocalPosSemanticPalette.current
+    return when (status) {
+        StockStatus.IN_STOCK -> StockStatusVisuals(
+            containerColor = palette.successContainer,
+            contentColor = palette.successText,
+            iconRes = R.drawable.ic_circle_check,
+        )
+
+        StockStatus.LOW_STOCK -> StockStatusVisuals(
+            containerColor = palette.warningContainer,
+            contentColor = palette.warningText,
+            iconRes = R.drawable.ic_triangle_alert,
+        )
+
+        StockStatus.OUT_OF_STOCK -> StockStatusVisuals(
+            containerColor = palette.dangerContainer,
+            contentColor = palette.dangerText,
+            iconRes = R.drawable.ic_circle_x,
+        )
+
+        StockStatus.OVERSOLD -> StockStatusVisuals(
+            containerColor = palette.dangerContainer,
+            contentColor = palette.dangerText,
+            iconRes = R.drawable.ic_trending_down,
+        )
     }
 }

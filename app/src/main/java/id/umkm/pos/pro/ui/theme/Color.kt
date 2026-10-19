@@ -35,6 +35,10 @@ object PosColors {
     val DangerContainer = Color(0xFFFEE2E2)
     val NeutralContainer = Color(0xFFEEF2F0)
 
+    val SuccessText = Color(0xFF0B6B4A)
+    val WarningText = Color(0xFF92400E)
+    val DangerText = Color(0xFFB91C1C)
+
     val ChartGrid = Color(0xFFE4EAE7)
     val ChartLine = Color(0xFF0D5C46)
     val ChartArea = Color(0x1F108562)
@@ -72,6 +76,10 @@ object PosColorsDark {
     val DangerContainer = Color(0xFF3F1D1D)
     val NeutralContainer = Color(0xFF222B27)
 
+    val SuccessText = Success
+    val WarningText = Warning
+    val DangerText = Danger
+
     val ChartGrid = Color(0xFF28322E)
     val ChartLine = Color(0xFF5CE0B5)
     val ChartArea = Color(0x335CE0B5)
@@ -91,6 +99,9 @@ data class PosSemanticPalette(
     val goldContainer: Color,
     val onGoldContainer: Color,
     val neutralContainer: Color,
+    val successText: Color,
+    val warningText: Color,
+    val dangerText: Color,
     val chartGrid: Color,
     val chartLine: Color,
     val chartArea: Color,
@@ -109,6 +120,9 @@ val PosLightSemanticPalette = PosSemanticPalette(
     goldContainer = PosColors.GoldContainer,
     onGoldContainer = PosColors.OnGoldContainer,
     neutralContainer = PosColors.NeutralContainer,
+    successText = PosColors.SuccessText,
+    warningText = PosColors.WarningText,
+    dangerText = PosColors.DangerText,
     chartGrid = PosColors.ChartGrid,
     chartLine = PosColors.ChartLine,
     chartArea = PosColors.ChartArea,
@@ -127,6 +141,9 @@ val PosDarkSemanticPalette = PosSemanticPalette(
     goldContainer = PosColorsDark.GoldContainer,
     onGoldContainer = PosColorsDark.OnGoldContainer,
     neutralContainer = PosColorsDark.NeutralContainer,
+    successText = PosColorsDark.SuccessText,
+    warningText = PosColorsDark.WarningText,
+    dangerText = PosColorsDark.DangerText,
     chartGrid = PosColorsDark.ChartGrid,
     chartLine = PosColorsDark.ChartLine,
     chartArea = PosColorsDark.ChartArea,

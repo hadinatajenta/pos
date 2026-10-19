@@ -21,7 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,12 +35,11 @@ import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.ProductThumbnail
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.PosTextStyles
+import id.umkm.pos.pro.ui.components.stockStatusVisuals
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
-import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 
@@ -150,40 +148,12 @@ private fun ProductStockPill(
     stockStatus: StockStatus,
     stockBaseQty: Double,
 ) {
-    val palette = LocalPosSemanticPalette.current
     val strings = LocalPosStrings.current
-    val containerColor: Color
-    val contentColor: Color
-    @DrawableRes val iconRes: Int
-    when (stockStatus) {
-        StockStatus.IN_STOCK -> {
-            containerColor = palette.successContainer
-            contentColor = palette.success
-            iconRes = R.drawable.ic_circle_check
-        }
-
-        StockStatus.LOW_STOCK -> {
-            containerColor = palette.warningContainer
-            contentColor = palette.warning
-            iconRes = R.drawable.ic_triangle_alert
-        }
-
-        StockStatus.OUT_OF_STOCK -> {
-            containerColor = palette.dangerContainer
-            contentColor = palette.danger
-            iconRes = R.drawable.ic_circle_x
-        }
-
-        StockStatus.OVERSOLD -> {
-            containerColor = palette.dangerContainer
-            contentColor = palette.danger
-            iconRes = R.drawable.ic_trending_down
-        }
-    }
+    val visuals = stockStatusVisuals(stockStatus)
     val quantityLabel = strings.productsStockSummary(formatQuantity(stockBaseQty))
     Box(
         modifier = Modifier
-            .background(color = containerColor, shape = MaterialTheme.shapes.small)
+            .background(color = visuals.containerColor, shape = MaterialTheme.shapes.small)
             .clearAndSetSemantics { contentDescription = "$quantityLabel, ${stockStatusLabel(stockStatus, strings)}" },
     ) {
         Row(
@@ -192,15 +162,15 @@ private fun ProductStockPill(
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
             Icon(
-                painter = painterResource(iconRes),
+                painter = painterResource(visuals.iconRes),
                 contentDescription = null,
                 modifier = Modifier.size(STOCK_PILL_ICON_SIZE),
-                tint = contentColor,
+                tint = visuals.contentColor,
             )
             AutoSizeNumberText(
                 text = quantityLabel,
                 style = MaterialTheme.typography.labelMedium,
-                color = contentColor,
+                color = visuals.contentColor,
                 modifier = Modifier.widthIn(max = STOCK_PILL_TEXT_MAX_WIDTH),
             )
         }
