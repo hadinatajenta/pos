@@ -16,7 +16,7 @@ or wiring does not · **MISSING** = nothing in the code.
 | --- | --- | --- |
 | 1 | Store settings, tax, rounding | DONE |
 | 2 | Thermal printer setup | DONE (Bluetooth only wired) |
-| 3 | Barcode scanner | PARTIAL (HID only) |
+| 3 | Barcode scanner | PARTIAL (stage 1 done: HID live, manual entry; camera missing) |
 | 4 | Local backup and restore (JSON) | DONE |
 | 5 | PIN, biometrics, offline recovery | MISSING |
 | 6 | Returns and exchanges | PARTIAL (returns DONE, exchanges MISSING) |
@@ -71,11 +71,29 @@ nothing writes or verifies a PIN: no `ui/security` package, no hashing, no biome
 offline recovery code, and no enforcement on sensitive actions such as deleting history or viewing
 HPP. `HashComparison.matchesHash` only compares strings; no PIN hash is produced anywhere.
 
-### 2. Camera barcode scanning — MISSING (MVP scope)
+### 2. Barcode scanning — PARTIAL (stage 1 shipped, camera still missing)
 
-PRD §6.5, §7.5. `HardwareScannerInput` and `KeyboardWedgeScanDecoder` handle USB/Bluetooth HID
-input. There is no CameraX or ML Kit dependency, no `CAMERA` permission, and no scanner setup
-screen.
+PRD §6.1, §6.5, §7.5. Stage 1 landed on 19 October 2026:
+
+- `MainActivity.dispatchKeyEvent` now feeds `HardwareScannerInput`, so a USB or Bluetooth HID
+  scanner turns into `scanEvents` and the cashier adds the item with no tap on the search field
+(PRD 6.1). Verified on device by injecting a fast key sequence.
+- The interceptor only consumes Enter or Tab while a scan sequence is still live, and a stale
+  sequence is discarded instead of swallowing the key. Without that guard, a stray Enter would
+  have been eaten with no scan produced.
+- **More, Settings, Pemindai Barcode** explains both capture methods, carries the hardware
+  scanner switch (`ScannerPreferences`, stored per device, not in the backup payload), and shows
+  the last decoded code so the owner can confirm the scanner before a real sale.
+- The cashier search row has a scan action, and the product form's barcode field has a scan
+  icon; both open the same manual-entry dialog. Camera details in that dialog are labelled
+  **Belum tersedia** rather than shown as a working control.
+- Still missing: camera capture, the `CAMERA` permission, and the `uses-feature` entry. Design
+  and engine decision are frozen in `docs/design/barcode-scan.md`.
+
+The design is frozen in `docs/design/barcode-scan.md`, and PRD 7.5 now records the accepted
+engine decision: CameraX with the existing `zxing.core` decoder first, bundled ML Kit only if the
+measured read rate misses the acceptance gate. Delivery order is hardware interceptor and
+scanner setup first (no new dependency, no size change), then camera capture.
 
 ### 3. Returns exchange flow — PARTIAL
 
@@ -153,13 +171,16 @@ to switch. Wait for the main navigation to exist (for example
 
 ## Suggested order
 
-1. **Lint to green and stabilize `PosAppTest`** — a release cannot ship with a red gate.
-2. **Hardware verification** — Bluetooth printer and HID scanner on real devices.
-3. **PIN, biometrics, and recovery code** — protects sensitive actions; must include the offline
+1. **Lint to green and stabilize `PosAppTest`**: a release cannot ship with a red gate.
+2. **Hardware verification**: the Bluetooth printer, and a physical HID scanner on the new
+   Pemindai Barcode test area.
+3. **PIN, biometrics, and recovery code**: protects sensitive actions; must include the offline
    recovery path.
-4. **Camera scanning** — new dependency, `CAMERA` permission, and scanner setup.
-5. **PNG receipt and image share** — small, high value for WhatsApp receipts.
-6. **Exchanges in the returns UI** — domain logic already exists.
-7. **Shift management UI** — closes the §8 data model.
-8. **Google Drive backup and SQLite `.db` export** — the remaining half of §7.6.
-9. **AdMob, shelf labels, Baseline Profiles** — monetization and polish.
+4. **Barcode scanning, stage 1**: done (HID interceptor, scanner settings, manual entry).
+5. **Barcode scanning, stage 2**: camera capture with CameraX and the existing `zxing.core`,
+   then run the read-rate and size gates in `docs/design/barcode-scan.md`.
+6. **PNG receipt and image share**: small, high value for WhatsApp receipts.
+7. **Exchanges in the returns UI**: domain logic already exists.
+8. **Shift management UI**: closes the §8 data model.
+9. **Google Drive backup and SQLite `.db` export**: the remaining half of §7.6.
+10. **AdMob, shelf labels, Baseline Profiles**: monetization and polish.

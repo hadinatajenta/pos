@@ -163,6 +163,27 @@ row component. On wide windows the screen is master-detail
 a back action. Feedback messages are scoped to the page that produced them and
 are consumed on navigation.
 
+## Barcode scanning
+
+Stage 1 (hardware HID, scanner settings, manual entry) is implemented. Camera capture is not, and
+the design plus the accepted engine decision are frozen in `docs/design/barcode-scan.md`.
+Structural points that belong in this document:
+
+- The scanner contract stays unchanged: `ScannerInput.scanEvents: Flow<ScanEvent>` with
+  `ScanSource.CAMERA` and `ScanSource.HARDWARE_HID`. No contract change is planned.
+- Camera capture and decoding will live in `hardware/scanner/` behind a `BarcodeFrameReader`
+  interface, so ML Kit or ZXing types never reach `ui/`, following the same split as
+  `hardware/receipt`.
+- The cashier consumes `scanEvents` through `addScannedCode`, and `MainActivity.dispatchKeyEvent`
+  forwards key events to `HardwareScannerInput`. Camera scans will reuse the same ViewModel entry
+  point instead of adding a second add-to-cart path.
+- `ScannerPreferences` (a `SharedPreferences` store, not the Room settings table) holds the
+  per-device hardware scanner switch, so the backup payload format is unchanged.
+- Accepted decoder: the existing `zxing.core`, with bundled ML Kit as the documented fallback.
+  PRD 7.5 records the decision and the acceptance gate.
+- Order of work: stage 1 shipped with no new dependency and no size change; stage 2 is camera
+  capture behind a `BarcodeFrameReader`.
+
 ## Calculation order
 
 1. `ItemSubtotal = qty × unitPrice − itemDiscount`

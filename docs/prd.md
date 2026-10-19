@@ -69,6 +69,12 @@ Use a small, predictable set of primary destinations. On phones, use a bottom na
 - **Reports** — sales, profit, HPP, and transaction history.
 - **More** — printer/scanner setup, backup, exports, staff/PIN, and settings.
 
+Implemented deviation (19 October 2026): the shipped primary set is **Kasir, Produk,
+Transaksi, Laporan, Lainnya**, so **Transactions** occupies the third slot and **Customers**
+lives under **More**. This follows the approved mockups rather than this list. Kept as a
+recorded deviation instead of a silent rewrite, because it changes what a cashier sees on
+every screen.
+
 Do not expose every feature as a top-level tab. Secondary functions belong in the relevant context or under **More**. On tablets, use a responsive navigation rail or split layout, with a **60:40** content/detail arrangement where it improves speed and visibility.
 
 ### 4.1 Responsive navigation contract — mandatory
@@ -304,7 +310,16 @@ The payment UI should show **Total**, **Paid**, **Change**, and **Remaining bala
 
 **Barcode scanners:**
 
-- Camera scanning with Google ML Kit Barcode Scanning.
+- Camera scanning with CameraX and the `zxing.core` decoder the app already ships for QR
+  generation, so no second decoding engine is added. Decode from the luminance plane and
+  restrict the format set to the retail symbologies to keep the cost per frame low on a 2 GB
+  device. Feeding and throttling rules are fixed in `docs/design/barcode-scan.md`.
+- Do not use the Play Services ML Kit variant. It fetches its model over the network, which
+  contradicts the offline-first requirement and the absence of the `INTERNET` permission.
+- Bundled Google ML Kit Barcode Scanning is the documented fallback. Switch to it if the
+  measured first-try read rate misses the acceptance gate in `docs/design/barcode-scan.md`
+  (19 of 20 reads within two seconds on real product labels), then re-measure the release size
+  against the budget in 9.2.
 - Hardware USB OTG and Bluetooth HID input through a keyboard-event interceptor.
 - Handle unexpected detach events gracefully. Removing a USB scanner or printer must not crash the application.
 
@@ -361,13 +376,16 @@ Use automatic schema migration where safe. Database upgrades must not silently d
 
 - Kotlin **2.0+**
 - Minimum SDK **23** (Android 6.0)
-- Target SDK **35**
+- Target SDK **36** (`targetSdk` and `compileSdk`), required for new Play releases since 31 August 2026
 - Jetpack Compose + Material 3
 - Room + SQLite WAL
-- Google ML Kit Barcode Scanning
+- CameraX for camera capture, with the existing `zxing.core` decoder for camera barcode
+  scanning. Bundled ML Kit only if the measured read rate misses the acceptance gate
 - Android Bluetooth and USB APIs for printer/scanner support
-- Google Drive API v3 `appDataFolder` for cloud backup
-- Google AdMob for designated non-critical placements
+- Google Drive API v3 `appDataFolder` for cloud backup (planned, not implemented; see
+  `docs/prd-gaps.md`)
+- Google AdMob for designated non-critical placements (planned, not implemented; the app
+  currently ships `NoAdsController` and requests no `INTERNET` permission)
 
 ### 9.2 Low-end device targets
 

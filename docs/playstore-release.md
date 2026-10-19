@@ -104,6 +104,11 @@ The Settings screen now exists and contains an in-app link to the privacy policy
 Tentang & Privasi**). Republish `docs/privacy-policy.html` to GitHub Pages so the hosted page
 matches the current effective date and content.
 
+When the barcode scanner ships, two declarations follow. Add `CAMERA` to the permission list and
+one line about the camera to the privacy policy. Camera frames are analysed on the device and
+discarded, and the app still does not request `INTERNET`, so the Data Safety answer stays at
+"no data collected, no data shared".
+
 ## Phase 4 — Upload and tracks
 
 1. **[ME]** Provide the AAB and release notes ("What's new", max 500 characters per track language).

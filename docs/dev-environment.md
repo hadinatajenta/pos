@@ -43,6 +43,23 @@ more than two parallel resource workers start, so `gradle.properties` pins
 `org.gradle.workers.max=2`. Do not raise this without re-verifying
 `./gradlew assembleRelease`.
 
+## Hardware and camera verification
+
+- The camera path needs a physical device. There is no emulator image in this setup.
+- A USB or Bluetooth HID scanner can be simulated without hardware by sending fast keystrokes and a
+  terminator, which is what the keyboard-wedge decoder expects:
+
+  ```bash
+  adb shell input text 8991234567890
+  adb shell input keyevent 66
+  ```
+
+- Toggle dark mode while checking the camera overlay against a bright scene:
+  `adb shell cmd uimode night yes` and `adb shell cmd uimode night no`.
+- On a device that has a Secure Folder or a second profile, pass `--user 0` to `adb install`.
+  Without it the package can land in the other profile, and then the launcher and `am start` cannot
+  see it.
+
 ## Responsive verification
 
 Screenshot review uses an emulator or a physical device. Window size is driven

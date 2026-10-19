@@ -51,8 +51,11 @@ Settings
 
 - **PIN, biometrics, and offline recovery**: the `security_store` table and repository exist, but
   there is no setup or verification UI, no PIN hashing, and no enforcement on sensitive actions.
-- **Camera barcode scanning**: only USB/Bluetooth HID scanners are supported; there is no CameraX
-  or ML Kit dependency and no `CAMERA` permission.
+- **Barcode scanning**: stage 1 is in. A USB or Bluetooth HID scanner now adds items without
+  touching the screen, More then Settings has a **Pemindai Barcode** page with an on/off switch
+  and a live test area, and both the cashier and the product form offer manual code entry.
+  Camera scanning is still missing: no CameraX dependency, no `CAMERA` permission, no capture UI.
+  Design and engine decision: [docs/design/barcode-scan.md](docs/design/barcode-scan.md).
 - **Returns exchange flow**: `ExchangeSettlement` and `settleExchange` exist with tests, but the
   returns UI does not use them.
 - **Cashier shifts**: `CashierShiftEntity` and `ShiftRepository` exist without any UI.
@@ -147,6 +150,7 @@ docs/        product requirements, architecture, implementation status, publishi
 - [docs/prd.md](docs/prd.md) — product requirements, the source of truth
 - [docs/architecture.md](docs/architecture.md) — module layout and frozen contract decisions
 - [docs/prd-gaps.md](docs/prd-gaps.md) — implementation status against the PRD
+- [docs/design/barcode-scan.md](docs/design/barcode-scan.md) — barcode scanning design, frozen and not implemented
 - [docs/dev-environment.md](docs/dev-environment.md) — toolchain and build constraints
 - [docs/playstore-release.md](docs/playstore-release.md) — Google Play release process
 - [docs/privacy-policy.html](docs/privacy-policy.html) — privacy policy
