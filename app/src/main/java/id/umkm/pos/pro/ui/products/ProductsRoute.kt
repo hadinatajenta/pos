@@ -128,7 +128,12 @@ internal fun ProductsScreen(
                 .padding(PosSpacing.md),
         )
         state.form?.let { form ->
-            ProductFormDialog(form = form, isSaving = state.isSaving, actions = actions)
+            ProductFormDialog(
+                form = form,
+                isSaving = state.isSaving,
+                categorySuggestions = state.catalog.successDataOrNull()?.categories.orEmpty(),
+                actions = actions,
+            )
         }
         if (state.pendingDeleteProductId != null) {
             DeleteProductDialog(actions = actions)
@@ -222,6 +227,7 @@ private fun DeleteProductDialog(actions: ProductsActions) {
 private fun ProductFormDialog(
     form: ProductFormState,
     isSaving: Boolean,
+    categorySuggestions: List<String>,
     actions: ProductsActions,
 ) {
     Dialog(
@@ -252,6 +258,7 @@ private fun ProductFormDialog(
                 ProductFormPanel(
                     form = form,
                     isSaving = isSaving,
+                    categorySuggestions = categorySuggestions,
                     actions = actions,
                 )
             }

@@ -257,6 +257,8 @@ interface PosStrings {
     val productsBaseUnitHint: String
     val productsHppHint: String
     val productsLowStockHint: String
+    val productsCategoryPickExisting: String
+    val productsBaseUnitQuickPick: String
     val productsCloseForm: String
     val productsSaveChanges: String
     val productsSaveNew: String

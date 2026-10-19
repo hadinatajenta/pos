@@ -22,6 +22,25 @@ class ProductFormValidationTest {
     }
 
     @Test
+    fun acceptsAnEmptyLowStockThreshold() {
+        val errors = validateProductForm(validForm().copy(minStockAlert = "  "))
+
+        assertThat(errors).doesNotContainKey(ProductFormField.MIN_STOCK_ALERT)
+    }
+
+    @Test
+    fun defaultsTheLowStockThresholdToFive() {
+        assertThat(ProductFormState().minStockAlert).isEqualTo("5")
+    }
+
+    @Test
+    fun rejectsANegativeLowStockThreshold() {
+        val errors = validateProductForm(validForm().copy(minStockAlert = "-1"))
+
+        assertThat(errors).containsKey(ProductFormField.MIN_STOCK_ALERT)
+    }
+
+    @Test
     fun rejectsAMissingName() {
         val errors = validateProductForm(validForm().copy(name = " "))
 

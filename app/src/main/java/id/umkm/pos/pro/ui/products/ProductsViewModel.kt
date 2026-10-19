@@ -185,7 +185,14 @@ class ProductsViewModel(
         if (_state.value.isSaving) return
         val errors = validateProductForm(form)
         if (errors.isNotEmpty()) {
-            _state.update { current -> current.copy(form = current.form?.copy(errors = errors)) }
+            _state.update { current ->
+                current.copy(
+                    form = current.form?.copy(
+                        errors = errors,
+                        validationFailures = current.form.validationFailures + 1,
+                    ),
+                )
+            }
             return
         }
         viewModelScope.launch {
@@ -285,7 +292,7 @@ class ProductsViewModel(
             baseHpp = form.baseHpp.trim().toLong(),
             basePrice = form.basePrice.trim().toLong(),
             stockBaseQty = form.stockQuantity.trim().toDouble(),
-            minStockAlert = form.minStockAlert.trim().toDouble(),
+            minStockAlert = form.minStockAlert.trim().toDoubleOrNull() ?: 0.0,
             isActive = form.isActive,
             imagePath = form.imagePath,
         )

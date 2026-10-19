@@ -71,7 +71,7 @@ data class ProductFormState(
     val basePrice: String = "",
     val baseHpp: String = "",
     val stockQuantity: String = "0",
-    val minStockAlert: String = "0",
+    val minStockAlert: String = "5",
     val isActive: Boolean = true,
     val isAdvancedExpanded: Boolean = false,
     val variantName: String = "",
@@ -84,6 +84,7 @@ data class ProductFormState(
     val isImageRemoved: Boolean = false,
     val isImageImporting: Boolean = false,
     val errors: Map<ProductFormField, UiText> = emptyMap(),
+    val validationFailures: Long = 0L,
 ) {
     val isEditing: Boolean get() = productId != null
 

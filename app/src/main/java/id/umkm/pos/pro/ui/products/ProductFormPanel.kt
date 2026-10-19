@@ -3,6 +3,25 @@ package id.umkm.pos.pro.ui.products
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +53,7 @@ import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.asTextOrNull
+import id.umkm.pos.pro.ui.scanner.BarcodeEntryDialog
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -47,15 +67,77 @@ import id.umkm.pos.pro.R
 
 private val PHOTO_PREVIEW_SIZE = 96.dp
 private const val FIELD_MARKER_SEPARATOR = " · "
+private const val RUPIAH_PREFIX = "Rp"
+
+private val FORM_FIELD_ORDER = listOf(
+    ProductFormField.NAME,
+    ProductFormField.SKU,
+    ProductFormField.BARCODE,
+    ProductFormField.CATEGORY,
+    ProductFormField.BASE_UNIT,
+    ProductFormField.BASE_PRICE,
+    ProductFormField.BASE_HPP,
+    ProductFormField.VARIANT_NAME,
+    ProductFormField.CONVERSION_FACTOR,
+    ProductFormField.VARIANT_PRICE,
+    ProductFormField.WHOLESALE_MIN_QTY,
+    ProductFormField.WHOLESALE_PRICE,
+    ProductFormField.STOCK_QUANTITY,
+    ProductFormField.MIN_STOCK_ALERT,
+)
+
+private val COMMON_BASE_UNITS = listOf(
+    "pcs",
+    "bks",
+    "butir",
+    "kg",
+    "g",
+    "liter",
+    "ml",
+    "cup",
+    "dus",
+    "pack",
+    "botol",
+    "sachet",
+)
+
+private class FormFieldFocus {
+
+    private val focusRequesters: Map<ProductFormField, FocusRequester> =
+        ProductFormField.entries.associateWith { FocusRequester() }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    private val bringIntoViewRequesters: Map<ProductFormField, BringIntoViewRequester> =
+        ProductFormField.entries.associateWith { BringIntoViewRequester() }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    fun modifierFor(field: ProductFormField): Modifier = Modifier
+        .focusRequester(focusRequesters.getValue(field))
+        .bringIntoViewRequester(bringIntoViewRequesters.getValue(field))
+
+    @OptIn(ExperimentalFoundationApi::class)
+    suspend fun focusFirstError(errors: Map<ProductFormField, UiText>) {
+        val target = FORM_FIELD_ORDER.firstOrNull { field -> field in errors } ?: return
+        focusRequesters.getValue(target).requestFocus()
+        bringIntoViewRequesters.getValue(target).bringIntoView()
+    }
+}
 
 @Composable
 internal fun ProductFormPanel(
     form: ProductFormState,
     isSaving: Boolean,
+    categorySuggestions: List<String>,
     actions: ProductsActions,
     modifier: Modifier = Modifier,
 ) {
     val strings = LocalPosStrings.current
+    val fieldFocus = remember { FormFieldFocus() }
+    LaunchedEffect(form.validationFailures) {
+        if (form.validationFailures > 0L) {
+            fieldFocus.focusFirstError(form.errors)
+        }
+    }
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
@@ -90,9 +172,14 @@ internal fun ProductFormPanel(
             if (form.errors.isNotEmpty()) {
                 ValidationSummary(errors = form.errors)
             }
-            BasicsSection(form = form, actions = actions)
-            PricingSection(form = form, actions = actions)
-            StockSection(form = form, actions = actions)
+            BasicsSection(
+                form = form,
+                categorySuggestions = categorySuggestions,
+                fieldFocus = fieldFocus,
+                actions = actions,
+            )
+            PricingSection(form = form, fieldFocus = fieldFocus, actions = actions)
+            StockSection(form = form, fieldFocus = fieldFocus, actions = actions)
         }
         HorizontalDivider()
         Row(
@@ -121,6 +208,8 @@ internal fun ProductFormPanel(
 @Composable
 private fun BasicsSection(
     form: ProductFormState,
+    categorySuggestions: List<String>,
+    fieldFocus: FormFieldFocus,
     actions: ProductsActions,
 ) {
     val strings = LocalPosStrings.current
@@ -133,6 +222,7 @@ private fun BasicsSection(
             onValueChange = { actions.onFormFieldChange(ProductFormField.NAME, it) },
             error = form.errorFor(ProductFormField.NAME),
             isRequired = true,
+            modifier = fieldFocus.modifierFor(ProductFormField.NAME),
         )
         FormTextField(
             label = strings.productsSku,
@@ -141,28 +231,47 @@ private fun BasicsSection(
             error = form.errorFor(ProductFormField.SKU),
             isRequired = false,
             supportingText = strings.productsSkuAutoHint,
+            modifier = fieldFocus.modifierFor(ProductFormField.SKU),
         )
+        var isBarcodeScanOpen by remember { mutableStateOf(false) }
         FormTextField(
             label = strings.productsBarcode,
             value = form.barcode,
             onValueChange = { actions.onFormFieldChange(ProductFormField.BARCODE, it) },
             error = form.errorFor(ProductFormField.BARCODE),
             isRequired = false,
+            modifier = fieldFocus.modifierFor(ProductFormField.BARCODE),
+            trailingIcon = {
+                IconButton(onClick = { isBarcodeScanOpen = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_scan_barcode),
+                        contentDescription = strings.scannerTitle,
+                    )
+                }
+            },
         )
-        FormTextField(
-            label = strings.productsCategory,
+        if (isBarcodeScanOpen) {
+            BarcodeEntryDialog(
+                submitLabel = strings.scannerManualUse,
+                onSubmit = { code ->
+                    isBarcodeScanOpen = false
+                    actions.onFormFieldChange(ProductFormField.BARCODE, code)
+                },
+                onDismiss = { isBarcodeScanOpen = false },
+            )
+        }
+        CategoryField(
             value = form.category,
-            onValueChange = { actions.onFormFieldChange(ProductFormField.CATEGORY, it) },
             error = form.errorFor(ProductFormField.CATEGORY),
-            isRequired = false,
+            suggestions = categorySuggestions,
+            onValueChange = { actions.onFormFieldChange(ProductFormField.CATEGORY, it) },
+            modifier = fieldFocus.modifierFor(ProductFormField.CATEGORY),
         )
-        FormTextField(
-            label = strings.productsFieldBaseUnit,
+        BaseUnitField(
             value = form.baseUnit,
-            onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_UNIT, it) },
             error = form.errorFor(ProductFormField.BASE_UNIT),
-            isRequired = true,
-            supportingText = strings.productsBaseUnitHint,
+            onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_UNIT, it) },
+            modifier = fieldFocus.modifierFor(ProductFormField.BASE_UNIT),
         )
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
@@ -174,6 +283,107 @@ private fun BasicsSection(
                 )
             }
             Switch(checked = form.isActive, onCheckedChange = actions.onFormActiveChange)
+        }
+    }
+}
+
+@Composable
+private fun CategoryField(
+    value: String,
+    error: UiText?,
+    suggestions: List<String>,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = LocalPosStrings.current
+    var isSuggestionsOpen by remember { mutableStateOf(false) }
+    FormTextField(
+        label = strings.productsCategory,
+        value = value,
+        onValueChange = onValueChange,
+        error = error,
+        isRequired = false,
+        modifier = modifier,
+        trailingIcon = if (suggestions.isEmpty()) {
+            null
+        } else {
+            {
+                Box {
+                    IconButton(onClick = { isSuggestionsOpen = true }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_chevron_down),
+                            contentDescription = strings.productsCategoryPickExisting,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = isSuggestionsOpen,
+                        onDismissRequest = { isSuggestionsOpen = false },
+                    ) {
+                        suggestions.forEach { suggestion ->
+                            DropdownMenuItem(
+                                text = { Text(suggestion) },
+                                onClick = {
+                                    isSuggestionsOpen = false
+                                    onValueChange(suggestion)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BaseUnitField(
+    value: String,
+    error: UiText?,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = LocalPosStrings.current
+    val palette = LocalPosSemanticPalette.current
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
+        FormTextField(
+            label = strings.productsFieldBaseUnit,
+            value = value,
+            onValueChange = onValueChange,
+            error = error,
+            isRequired = true,
+            supportingText = strings.productsBaseUnitHint,
+            modifier = modifier,
+        )
+        Text(
+            text = strings.productsBaseUnitQuickPick,
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        ) {
+            COMMON_BASE_UNITS.forEach { unit ->
+                val isSelected = value.trim().equals(unit, ignoreCase = true)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onValueChange(unit) },
+                    label = { Text(unit) },
+                    shape = CircleShape,
+                    border = null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                )
+            }
         }
     }
 }
@@ -279,6 +489,7 @@ private fun ValidationSummary(errors: Map<ProductFormField, UiText>) {
 @Composable
 private fun PricingSection(
     form: ProductFormState,
+    fieldFocus: FormFieldFocus,
     actions: ProductsActions,
 ) {
     val strings = LocalPosStrings.current
@@ -291,6 +502,8 @@ private fun PricingSection(
             error = form.errorFor(ProductFormField.BASE_PRICE),
             keyboardType = KeyboardType.Number,
             isRequired = true,
+            prefix = RUPIAH_PREFIX,
+            modifier = fieldFocus.modifierFor(ProductFormField.BASE_PRICE),
         )
         FormTextField(
             label = strings.productsBaseHpp,
@@ -300,6 +513,8 @@ private fun PricingSection(
             keyboardType = KeyboardType.Number,
             isRequired = true,
             supportingText = strings.productsHppHint,
+            prefix = RUPIAH_PREFIX,
+            modifier = fieldFocus.modifierFor(ProductFormField.BASE_HPP),
         )
         TextButton(onClick = actions.onFormAdvancedToggle) {
             Icon(
@@ -311,7 +526,7 @@ private fun PricingSection(
             Text(text = strings.productsOtherOptions)
         }
         if (form.isAdvancedExpanded) {
-            AdvancedUnitFields(form = form, actions = actions)
+            AdvancedUnitFields(form = form, fieldFocus = fieldFocus, actions = actions)
         }
     }
 }
@@ -319,6 +534,7 @@ private fun PricingSection(
 @Composable
 private fun AdvancedUnitFields(
     form: ProductFormState,
+    fieldFocus: FormFieldFocus,
     actions: ProductsActions,
 ) {
     val strings = LocalPosStrings.current
@@ -333,6 +549,7 @@ private fun AdvancedUnitFields(
             error = form.errorFor(ProductFormField.VARIANT_NAME),
             isRequired = false,
             supportingText = strings.productsUnitNameHint,
+            modifier = fieldFocus.modifierFor(ProductFormField.VARIANT_NAME),
         )
         FormTextField(
             label = strings.productsConversionFactor,
@@ -342,6 +559,7 @@ private fun AdvancedUnitFields(
             keyboardType = KeyboardType.Decimal,
             isRequired = false,
             supportingText = strings.productsConversionFactorHint,
+            modifier = fieldFocus.modifierFor(ProductFormField.CONVERSION_FACTOR),
         )
         FormTextField(
             label = strings.productsUnitPrice,
@@ -350,6 +568,8 @@ private fun AdvancedUnitFields(
             error = form.errorFor(ProductFormField.VARIANT_PRICE),
             keyboardType = KeyboardType.Number,
             isRequired = false,
+            prefix = RUPIAH_PREFIX,
+            modifier = fieldFocus.modifierFor(ProductFormField.VARIANT_PRICE),
         )
         FormTextField(
             label = strings.productsWholesaleMinQty,
@@ -358,6 +578,7 @@ private fun AdvancedUnitFields(
             error = form.errorFor(ProductFormField.WHOLESALE_MIN_QTY),
             keyboardType = KeyboardType.Number,
             isRequired = false,
+            modifier = fieldFocus.modifierFor(ProductFormField.WHOLESALE_MIN_QTY),
         )
         FormTextField(
             label = strings.productsWholesalePrice,
@@ -366,6 +587,8 @@ private fun AdvancedUnitFields(
             error = form.errorFor(ProductFormField.WHOLESALE_PRICE),
             keyboardType = KeyboardType.Number,
             isRequired = false,
+            prefix = RUPIAH_PREFIX,
+            modifier = fieldFocus.modifierFor(ProductFormField.WHOLESALE_PRICE),
         )
     }
 }
@@ -373,6 +596,7 @@ private fun AdvancedUnitFields(
 @Composable
 private fun StockSection(
     form: ProductFormState,
+    fieldFocus: FormFieldFocus,
     actions: ProductsActions,
 ) {
     val strings = LocalPosStrings.current
@@ -385,6 +609,7 @@ private fun StockSection(
             error = form.errorFor(ProductFormField.STOCK_QUANTITY),
             keyboardType = KeyboardType.Decimal,
             isRequired = true,
+            modifier = fieldFocus.modifierFor(ProductFormField.STOCK_QUANTITY),
         )
         FormTextField(
             label = strings.productsMinStockAlert,
@@ -392,8 +617,9 @@ private fun StockSection(
             onValueChange = { actions.onFormFieldChange(ProductFormField.MIN_STOCK_ALERT, it) },
             error = form.errorFor(ProductFormField.MIN_STOCK_ALERT),
             keyboardType = KeyboardType.Decimal,
-            isRequired = true,
+            isRequired = false,
             supportingText = strings.productsLowStockHint,
+            modifier = fieldFocus.modifierFor(ProductFormField.MIN_STOCK_ALERT),
         )
     }
 }
@@ -408,6 +634,8 @@ private fun FormTextField(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
     supportingText: String? = null,
+    prefix: String? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val strings = LocalPosStrings.current
     val helperText = error?.asTextOrNull() ?: supportingText
@@ -419,6 +647,8 @@ private fun FormTextField(
         label = { Text("$label$FIELD_MARKER_SEPARATOR$marker") },
         isError = error != null,
         supportingText = helperText?.let { text -> { Text(text) } },
+        prefix = prefix?.let { text -> { Text(text) } },
+        trailingIcon = trailingIcon,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
     )

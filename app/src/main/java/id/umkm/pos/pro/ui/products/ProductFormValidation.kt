@@ -31,7 +31,7 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, UiText> {
         UiText.from { strings -> strings.productsValidationStock },
         errors,
     )
-    validateQuantity(
+    validateOptionalQuantity(
         form.minStockAlert,
         ProductFormField.MIN_STOCK_ALERT,
         UiText.from { strings -> strings.productsValidationMinStockAlert },
@@ -98,6 +98,20 @@ private fun validateQuantity(
     errors: MutableMap<ProductFormField, UiText>,
 ) {
     val parsed = value.trim().toDoubleOrNull()
+    if (parsed == null || parsed < 0.0) {
+        errors[field] = message
+    }
+}
+
+private fun validateOptionalQuantity(
+    value: String,
+    field: ProductFormField,
+    message: UiText,
+    errors: MutableMap<ProductFormField, UiText>,
+) {
+    val trimmed = value.trim()
+    if (trimmed.isEmpty()) return
+    val parsed = trimmed.toDoubleOrNull()
     if (parsed == null || parsed < 0.0) {
         errors[field] = message
     }

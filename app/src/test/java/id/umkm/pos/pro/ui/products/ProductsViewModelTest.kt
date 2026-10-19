@@ -226,8 +226,36 @@ class ProductsViewModelTest {
     }
 
     @Test
-    fun correctingAFieldClearsOnlyItsError() = runTest(mainDispatcherRule.testDispatcher) {
+    fun failingValidationSignalsTheFormToFocusTheFirstError() = runTest(mainDispatcherRule.testDispatcher) {
         val viewModel = createViewModel()
+        viewModel.onOpenCreateForm()
+        assertThat(viewModel.state.value.form?.validationFailures).isEqualTo(0L)
+
+        viewModel.onSubmitForm()
+        assertThat(viewModel.state.value.form?.validationFailures).isEqualTo(1L)
+
+        viewModel.onSubmitForm()
+        assertThat(viewModel.state.value.form?.validationFailures).isEqualTo(2L)
+    }
+
+    @Test
+    fun anEmptyLowStockThresholdIsSavedAsZero() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onOpenCreateForm()
+        viewModel.onFormFieldChange(ProductFormField.NAME, "Kopi Susu")
+        viewModel.onFormFieldChange(ProductFormField.BASE_PRICE, "18000")
+        viewModel.onFormFieldChange(ProductFormField.BASE_HPP, "9000")
+        viewModel.onFormFieldChange(ProductFormField.STOCK_QUANTITY, "12")
+        viewModel.onFormFieldChange(ProductFormField.MIN_STOCK_ALERT, "")
+
+        viewModel.onSubmitForm()
+
+        val saved = products.currentProducts().single()
+        assertThat(saved.minStockAlert).isEqualTo(0.0)
+    }
+
+    @Test
+    fun correctingAFieldClearsOnlyItsError() = runTest(mainDispatcherRule.testDispatcher) {        val viewModel = createViewModel()
         viewModel.onOpenCreateForm()
         viewModel.onSubmitForm()
         val reportedCount = viewModel.state.value.form?.errors.orEmpty().size
