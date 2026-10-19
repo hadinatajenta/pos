@@ -22,6 +22,8 @@ fun SettingsRoute(
                     settingsRepository = container.settingsRepository,
                     qrisService = container.qrisService,
                     dataBackupService = container.dataBackupService,
+                    scannerPreferences = container.scannerPreferences,
+                    scannerInput = container.scannerInput,
                     clock = container.clock,
                     receiptPrinter = container.receiptPrinter,
                     receiptRenderer = container.receiptRenderer,

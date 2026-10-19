@@ -8,6 +8,8 @@ import id.umkm.pos.pro.core.contract.QrisService
 import id.umkm.pos.pro.data.backup.BackupFileNames
 import id.umkm.pos.pro.ui.FakeClock
 import id.umkm.pos.pro.ui.FakeDataBackupService
+import id.umkm.pos.pro.ui.FakeScannerInput
+import id.umkm.pos.pro.ui.FakeScannerPreferences
 import id.umkm.pos.pro.ui.FakeReceiptPrinter
 import id.umkm.pos.pro.ui.FakeSettingsRepository
 import id.umkm.pos.pro.ui.MainDispatcherRule
@@ -30,6 +32,10 @@ class SettingsViewModelTest {
 
     private val clock = FakeClock()
 
+    private val scannerPreferences = FakeScannerPreferences()
+
+    private val scannerInput = FakeScannerInput()
+
     private var importResult: AppResult<QrisImport> =
         AppResult.Success(QrisImport(imagePath = "/data/qris.jpg", payload = "000201payload"))
 
@@ -43,8 +49,19 @@ class SettingsViewModelTest {
         }
     }
 
+    private fun kotlinx.coroutines.test.TestScope.runCurrent() {
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+    }
+
     private fun createViewModel(): SettingsViewModel =
-        SettingsViewModel(settings, qrisService, backupService, clock)
+        SettingsViewModel(
+            settings,
+            qrisService,
+            backupService,
+            scannerPreferences,
+            scannerInput,
+            clock,
+        )
 
     @Test
     fun importingAStaticQrisStoresTheImageAndPayload() = runTest(mainDispatcherRule.testDispatcher) {
@@ -187,6 +204,8 @@ class SettingsViewModelTest {
             settingsRepository = settings,
             qrisService = qrisService,
             dataBackupService = backupService,
+            scannerPreferences = scannerPreferences,
+            scannerInput = scannerInput,
             clock = clock,
             receiptPrinter = printer,
         )
@@ -212,6 +231,8 @@ class SettingsViewModelTest {
             settingsRepository = settings,
             qrisService = qrisService,
             dataBackupService = backupService,
+            scannerPreferences = scannerPreferences,
+            scannerInput = scannerInput,
             clock = clock,
             receiptPrinter = printer,
         )
@@ -232,6 +253,8 @@ class SettingsViewModelTest {
             settingsRepository = settings,
             qrisService = qrisService,
             dataBackupService = backupService,
+            scannerPreferences = scannerPreferences,
+            scannerInput = scannerInput,
             clock = clock,
             receiptPrinter = printer,
         )
@@ -305,5 +328,26 @@ class SettingsViewModelTest {
         viewModel.onDismissBackupState()
 
         assertThat(viewModel.uiState.value.backupState).isEqualTo(BackupUiState.Idle)
+    }
+
+    @Test
+    fun turningOffTheHardwareScannerPersistsTheChoice() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        viewModel.onSetHidScannerEnabled(false)
+        runCurrent()
+
+        assertThat(scannerPreferences.lastSetValue).isFalse()
+        assertThat(viewModel.uiState.value.isHidScannerEnabled).isFalse()
+    }
+
+    @Test
+    fun aScanFromTheHardwareScannerIsShownAsTheLastReadCode() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        scannerInput.emitScan("8991234567890")
+        runCurrent()
+
+        assertThat(viewModel.uiState.value.lastScannedCode).isEqualTo("8991234567890")
     }
 }

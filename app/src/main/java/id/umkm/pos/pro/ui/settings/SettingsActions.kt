@@ -19,6 +19,7 @@ class SettingsActions(
     val onExportBackup: () -> Unit = {},
     val onImportBackup: (String) -> Unit = {},
     val onDismissBackupState: () -> Unit = {},
+    val onSetHidScannerEnabled: (Boolean) -> Unit = {},
 ) {
     companion object {
         fun from(viewModel: SettingsViewModel): SettingsActions = SettingsActions(
@@ -38,6 +39,7 @@ class SettingsActions(
             onExportBackup = viewModel::onExportBackup,
             onImportBackup = viewModel::onImportBackup,
             onDismissBackupState = viewModel::onDismissBackupState,
+            onSetHidScannerEnabled = viewModel::onSetHidScannerEnabled,
         )
     }
 }

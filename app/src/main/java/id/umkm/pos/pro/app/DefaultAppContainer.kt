@@ -14,6 +14,7 @@ import id.umkm.pos.pro.core.contract.ProductImageRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.QrisService
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
+import id.umkm.pos.pro.core.contract.ScannerPreferences
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.contract.ReturnRepository
@@ -42,6 +43,7 @@ import id.umkm.pos.pro.domain.accounting.DefaultAccountingService
 import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
 import id.umkm.pos.pro.hardware.printer.BluetoothReceiptPrinter
 import id.umkm.pos.pro.hardware.receipt.AndroidReceiptRenderer
+import id.umkm.pos.pro.data.local.ScannerPreferenceStore
 import id.umkm.pos.pro.hardware.scanner.HardwareScannerInput
 import id.umkm.pos.pro.monetization.admob.NoAdsController
 import kotlinx.coroutines.CoroutineScope
@@ -102,7 +104,11 @@ class DefaultAppContainer(
     override val receiptPrinter: ReceiptPrinter =
         BluetoothReceiptPrinter(applicationContext, receiptRenderer, lifecycleScope = applicationScope)
 
-    override val scannerInput: ScannerInput = HardwareScannerInput()
+    val hidScanner: HardwareScannerInput = HardwareScannerInput()
+
+    override val scannerInput: ScannerInput = hidScanner
+
+    override val scannerPreferences: ScannerPreferences = ScannerPreferenceStore(applicationContext)
 
     override val adController: AdController = NoAdsController()
 
@@ -116,6 +122,11 @@ class DefaultAppContainer(
         JsonDataBackupService(applicationContext, database, downloadsSink, clock)
 
     init {
+        applicationScope.launch {
+            scannerPreferences.observeHidScannerEnabled().collect { isEnabled ->
+                hidScanner.setEnabled(isEnabled)
+            }
+        }
         applicationScope.launch {
             settingsRepository.observeSettings().collect { settings ->
                 receiptPrinter.setPaperWidth(settings.paperWidthMm)

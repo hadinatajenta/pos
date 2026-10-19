@@ -15,6 +15,7 @@ interface AppContainer {
     val receiptPrinter: ReceiptPrinter
     val receiptRenderer: ReceiptRenderer
     val scannerInput: ScannerInput
+    val scannerPreferences: ScannerPreferences
     val adController: AdController
     val onboardingStore: OnboardingStore
     val qrisService: QrisService

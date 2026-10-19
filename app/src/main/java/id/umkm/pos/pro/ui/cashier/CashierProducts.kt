@@ -57,6 +57,7 @@ import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSearchField
 import id.umkm.pos.pro.ui.components.ProductThumbnail
 import id.umkm.pos.pro.ui.components.StockStatusBadge
+import id.umkm.pos.pro.ui.scanner.BarcodeEntryDialog
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosShapes
@@ -111,6 +112,13 @@ internal fun CashierCatalogPane(
             onSuccess = { items ->
                 CashierProductList(items = items, actions = actions, modifier = Modifier.weight(1f))
             },
+        )
+    }
+    if (state.isScanDialogVisible) {
+        BarcodeEntryDialog(
+            submitLabel = strings.scannerManualAdd,
+            onSubmit = actions.onScannedCode,
+            onDismiss = actions.onDismissScanDialog,
         )
     }
 }
@@ -191,7 +199,30 @@ private fun CashierSearchField(
             placeholder = strings.cashierSearchPlaceholder,
             modifier = Modifier.weight(1f),
         )
+        CashierScanButton(actions = actions)
         CashierFilterButton(state = state, actions = actions)
+    }
+}
+
+@Composable
+private fun CashierScanButton(actions: CashierActions) {
+    val strings = LocalPosStrings.current
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = PosShapes.large,
+        modifier = Modifier
+            .size(CATALOG_FILTER_BUTTON_SIZE)
+            .clickable(onClickLabel = strings.cashierScanAction, onClick = actions.onOpenScanDialog),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(R.drawable.ic_scan_barcode),
+                contentDescription = strings.cashierScanAction,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(PosSizes.iconMedium),
+            )
+        }
     }
 }
 

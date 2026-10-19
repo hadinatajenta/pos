@@ -182,6 +182,19 @@ class CashierViewModel(
         refreshCart()
     }
 
+    fun onOpenScanDialog() {
+        _state.update { it.copy(isScanDialogVisible = true) }
+    }
+
+    fun onDismissScanDialog() {
+        _state.update { it.copy(isScanDialogVisible = false) }
+    }
+
+    fun onScannedCode(code: String) {
+        _state.update { it.copy(isScanDialogVisible = false) }
+        viewModelScope.launch { addScannedCode(code) }
+    }
+
     fun onOpenCartSheet() {
         _state.update { it.copy(isCartSheetVisible = true) }
     }
@@ -518,7 +531,7 @@ class CashierViewModel(
 
     private fun observeScanEvents() {
         viewModelScope.launch {
-            scannerInput.scanEvents.collect { scanEvent -> addScannedCode(scanEvent.code) }
+            scannerInput.scanEvents.collect { scanEvent -> onScannedCode(scanEvent.code) }
         }
     }
 

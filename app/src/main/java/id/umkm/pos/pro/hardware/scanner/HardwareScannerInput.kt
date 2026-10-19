@@ -20,19 +20,26 @@ class HardwareScannerInput(
 
     override val scanEvents: Flow<ScanEvent> = scanEventFlow.asSharedFlow()
 
+    @Volatile
+    private var isEnabled: Boolean = true
+
+    fun setEnabled(enabled: Boolean) {
+        isEnabled = enabled
+        if (!enabled) {
+            decoder.reset()
+        }
+    }
+
     fun handleKeyEvent(event: KeyEvent): Boolean {
+        if (!isEnabled) return false
         if (event.action != KeyEvent.ACTION_DOWN) return false
         if (event.repeatCount > 0) return false
         when (event.keyCode) {
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                publishScanEvent(decoder.onCharacter(TERMINATOR_LINE_FEED, event.eventTime))
-                return true
-            }
+            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                return consumeTerminator(TERMINATOR_LINE_FEED, event)
 
-            KeyEvent.KEYCODE_TAB -> {
-                publishScanEvent(decoder.onCharacter(TERMINATOR_TAB, event.eventTime))
-                return true
-            }
+            KeyEvent.KEYCODE_TAB ->
+                return consumeTerminator(TERMINATOR_TAB, event)
         }
         val unicodeCharacter = event.unicodeChar
         if (unicodeCharacter == 0) return false
@@ -40,6 +47,15 @@ class HardwareScannerInput(
         if (character.isISOControl()) return false
         publishScanEvent(decoder.onCharacter(character, event.eventTime))
         return false
+    }
+
+    private fun consumeTerminator(terminator: Char, event: KeyEvent): Boolean {
+        if (!decoder.hasLivePendingCharacters(event.eventTime)) {
+            decoder.reset()
+            return false
+        }
+        publishScanEvent(decoder.onCharacter(terminator, event.eventTime))
+        return true
     }
 
     fun reset() {

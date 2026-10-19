@@ -25,6 +25,13 @@ class KeyboardWedgeScanDecoder(
 
     fun flush(timestampMillis: Long): ScanEvent? = releaseScanEvent(timestampMillis)
 
+    fun hasPendingCharacters(): Boolean = pendingCharacters.isNotEmpty()
+
+    fun hasLivePendingCharacters(timestampMillis: Long): Boolean {
+        if (pendingCharacters.isEmpty()) return false
+        return timestampMillis - lastCharacterAtMillis <= maxInterCharacterMillis
+    }
+
     fun reset() {
         pendingCharacters.setLength(0)
         lastCharacterAtMillis = 0L

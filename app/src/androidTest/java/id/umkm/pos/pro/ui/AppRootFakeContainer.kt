@@ -23,6 +23,7 @@ import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.contract.ReturnRepository
+import id.umkm.pos.pro.core.contract.ScannerPreferences
 import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.ScanEvent
 import id.umkm.pos.pro.core.contract.SecurityRepository
@@ -216,6 +217,12 @@ internal object AppRootFakeContainer : AppContainer {
 
         override suspend fun importJson(sourceUri: String): AppResult<BackupImportSummary> =
             AppResult.Failure(AppError.Unexpected("instrumented test container"))
+    }
+
+    override val scannerPreferences: ScannerPreferences = object : ScannerPreferences {
+        override fun observeHidScannerEnabled(): Flow<Boolean> = flowOf(true)
+
+        override suspend fun setHidScannerEnabled(isEnabled: Boolean) = Unit
     }
 
     override val qrisService: QrisService = object : QrisService {

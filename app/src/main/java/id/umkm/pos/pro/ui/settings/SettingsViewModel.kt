@@ -10,6 +10,8 @@ import id.umkm.pos.pro.core.contract.PrinterInfo
 import id.umkm.pos.pro.core.contract.PrinterTransport
 import id.umkm.pos.pro.core.contract.QrisService
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
+import id.umkm.pos.pro.core.contract.ScannerPreferences
+import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.model.AppLanguage
@@ -30,6 +32,8 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val qrisService: QrisService,
     private val dataBackupService: DataBackupService,
+    private val scannerPreferences: ScannerPreferences,
+    private val scannerInput: ScannerInput,
     private val clock: Clock,
     private val receiptPrinter: ReceiptPrinter? = null,
     private val receiptRenderer: ReceiptRenderer? = null,
@@ -43,6 +47,16 @@ class SettingsViewModel(
             settingsRepository.observeSettings().collect { settings ->
                 _uiState.update { current -> current.copy(settings = settings) }
                 receiptPrinter?.setPaperWidth(settings.paperWidthMm)
+            }
+        }
+        viewModelScope.launch {
+            scannerPreferences.observeHidScannerEnabled().collect { isEnabled ->
+                _uiState.update { current -> current.copy(isHidScannerEnabled = isEnabled) }
+            }
+        }
+        viewModelScope.launch {
+            scannerInput.scanEvents.collect { scanEvent ->
+                _uiState.update { current -> current.copy(lastScannedCode = scanEvent.code) }
             }
         }
         if (receiptPrinter != null) {
@@ -352,6 +366,12 @@ class SettingsViewModel(
                     errorMessage = null,
                 )
             }
+        }
+    }
+
+    fun onSetHidScannerEnabled(isEnabled: Boolean) {
+        viewModelScope.launch {
+            scannerPreferences.setHidScannerEnabled(isEnabled)
         }
     }
 

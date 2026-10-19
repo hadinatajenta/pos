@@ -37,7 +37,7 @@ class CashierViewModelTest {
     private val products = FakeCatalogRepository().apply {
         setProducts(
             listOf(
-                uiSampleProduct(id = 1L, name = "Kopi Susu", basePrice = 2_000L),
+                uiSampleProduct(id = 1L, name = "Kopi Susu", basePrice = 2_000L, barcode = "8991234567890"),
                 uiSampleProduct(id = 2L, name = "Teh Manis", basePrice = 3_000L),
             ),
         )
@@ -464,5 +464,57 @@ class CashierViewModelTest {
         val addedCustomer = state.payableCustomers.single()
         assertThat(addedCustomer.name).isEqualTo("Budi")
         assertThat(addedCustomer.whatsappNumber).isEqualTo("08123456789")
+    }
+
+    @Test
+    fun openingAndDismissingTheScanDialogTogglesTheState() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        assertThat(viewModel.state.value.isScanDialogVisible).isFalse()
+
+        viewModel.onOpenScanDialog()
+        assertThat(viewModel.state.value.isScanDialogVisible).isTrue()
+
+        viewModel.onDismissScanDialog()
+        assertThat(viewModel.state.value.isScanDialogVisible).isFalse()
+    }
+
+    @Test
+    fun aCodeEnteredInTheScanDialogAddsTheProductAndClosesTheDialog() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = createViewModel()
+            viewModel.onOpenScanDialog()
+
+            viewModel.onScannedCode("8991234567890")
+
+            val state = viewModel.state.value
+            assertThat(state.isScanDialogVisible).isFalse()
+            assertThat(state.cartLines).hasSize(1)
+            assertThat(state.cartLines.single().productName).isEqualTo("Kopi Susu")
+        }
+
+    @Test
+    fun anUnknownCodeReportsNotFoundAndStillClosesTheDialog() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = createViewModel()
+            viewModel.onOpenScanDialog()
+
+            viewModel.onScannedCode("0000000000000")
+
+            val state = viewModel.state.value
+            assertThat(state.isScanDialogVisible).isFalse()
+            assertThat(state.cartLines).isEmpty()
+            assertThat(state.message?.resolve(IdStrings)).isEqualTo("Tidak ada produk dengan kode 0000000000000")
+        }
+
+    @Test
+    fun aHardwareScanClosesTheScanDialogAndAddsTheItem() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+        viewModel.onOpenScanDialog()
+
+        scanner.emitScan("8991234567890")
+
+        val state = viewModel.state.value
+        assertThat(state.isScanDialogVisible).isFalse()
+        assertThat(state.cartLines).hasSize(1)
     }
 }

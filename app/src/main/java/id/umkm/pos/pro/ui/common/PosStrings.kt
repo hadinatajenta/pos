@@ -60,6 +60,29 @@ interface PosStrings {
     // Cashier
     val cashierTitle: String
     val cashierSearchPlaceholder: String
+    val cashierScanAction: String
+    val scannerTitle: String
+    val scannerManualLabel: String
+    val scannerManualPlaceholder: String
+    val scannerManualHint: String
+    val scannerManualAdd: String
+    val scannerManualUse: String
+    val scannerCameraTitle: String
+    val scannerCameraUnavailable: String
+    val scannerCameraUnavailableDetail: String
+    val scannerHidHint: String
+    val settingsScannerTitle: String
+    val settingsScannerMenuDescription: String
+    val settingsScannerCameraSection: String
+    val settingsScannerCameraDetail: String
+    val settingsScannerHidSection: String
+    val settingsScannerHidDetail: String
+    val settingsScannerHidToggle: String
+    val settingsScannerHidToggleDetail: String
+    val settingsScannerTestSection: String
+    val settingsScannerTestHint: String
+    val settingsScannerTestEmpty: String
+    val settingsScannerTestResult: (String) -> String
     val cashierFilterAllCategories: String
     val cashierFilterInStockOnly: String
     val cashierFilterProducts: String

@@ -34,6 +34,9 @@ class CashierActions(
     val onPrintReceipt: () -> Unit,
     val onNewSale: () -> Unit,
     val onMessageConsumed: () -> Unit,
+    val onOpenScanDialog: () -> Unit = {},
+    val onDismissScanDialog: () -> Unit = {},
+    val onScannedCode: (String) -> Unit = {},
     val onClearCart: () -> Unit = {},
     val onQuickCreateCustomer: (name: String, whatsapp: String) -> Unit = { _, _ -> },
 ) {
@@ -70,6 +73,9 @@ class CashierActions(
             onPrintReceipt = viewModel::onPrintReceipt,
             onNewSale = viewModel::onNewSale,
             onMessageConsumed = viewModel::onMessageConsumed,
+            onOpenScanDialog = viewModel::onOpenScanDialog,
+            onDismissScanDialog = viewModel::onDismissScanDialog,
+            onScannedCode = viewModel::onScannedCode,
             onClearCart = viewModel::onClearCart,
             onQuickCreateCustomer = viewModel::onQuickCreateCustomer,
         )

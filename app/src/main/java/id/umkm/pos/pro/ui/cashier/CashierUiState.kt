@@ -94,6 +94,7 @@ data class CashierUiState(
     val payableCustomers: List<Customer> = emptyList(),
     val isCustomerPickerVisible: Boolean = false,
     val isDueDatePickerVisible: Boolean = false,
+    val isScanDialogVisible: Boolean = false,
     val isSubmitting: Boolean = false,
     val submitErrorMessage: UiText? = null,
     val receipt: CashierReceipt? = null,

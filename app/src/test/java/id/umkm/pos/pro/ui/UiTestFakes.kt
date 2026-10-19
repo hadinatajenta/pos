@@ -13,6 +13,7 @@ import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReceiptDocument
 import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
+import id.umkm.pos.pro.core.contract.ScannerPreferences
 import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.ScanEvent
 import id.umkm.pos.pro.core.contract.ScanSource
@@ -267,6 +268,20 @@ class FakeClock(private var currentMillis: Long = 1_700_000_000_000L) : Clock {
     }
 }
 
+class FakeScannerPreferences(initiallyEnabled: Boolean = true) : ScannerPreferences {
+
+    private val enabled = MutableStateFlow(initiallyEnabled)
+
+    var lastSetValue: Boolean? = null
+
+    override fun observeHidScannerEnabled(): Flow<Boolean> = enabled
+
+    override suspend fun setHidScannerEnabled(isEnabled: Boolean) {
+        lastSetValue = isEnabled
+        enabled.value = isEnabled
+    }
+}
+
 class FakeReceiptPrinter : ReceiptPrinter {
 
     var lastPrintedDocument: ReceiptDocument? = null
@@ -328,10 +343,11 @@ fun uiSampleProduct(
     stockBaseQty: Double = 100.0,
     minStockAlert: Double = 5.0,
     isActive: Boolean = true,
+    barcode: String? = null,
 ): Product = Product(
     id = id,
     sku = "SKU-$id",
-    barcode = null,
+    barcode = barcode,
     name = name,
     category = "Umum",
     baseUnit = "pcs",

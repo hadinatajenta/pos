@@ -20,6 +20,7 @@ import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ReportRepository
 import id.umkm.pos.pro.core.contract.ReturnRepository
+import id.umkm.pos.pro.core.contract.ScannerPreferences
 import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SecurityRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
@@ -59,6 +60,7 @@ internal object PreviewAppContainer : AppContainer {
     override val receiptPrinter: ReceiptPrinter get() = previewUnavailable("receiptPrinter")
     override val receiptRenderer: ReceiptRenderer get() = previewUnavailable("receiptRenderer")
     override val scannerInput: ScannerInput get() = previewUnavailable("scannerInput")
+    override val scannerPreferences: ScannerPreferences get() = previewUnavailable("scannerPreferences")
     override val dataBackupService: DataBackupService get() = previewUnavailable("dataBackupService")
     override val clock: Clock get() = previewUnavailable("clock")
 

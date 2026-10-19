@@ -89,4 +89,35 @@ class KeyboardWedgeScanDecoderTest {
 
         assertThat(decoder.onCharacter('\n', 4)!!.code).isEqualTo("4")
     }
+
+    @Test
+    fun pendingCharactersAreReportedWhileASequenceIsOpen() {
+        val decoder = KeyboardWedgeScanDecoder()
+
+        decoder.onCharacter('8', 0L)
+        decoder.onCharacter('9', 1L)
+
+        assertThat(decoder.hasPendingCharacters()).isTrue()
+    }
+
+    @Test
+    fun pendingCharactersAreClearedOnceTheCodeIsReleased() {
+        val decoder = KeyboardWedgeScanDecoder()
+        decoder.onCharacter('8', 0L)
+        decoder.onCharacter('9', 1L)
+
+        decoder.onCharacter('\n', 2L)
+
+        assertThat(decoder.hasPendingCharacters()).isFalse()
+    }
+
+    @Test
+    fun pendingCharactersAreClearedByReset() {
+        val decoder = KeyboardWedgeScanDecoder()
+        decoder.onCharacter('8', 0L)
+
+        decoder.reset()
+
+        assertThat(decoder.hasPendingCharacters()).isFalse()
+    }
 }

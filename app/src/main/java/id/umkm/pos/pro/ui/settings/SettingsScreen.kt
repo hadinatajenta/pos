@@ -39,6 +39,7 @@ private enum class SettingsDestination {
     PRINTER,
     QRIS,
     STORE,
+    SCANNER,
     BACKUP,
     ABOUT,
 }
@@ -150,6 +151,12 @@ private fun SettingsDetail(
             onBack = onBack,
             modifier = Modifier.fillMaxSize(),
         )
+        SettingsDestination.SCANNER -> SettingsScannerScreen(
+            state = state,
+            actions = actions,
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+        )
         SettingsDestination.BACKUP -> SettingsBackupScreen(
             state = state,
             actions = actions,
@@ -214,7 +221,7 @@ private fun SettingsHubColumn(
             MenuListRow(
                 title = strings.settingsQrisTitle,
                 description = strings.settingsMenuQrisDescription,
-                iconRes = R.drawable.ic_scan_barcode,
+                iconRes = R.drawable.ic_banknote,
                 isSelected = selectedDestination == SettingsDestination.QRIS,
                 badge = { QrisStatusBadge(isConfigured = state.isQrisConfigured) },
                 onClick = { onSelectDestination(SettingsDestination.QRIS) },
@@ -227,6 +234,14 @@ private fun SettingsHubColumn(
                 isSelected = selectedDestination == SettingsDestination.STORE,
                 badge = { StoreTaxBadge(taxRatePercent = settings?.taxRatePercent ?: 0) },
                 onClick = { onSelectDestination(SettingsDestination.STORE) },
+            )
+
+            MenuListRow(
+                title = strings.settingsScannerTitle,
+                description = strings.settingsScannerMenuDescription,
+                iconRes = R.drawable.ic_scan_barcode,
+                isSelected = selectedDestination == SettingsDestination.SCANNER,
+                onClick = { onSelectDestination(SettingsDestination.SCANNER) },
             )
 
             MenuListRow(
