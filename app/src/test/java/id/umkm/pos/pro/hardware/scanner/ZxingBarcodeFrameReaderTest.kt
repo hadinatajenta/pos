@@ -50,14 +50,14 @@ class ZxingBarcodeFrameReaderTest {
         assertThat(reader.read(shortBuffer, rowStride = width, width = width, height = height)).isNull()
     }
 
-    private data class LuminanceFrame(
+    private data class FrameFixture(
         val luminance: ByteArray,
         val rowStride: Int,
         val width: Int,
         val height: Int,
     )
 
-    private fun renderEan13(contents: String): LuminanceFrame {
+    private fun renderEan13(contents: String): FrameFixture {
         val width = 600
         val height = 300
         val rowStride = width + 16
@@ -68,6 +68,33 @@ class ZxingBarcodeFrameReaderTest {
                 luminance[y * rowStride + x] = if (matrix.get(x, y)) 0 else 255.toByte()
             }
         }
-        return LuminanceFrame(luminance, rowStride, width, height)
+        return FrameFixture(luminance, rowStride, width, height)
+    }
+
+    @Test
+    fun readsAnEan13ThatArrivedRotatedAQuarterTurn() {
+        val frame = renderEan13("590123412345")
+        val asDeliveredByTheCamera = LuminanceFrame.rotateQuarterTurn(
+            frame.luminance,
+            frame.rowStride,
+            frame.width,
+            frame.height,
+            clockwise = false,
+        )
+        assertThat(asDeliveredByTheCamera).isNotNull()
+
+        val restored = LuminanceFrame.rotateQuarterTurn(
+            asDeliveredByTheCamera!!.luminance,
+            asDeliveredByTheCamera.rowStride,
+            asDeliveredByTheCamera.width,
+            asDeliveredByTheCamera.height,
+            clockwise = true,
+        )
+        assertThat(restored).isNotNull()
+
+        val code = reader.read(restored!!.luminance, restored.rowStride, restored.width, restored.height)
+
+        assertThat(code).isNotNull()
+        assertThat(code!!).startsWith("590123412345")
     }
 }

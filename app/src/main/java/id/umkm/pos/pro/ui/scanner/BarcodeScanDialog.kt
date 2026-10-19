@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -82,12 +83,19 @@ import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 private enum class ScanSurfaceMode { CAMERA, MANUAL }
+
+private const val ANALYSIS_WIDTH = 1280
+private const val ANALYSIS_HEIGHT = 960
+private const val FOCUS_REFRESH_MILLIS = 1_800L
+private const val SLOW_HINT_DELAY_MILLIS = 6_000L
 
 @Composable
 fun BarcodeScanDialog(
@@ -261,30 +269,48 @@ private fun CameraContent(
     onFailure: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clip(MaterialTheme.shapes.large),
+    var isSlow by remember { mutableStateOf(false) }
+    LaunchedEffect(bindAttempt) {
+        isSlow = false
+        delay(SLOW_HINT_DELAY_MILLIS)
+        isSlow = true
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
-        key(bindAttempt) {
-            CameraPreview(
-                isTorchOn = isTorchOn,
-                onCode = onCode,
-                onFailure = onFailure,
-            )
-        }
-        FinderOverlay()
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(PosSpacing.sm),
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(MaterialTheme.shapes.large),
         ) {
-            StatusChip(
-                iconRes = R.drawable.ic_scan_barcode,
-                label = strings.scannerCameraScanning,
-                containerColor = MaterialTheme.colorScheme.inverseSurface,
-                contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            key(bindAttempt) {
+                CameraPreview(
+                    isTorchOn = isTorchOn,
+                    onCode = onCode,
+                    onFailure = onFailure,
+                )
+            }
+            FinderOverlay()
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(PosSpacing.sm),
+            ) {
+                StatusChip(
+                    iconRes = R.drawable.ic_scan_barcode,
+                    label = strings.scannerCameraScanning,
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                )
+            }
+        }
+        if (isSlow) {
+            Text(
+                text = strings.scannerCameraSlowHint,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -333,6 +359,7 @@ private fun CameraPreview(
     val frameReader = remember { ZxingBarcodeFrameReader() }
     val cameraHolder = remember { AtomicReference<Camera?>(null) }
     val providerHolder = remember { AtomicReference<ProcessCameraProvider?>(null) }
+    var boundCamera by remember { mutableStateOf<Camera?>(null) }
 
     LaunchedEffect(lifecycleOwner) {
         val owner = lifecycleOwner ?: run {
@@ -352,8 +379,8 @@ private fun CameraPreview(
                     ResolutionSelector.Builder()
                         .setResolutionStrategy(
                             ResolutionStrategy(
-                                AndroidSize(1280, 720),
-                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                                AndroidSize(ANALYSIS_WIDTH, ANALYSIS_HEIGHT),
+                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER,
                             ),
                         )
                         .build(),
@@ -369,6 +396,7 @@ private fun CameraPreview(
             )
             providerHolder.set(provider)
             cameraHolder.set(camera)
+            boundCamera = camera
         } catch (error: Exception) {
             onFailure()
         }
@@ -376,6 +404,22 @@ private fun CameraPreview(
 
     LaunchedEffect(isTorchOn) {
         cameraHolder.get()?.cameraControl?.enableTorch(isTorchOn)
+    }
+
+    LaunchedEffect(boundCamera) {
+        val camera = boundCamera ?: return@LaunchedEffect
+        while (isActive) {
+            if (previewView.width > 0 && previewView.height > 0) {
+                val point = previewView.meteringPointFactory.createPoint(
+                    previewView.width / 2f,
+                    previewView.height / 2f,
+                )
+                camera.cameraControl.startFocusAndMetering(
+                    FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF).build(),
+                )
+            }
+            delay(FOCUS_REFRESH_MILLIS)
+        }
     }
 
     DisposableEffect(Unit) {

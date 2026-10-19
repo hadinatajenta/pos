@@ -184,6 +184,23 @@ lifecycle and the torch is switched off when it closes.
 Measured on release: APK 3.90 MB (was 3.16 MB), still well inside the 8 MB budget, and the app still
 requests no `INTERNET` permission.
 
+Hardening after the first field report, where a Le Minerale barcode read late or read wrong:
+
+- The frame is rotated upright using `ImageProxy.imageInfo.rotationDegrees` before decoding. A portrait
+  phone delivers a landscape buffer, so a horizontal barcode arrived rotated a quarter turn and ZXing
+  had to find it with a slower fallback pass. `LuminanceFrame.rotateQuarterTurn` is a pure object, so
+  the rotation maths and a rotated EAN-13 round trip are unit tested.
+- Two matching reads are required before a code is accepted (`BarcodeVoteCollector`), which is what
+  stops a single blurry frame from adding the wrong product.
+- Autofocus is driven explicitly at the centre of the finder frame and re-triggered every 1.8 seconds,
+  because close-range products were simply out of focus.
+- `CODE_39` was dropped from the format list: it has no check digit and is the usual source of false
+  positives on a busy label. Retail numeric codes outside 8 to 14 digits are rejected as implausible.
+- Analysis prefers the closest supported resolution at or below 1280x960 rather than 1280x720, because
+  in portrait the short axis carries the barcode's horizontal detail.
+- If nothing is read after six seconds the surface adds a line telling the cashier to move closer, hold
+  still, or turn the light on, so a slow read does not look like a frozen screen.
+
 **Flow 1, cashier camera scan.** Cashier taps the scan action in the search row, the scan surface
 opens and asks for the camera on first use, the preview shows a finder frame and one instruction
 line, a barcode is recognised, the item is added with the existing rules, and a confirmation strip

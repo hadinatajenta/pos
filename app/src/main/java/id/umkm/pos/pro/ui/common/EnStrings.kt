@@ -69,6 +69,7 @@ object EnStrings : PosStrings {
     override val scannerCameraError = "The camera could not be opened. Another app may be using it. Try again or type the code."
     override val scannerNoCameraDetail = "This device has no camera. Use a hardware scanner or type the code."
     override val scannerCameraScanning = "Point the camera at the product barcode"
+    override val scannerCameraSlowHint = "Not reading yet? Move the camera closer and hold still, or turn the light on."
     override val scannerTorchEnable = "Turn the light on"
     override val scannerTorchDisable = "Turn the light off"
     override val scannerManualModeOn = "Type manually"

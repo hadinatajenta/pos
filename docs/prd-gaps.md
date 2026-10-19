@@ -100,9 +100,12 @@ Stage 2 landed the same day:
 - Text never sits on the camera image. Every label is on a solid surface, and the white finder frame
   is drawn over the 55% scrim, which keeps it at 7:1 even against a pure white scene.
 - The app still requests no `INTERNET` permission, and camera frames are discarded after analysis.
-- **Pending:** the read-rate gate. A physical barcode has not been scanned yet because this setup
-  has no second screen to aim the phone at. The decoder itself is unit tested by rendering an
-  EAN-13 and reading it back.
+- Hardened after the first field report: the frame is rotated upright before decoding, two matching
+  reads are required before a code is accepted, autofocus is driven at the finder centre every 1.8
+  seconds, `CODE_39` is dropped as a false-positive source, and implausible codes are rejected.
+- **Pending:** the read-rate gate. A physical barcode has not been scanned from this machine because
+  there is no second screen to aim the phone at; the owner tests on their own device. The decoder is
+  unit tested by rendering an EAN-13, reading it back, and doing the same after a quarter-turn rotation.
 
 The design is frozen in `docs/design/barcode-scan.md`, and PRD 7.5 now records the accepted
 engine decision: CameraX with the existing `zxing.core` decoder first, bundled ML Kit only if the

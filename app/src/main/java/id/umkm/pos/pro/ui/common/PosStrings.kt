@@ -76,6 +76,7 @@ interface PosStrings {
     val scannerCameraError: String
     val scannerNoCameraDetail: String
     val scannerCameraScanning: String
+    val scannerCameraSlowHint: String
     val scannerTorchEnable: String
     val scannerTorchDisable: String
     val scannerManualModeOn: String

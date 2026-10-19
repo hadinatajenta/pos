@@ -67,4 +67,51 @@ class LuminanceFrameTest {
         assertThat(LuminanceFrame.extract(buffer, rowStride = 4, width = 0, height = 4)).isNull()
         assertThat(LuminanceFrame.extract(buffer, rowStride = 4, width = 4, height = 0)).isNull()
     }
+
+    @Test
+    fun aQuarterTurnClockwiseRestoresAFrameRotatedCounterClockwise() {
+        val width = 4
+        val height = 2
+        val original = ByteArray(width * height) { index -> index.toByte() }
+
+        val turned = LuminanceFrame.rotateQuarterTurn(original, width, width, height, clockwise = false)
+        assertThat(turned).isNotNull()
+        assertThat(turned!!.width).isEqualTo(height)
+        assertThat(turned.height).isEqualTo(width)
+
+        val restored = LuminanceFrame.rotateQuarterTurn(
+            turned.luminance,
+            turned.rowStride,
+            turned.width,
+            turned.height,
+            clockwise = true,
+        )
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.luminance).isEqualTo(original)
+    }
+
+    @Test
+    fun aQuarterTurnMovesPixelsToTheExpectedCorner() {
+        val width = 2
+        val height = 3
+        val original = byteArrayOf(1, 2, 3, 4, 5, 6)
+
+        val clockwise = LuminanceFrame.rotateQuarterTurn(original, width, width, height, clockwise = true)
+
+        assertThat(clockwise).isNotNull()
+        assertThat(clockwise!!.width).isEqualTo(3)
+        assertThat(clockwise.height).isEqualTo(2)
+        assertThat(clockwise.luminance).isEqualTo(byteArrayOf(5, 3, 1, 6, 4, 2))
+    }
+
+    @Test
+    fun aQuarterTurnRefusesAnInvalidInput() {
+        val frame = ByteArray(16)
+
+        assertThat(LuminanceFrame.rotateQuarterTurn(frame, rowStride = 2, width = 4, height = 4, clockwise = true))
+            .isNull()
+        assertThat(LuminanceFrame.rotateQuarterTurn(ByteArray(4), rowStride = 4, width = 4, height = 4, clockwise = true))
+            .isNull()
+    }
 }

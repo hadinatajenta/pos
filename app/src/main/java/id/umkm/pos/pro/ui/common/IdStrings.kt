@@ -69,6 +69,7 @@ object IdStrings : PosStrings {
     override val scannerCameraError = "Kamera tidak bisa dibuka. Mungkin sedang dipakai aplikasi lain. Coba lagi atau ketik kodenya."
     override val scannerNoCameraDetail = "Perangkat ini tidak punya kamera. Gunakan scanner fisik atau ketik kodenya."
     override val scannerCameraScanning = "Arahkan kamera ke barcode produk"
+    override val scannerCameraSlowHint = "Belum terbaca? Dekatkan kamera lalu tahan sebentar, atau nyalakan lampu."
     override val scannerTorchEnable = "Nyalakan lampu"
     override val scannerTorchDisable = "Matikan lampu"
     override val scannerManualModeOn = "Ketik manual"

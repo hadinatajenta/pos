@@ -69,6 +69,7 @@ object ZhStrings : PosStrings {
     override val scannerCameraError = "无法打开相机，可能正被其他应用占用。请重试或手动输入条码。"
     override val scannerNoCameraDetail = "此设备没有相机。请使用实体扫码器或手动输入条码。"
     override val scannerCameraScanning = "将相机对准商品条码"
+    override val scannerCameraSlowHint = "还没识别？请靠近一些并保持稳定，或打开补光灯。"
     override val scannerTorchEnable = "打开补光灯"
     override val scannerTorchDisable = "关闭补光灯"
     override val scannerManualModeOn = "手动输入"
