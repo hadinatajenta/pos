@@ -2,7 +2,7 @@
 
 ## Product Requirements Document
 
-**Version:** 1.10 — Tablet rail visual alignment (2026-10-21; see §16)  
+**Version:** 1.11 — Tablet report cards and labels (2026-10-21; see §16)  
 **Target implementation agent:** Deepseek V4.1 Flash (High Effort) with five parallel sub-agents  
 **Development environment:** Antigravity IDE, Android SDK command-line tools, Gradle, ADB, scrcpy, and a physical Android device  
 **Product promise:** **Free forever. No subscriptions. No paid feature tiers. No watermarks.**
@@ -604,6 +604,7 @@ Every change to this document is recorded here with its date and the sections it
 
 | Date | Version | Change | Sections | Reference |
 | --- | --- | --- | --- | --- |
+| 2026-10-21 | 1.11 | Made the four tablet report metric cards equal width (removed the 1.15/1.0 weights) and shortened the turnover label to `Total Penjualan` / `Total Sales` / `销售总额` so it no longer ellipsizes at the equal width. Emphasis on sales and profit remains through the larger value typography. Verified on the TB321FU tablet at 2560×1600 with `testDebugUnitTest` and `assembleDebug`. | §5.1, §6.4, §12, §16 | owner report 2026-10-21 |
 | 2026-10-21 | 1.10 | Aligned the tablet navigation rail with the phone bottom bar: light `surface` background with a 1 dp `outlineVariant` right border, the same `TextPrimary`/`Accent` icon and label hierarchy, an `Accent` selection indicator, and the same 11 sp label size with the 135% font-scale cap. The rail pattern, width, destinations, navigation state, and test tags are unchanged. Verified with `testDebugUnitTest` and `assembleDebug`. | §4.1, §5.1, §12, §16 | owner request 2026-10-21 |
 | 2026-10-21 | 1.9 | Renamed the product from UMKM POS Pro to Pookie POS. Updated the launcher label (`app_name`), the welcome and receipt strings in all three languages, the receipt fallback store name, the recovery-code print text, and the product documentation. Package name, applicationId, theme name, and the signing certificate DN are unchanged. | §1, §16 | owner request 2026-10-21 |
 | 2026-10-21 | 1.8 | Replaced the Android launcher icon with the green-and-white P mark from `newicon.jpeg`, with increased padding around the P. Regenerated the adaptive foreground, all legacy square and round mipmaps, changed the adaptive background to `#FCFFFE`, and added a monochrome layer for themed icons. | §5.2, §16 | `newicon.jpeg` |

@@ -421,7 +421,7 @@ object EnStrings : PosStrings {
     override val returnItemFallbackName = { productId: Long -> "Item $productId" }
 
     override val reportsTitle = "Reports"
-    override val reportsTotalTurnover = "Total Sales (Turnover)"
+    override val reportsTotalTurnover = "Total Sales"
     override val reportsNetProfit = "Estimated Net Profit"
     override val reportsHppModal = "Cost of Goods (COGS)"
     override val reportsTxCount = "Transaction Count"

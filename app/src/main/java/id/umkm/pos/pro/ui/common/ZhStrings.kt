@@ -421,7 +421,7 @@ object ZhStrings : PosStrings {
     override val returnItemFallbackName = { productId: Long -> "商品 $productId" }
 
     override val reportsTitle = "经营报表"
-    override val reportsTotalTurnover = "销售总额 (营业额)"
+    override val reportsTotalTurnover = "销售总额"
     override val reportsNetProfit = "预估净利润"
     override val reportsHppModal = "商品总成本 (进价)"
     override val reportsTxCount = "完成单数"

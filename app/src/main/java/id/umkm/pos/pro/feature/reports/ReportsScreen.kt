@@ -321,7 +321,7 @@ private fun ReportTotals(
                 supportingText = strings.reportsCompletedCount(summary.transactionCount),
                 iconRes = R.drawable.ic_store,
                 emphasized = true,
-                modifier = Modifier.weight(1.15f),
+                modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
                 label = strings.reportsNetProfit,
@@ -331,7 +331,7 @@ private fun ReportTotals(
                 emphasized = true,
                 valueColor = profitValueColor,
                 onValueClick = unlockProfit,
-                modifier = Modifier.weight(1.15f),
+                modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
                 label = strings.reportsHppModal,

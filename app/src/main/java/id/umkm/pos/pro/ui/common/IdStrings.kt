@@ -421,7 +421,7 @@ object IdStrings : PosStrings {
     override val returnItemFallbackName = { productId: Long -> "Item $productId" }
 
     override val reportsTitle = "Laporan"
-    override val reportsTotalTurnover = "Total Penjualan (Omzet)"
+    override val reportsTotalTurnover = "Total Penjualan"
     override val reportsNetProfit = "Estimasi Laba Bersih"
     override val reportsHppModal = "Modal (HPP)"
     override val reportsTxCount = "Jumlah Transaksi"
