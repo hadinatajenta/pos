@@ -3,13 +3,15 @@
 Offline-first point-of-sale app for Indonesian small businesses (UMKM). Built with Kotlin, Jetpack
 Compose, Material 3, and Room.
 
-![App icon](docs/mocks/icon.jpeg)
+<img src="newicon.jpeg" alt="Pookie POS icon" width="160">
 
 ## Features
 
 Cashier
 - Product search by name, SKU, or barcode, with quantity and price adjustment, line and invoice
   discounts, tax, and explicit currency rounding rules
+- Camera barcode scanning and USB/Bluetooth HID scanner input, with manual code entry in the cashier
+  and product form
 - Tiered wholesale pricing, negotiated price overrides, and multi-unit products
 - Payment methods: cash, QRIS, bank transfer, split payment, and customer debt (kasbon), with
   change and remaining-balance calculation
@@ -43,20 +45,15 @@ Settings
   restore it back, with validation and a confirmation before data is replaced. Image files
   (product photos and the QRIS image) are referenced by path but not bundled, so copy them
   separately when moving to a new device
+- Security: owner PIN with an offline recovery code, audit history, and PIN gating for sensitive
+  actions such as profit/HPP visibility, discounts, exports, restores, tax changes, QRIS removal,
+  and debt payments
 - App language: Indonesian, English, and Simplified Chinese. The interface, receipts, printer
   output, and report exports follow the selected language
 - About and privacy: app version and an in-app link to the privacy policy
 
-## Not implemented yet
+## Known gaps
 
-- **PIN, biometrics, and offline recovery**: the `security_store` table and repository exist, but
-  there is no setup or verification UI, no PIN hashing, and no enforcement on sensitive actions.
-- **Barcode scanning**: camera and hardware scanning are both in. A USB or Bluetooth HID scanner
-  adds items without touching the screen, and the camera reads retail barcodes with CameraX plus
-  the `zxing.core` decoder the app already carried, so no ML Kit was needed. More then Settings has
-  a **Pemindai Barcode** page with the hardware switch and a live test area, and both the cashier
-  and the product form offer manual code entry. Design, states, and the measured gates:
-  [docs/design/barcode-scan.md](docs/design/barcode-scan.md).
 - **Returns exchange flow**: `ExchangeSettlement` and `settleExchange` exist with tests, but the
   returns UI does not use them.
 - **Cashier shifts**: `CashierShiftEntity` and `ShiftRepository` exist without any UI.
@@ -76,7 +73,7 @@ See [docs/prd-gaps.md](docs/prd-gaps.md) for the full audit against the PRD.
 The default `java` on the development machine is JDK 8, so export JDK 17 before running Gradle:
 
 ```bash
-export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
 ```
 
 ## Build
@@ -86,7 +83,8 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
 ./gradlew testDebugUnitTest          # unit tests
 ./gradlew assembleRelease            # signed release APK
 ./gradlew bundleRelease              # signed release AAB for Google Play
-./gradlew connectedDebugAndroidTest  # instrumented tests, needs a device
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true  # keeps app data
 ./gradlew lintRelease                # lint; currently fails, see docs/prd-gaps.md
 ```
 
@@ -105,24 +103,38 @@ Google Play.
 Install a build on a connected device:
 
 ```bash
-adb install -r app/build/outputs/apk/release/app-release.apk
+adb install -r --user 0 app/build/outputs/apk/release/app-release.apk
 ```
+
+Pass `--user 0` on a device with a Secure Folder or a second profile so the app lands in the
+owner's profile.
+
+## Launcher icon
+
+The launcher icon source is [`newicon.jpeg`](newicon.jpeg) at the repository root. Android assets
+are generated from it:
+
+- adaptive foreground: `app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png`
+- monochrome layer for themed icons: `app/src/main/res/drawable-xxxhdpi/ic_launcher_monochrome.png`
+- legacy square and round icons: `app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/`
+- adaptive background: `#FCFFFE` in `app/src/main/res/values/ic_launcher_background.xml`
 
 ## Verification status
 
-Verified on 19 October 2026 at commit `5f1bc73`:
+Verified on 21 October 2026:
 
 | Check | Result |
 | --- | --- |
-| `testDebugUnitTest` | 469 tests, 0 failures, 62 classes |
-| `connectedDebugAndroidTest` | 40 tests pass on a physical tablet, including the JSON export/import round trip |
-| `assembleRelease` | Builds with R8 and resource shrinking |
-| `bundleRelease` | Builds a signed AAB |
-| `lintRelease` | 11 errors (9 `NewApi` false positives from a guarded helper, 2 `ProduceStateDoesNotAssignValue`), 38 warnings |
+| `testDebugUnitTest` | 627 tests, 0 failures |
+| `connectedDebugAndroidTest` | 48 tests pass on the Lenovo TB321FU tablet |
+| `assembleDebug` | Builds |
+| `assembleRelease` | Builds with R8 and resource shrinking; launcher assets survive shrinking |
+| `lintDebug` | 14 pre-existing errors and 56 warnings; see [docs/prd-gaps.md](docs/prd-gaps.md) |
 
-The release APK was installed and smoke-tested on a tablet, and the report export, JSON backup
-export/import, and the in-app privacy policy link were exercised on a physical phone. Bluetooth
-printer and HID scanner paths have not been exercised on physical hardware.
+The debug APK was installed on the Lenovo TB321FU tablet and the Samsung SM-S721B phone. The
+launcher icon was checked on both devices against other white-background apps. Legacy square and
+round icons were validated statically but not exercised on API 23–25. Bluetooth printer and HID
+scanner paths have not been exercised on physical hardware.
 
 ## Demo data
 
@@ -151,7 +163,7 @@ docs/        product requirements, architecture, implementation status, publishi
 - [docs/prd.md](docs/prd.md) — product requirements, the source of truth
 - [docs/architecture.md](docs/architecture.md) — module layout and frozen contract decisions
 - [docs/prd-gaps.md](docs/prd-gaps.md) — implementation status against the PRD
-- [docs/design/barcode-scan.md](docs/design/barcode-scan.md) — barcode scanning design, frozen and not implemented
+- [docs/design/barcode-scan.md](docs/design/barcode-scan.md) — barcode scanning design, states, and measured gates
 - [docs/dev-environment.md](docs/dev-environment.md) — toolchain and build constraints
 - [docs/playstore-release.md](docs/playstore-release.md) — Google Play release process
 - [docs/privacy-policy.html](docs/privacy-policy.html) — privacy policy
