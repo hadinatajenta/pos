@@ -87,8 +87,12 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 
 ## Build
 
+Debug builds use the launcher label **Pookie POS DEV** and package id
+`id.umkm.pos.pro.debug`; release builds keep the **Pookie POS** label and
+`id.umkm.pos.pro` package.
+
 ```bash
-./gradlew assembleDebug              # debug build, package id.umkm.pos.pro.debug
+./gradlew assembleDebug              # debug build, package id.umkm.pos.pro.debug, label Pookie POS DEV
 ./gradlew testDebugUnitTest          # unit tests
 ./gradlew assembleRelease            # signed release APK
 ./gradlew bundleRelease              # signed release AAB for Google Play
