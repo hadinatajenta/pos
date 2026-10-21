@@ -80,6 +80,7 @@ data class ProductFormState(
     val wholesaleMinQty: String = "",
     val wholesalePrice: String = "",
     val imagePath: String? = null,
+    val persistedPricing: ProductPricingSnapshot? = null,
     val persistedImagePath: String? = null,
     val isImageRemoved: Boolean = false,
     val isImageImporting: Boolean = false,

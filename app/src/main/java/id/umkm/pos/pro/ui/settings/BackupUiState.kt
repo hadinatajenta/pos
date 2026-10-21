@@ -12,7 +12,10 @@ sealed interface BackupUiState {
 
     data object Importing : BackupUiState
 
-    data class Imported(val rowCount: Int) : BackupUiState
+    data class Imported(
+        val rowCount: Int,
+        val securityResetFromBackup: Boolean = false,
+    ) : BackupUiState
 
     data class Failed(val error: AppError) : BackupUiState
 }

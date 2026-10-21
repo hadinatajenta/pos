@@ -1,5 +1,7 @@
 package id.umkm.pos.pro.ui.common
 
+import id.umkm.pos.pro.core.model.CriticalAction
+
 object ZhStrings : PosStrings {
 
     override val navCashier = "收银"
@@ -675,4 +677,112 @@ object ZhStrings : PosStrings {
     override val exportColumnSalesValue = "销售金额"
     override val cashierItemLabel = "商品"
     override val cashierItemCountLabel = "商品数量"
+
+    // Security
+    override val settingsSecurityTitle = "安全"
+    override val settingsSecurityMenuDescription = "敏感操作 PIN 与恢复码"
+    override val securityMaskedValue = "•••••"
+    override val securityRestoreResetNotice = "恢复备份后 PIN 已关闭。请在 设置 → 安全 中重新启用。"
+    override val securityGateTitle = "需要 PIN"
+    override val securityGateMessage = { label: String -> "请输入 PIN 以继续：$label" }
+    override val securityGatePinLabel = "PIN"
+    override val securityGateUnlock = "解锁"
+    override val securityGateUseRecovery = "忘记 PIN？使用恢复码"
+    override val securityGateRecoveryTitle = "恢复码"
+    override val securityGateRecoveryMessage = "请输入恢复码。PIN 将被关闭，您可以重新设置。"
+    override val securityGateRecoveryLabel = "恢复码"
+    override val securityGateRecoveryConfirm = "恢复"
+    override val securityGateBackToPin = "返回 PIN"
+    override val securityGateWrongPin = { remaining: Int -> "PIN 错误，还剩 $remaining 次机会。" }
+    override val securityGateRetryIn = { seconds: Int -> "请在 $seconds 秒后重试。" }
+    override val securityGateLockedFor = { minutes: Int -> "已锁定 $minutes 分钟。" }
+    override val securityGateUnavailable = "尚未设置 PIN。"
+    override val securityGateRecoveryInvalid = "恢复码错误。"
+    override val securityGateRecoveryUnavailable = "恢复码不可用。"
+
+    // Security screens
+    override val securityStatusTitle = "安全状态"
+    override val securityStatusEnabled = "PIN 已启用"
+    override val securityStatusDisabled = "PIN 未启用"
+    override val securityStatusUpdatedAt = { value: String -> "最后修改 $value" }
+    override val securityStatusRecoveryReady = "恢复码已保存"
+    override val securityStatusRecoveryMissing = "尚未生成恢复码"
+    override val securitySessionOpen = "会话已开启，敏感操作在会话结束前不会再次要求 PIN。"
+    override val securitySessionLock = "锁定会话"
+    override val securitySessionLocked = "会话已锁定。"
+    override val securityEnableAction = "启用 PIN"
+    override val securityChangeAction = "修改 PIN"
+    override val securityDisableAction = "关闭 PIN"
+    override val securityRegenerateAction = "重新生成恢复码"
+    override val securityEnableIntro =
+        "PIN 用于保护敏感操作，例如查看利润、大额折扣和恢复备份。记销售账无需 PIN。"
+    override val securityEnableRecoveryNote =
+        "启用 PIN 后，应用只显示一次恢复码。请打印或保存它：没有网络时，它是忘记 PIN 后重新进入的唯一方式。"
+    override val securityChangeIntro = "请输入当前 PIN，然后设置新的 PIN。"
+    override val securityDisableIntro = "PIN 将被关闭，敏感操作不再需要 PIN。店铺数据不会改变。"
+    override val securityRegenerateIntro = "旧恢复码立即失效，新恢复码只显示一次。"
+    override val securityCurrentPinLabel = "当前 PIN"
+    override val securityNewPinLabel = "新 PIN"
+    override val securityConfirmPinLabel = "再次输入新 PIN"
+    override val securityPinLengthHint = { min: Int, max: Int -> "PIN 为 $min–$max 位数字。" }
+    override val securityPinLengthError = { min: Int, max: Int -> "PIN 必须是 $min–$max 位数字。" }
+    override val securityPinMismatch = "两次输入的新 PIN 不一致。"
+    override val securityPinRequired = "请输入当前 PIN。"
+    override val securityWrongCurrentPin = "当前 PIN 错误。"
+    override val securityPinNotConfigured = "尚未启用 PIN。"
+    override val securityEnableSubmit = "启用 PIN"
+    override val securityChangeSubmit = "保存新 PIN"
+    override val securityDisableSubmit = "关闭 PIN"
+    override val securityRegenerateSubmit = "生成新恢复码"
+    override val securityPinEnabledMessage = "PIN 已启用。"
+    override val securityPinChangedMessage = "PIN 已修改。"
+    override val securityPinDisabledMessage = "PIN 已关闭。"
+    override val securityRegeneratedMessage = "已生成新的恢复码。"
+    override val securityRecoveryCodeTitle = "恢复码"
+    override val securityRecoveryCodeOnceWarning = "请现在抄写或打印此恢复码。它只显示一次，之后无法在应用中再次查看。"
+    override val securityRecoveryCodePrint = "打印或保存为 PDF"
+    override val securityRecoveryCodePrintJobName = "POS UMKM Pro 恢复码"
+    override val securityRecoveryCodeAcknowledge = "我已保存此恢复码"
+    override val securityRecoveryCodeDone = "完成"
+    override val securityRecoveryCodeUnsavedWarning =
+        "尚未确认。请先打印，或勾选“我已保存此恢复码”后再离开。"
+    override val securityRecoveryCodeLostWarning =
+        "PIN 已启用，但恢复码未确认保存。若恢复码丢失，请在本页重新生成。"
+    override val securityPrintCodeLabel = "您的恢复码"
+    override val securityPrintInstructionOne = "此恢复码可在忘记 PIN 时重新进入应用。请妥善保管，切勿分享。"
+    override val securityPrintInstructionTwo = "恢复码只显示一次，无法在应用中再次查看。"
+    override val securityPrintInstructionThree =
+        "恢复过程无需网络：打开 PIN 页面，选择“忘记 PIN”，然后输入此恢复码。PIN 将被关闭，可重新设置。"
+    override val securityPrintFooter = { date: String -> "由 POS UMKM Pro 于 $date 打印。" }
+    override val securityAuditTitle = "安全记录"
+    override val securityAuditEmpty = "暂无安全操作记录。"
+    override val securityAuditLatest = { count: Int -> "显示最近 $count 条记录。" }
+    override val securityAuditResultGranted = "已允许"
+    override val securityAuditResultDenied = "已拒绝"
+    override val securityAuditResultLocked = "已锁定"
+    override val securityAuditResultRecoveryUsed = "使用了恢复码"
+    override val securityAuditResultPinEnabled = "已启用 PIN"
+    override val securityAuditResultPinChanged = "已修改 PIN"
+    override val securityAuditResultPinDisabled = "已关闭 PIN"
+    override val securityAuditResultRecoveryRegenerated = "已重新生成恢复码"
+    override val securityAuditResultRestoreReset = "恢复数据后 PIN 已重置"
+    override val securityAuditActionLabel = { action: CriticalAction ->
+        when (action) {
+            CriticalAction.VIEW_PROFIT_AND_COST -> "查看利润与成本"
+            CriticalAction.EDIT_PRODUCT_COST -> "修改商品成本"
+            CriticalAction.EDIT_PRODUCT_PRICE -> "修改商品价格"
+            CriticalAction.ITEM_DISCOUNT_ABOVE_THRESHOLD -> "大额单品折扣"
+            CriticalAction.NEGOTIATED_PRICE_BELOW_COST -> "议价低于成本"
+            CriticalAction.PROCESS_RETURN -> "处理退货"
+            CriticalAction.EXPORT_SALES_REPORT -> "导出销售报表"
+            CriticalAction.EXPORT_BACKUP -> "导出备份"
+            CriticalAction.RESTORE_BACKUP -> "恢复备份"
+            CriticalAction.DELETE_PRODUCT -> "删除商品"
+            CriticalAction.CHANGE_TAX_AND_ROUNDING -> "修改税费与舍入"
+            CriticalAction.REMOVE_QRIS -> "删除 QRIS"
+            CriticalAction.RECORD_DEBT_PAYMENT -> "记录还款"
+            CriticalAction.CHANGE_PIN -> "PIN 设置"
+            CriticalAction.VIEW_SECURITY_AUDIT -> "查看安全记录"
+        }
+    }
 }

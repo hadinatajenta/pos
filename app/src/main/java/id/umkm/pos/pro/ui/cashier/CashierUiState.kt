@@ -6,6 +6,7 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
+import id.umkm.pos.pro.domain.security.PinPolicy
 import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.UiText
 
@@ -59,6 +60,20 @@ data class PaymentDraft(
     val dueDateMillis: Long? = null,
 )
 
+data class CartLineEditorPricing(
+    val unitPrice: Long,
+    val lineSubtotal: Long,
+    val itemDiscount: Long,
+    val unitHpp: Long,
+    val negotiatedUnitPrice: Long?,
+) {
+    fun isBelowCost(policy: PinPolicy): Boolean =
+        negotiatedUnitPrice != null && policy.isBelowCost(negotiatedUnitPrice, unitHpp)
+
+    fun exceedsDiscountThreshold(policy: PinPolicy): Boolean =
+        policy.exceedsDiscountThreshold(lineSubtotal, itemDiscount)
+}
+
 data class CartLineEditorState(
     val lineId: String,
     val productName: String,
@@ -67,6 +82,7 @@ data class CartLineEditorState(
     val negotiatedUnitPriceInput: String,
     val itemDiscountInput: String,
     val validationMessage: UiText?,
+    val pricing: CartLineEditorPricing,
 )
 
 data class CashierReceipt(

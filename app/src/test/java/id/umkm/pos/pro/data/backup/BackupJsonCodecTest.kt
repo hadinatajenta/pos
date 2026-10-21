@@ -91,4 +91,21 @@ class BackupJsonCodecTest {
         assertThat(BackupTables.isSupported("products")).isTrue()
         assertThat(BackupTables.isSupported("unknown_table")).isFalse()
     }
+
+    @Test
+    fun theSecurityTablesAreExcludedFromExportAndRestore() {
+        assertThat(BackupTables.insertOrder).containsNoneIn(BackupTables.excludedTables)
+        assertThat(BackupTables.deleteOrder).containsNoneIn(BackupTables.excludedTables)
+        assertThat(BackupTables.insertOrder).contains("app_settings")
+        assertThat(BackupTables.isSupported(BackupTables.SECURITY_TABLE)).isFalse()
+        assertThat(BackupTables.isSupported(BackupTables.SECURITY_AUDIT_TABLE)).isFalse()
+    }
+
+    @Test
+    fun validateStillAcceptsALegacyBackupThatCarriesTheSecurityTable() {
+        val legacy = payload(tableNames = BackupTables.insertOrder + BackupTables.excludedTables)
+
+        assertThat(BackupJsonCodec.validate(legacy, currentSchemaVersion = 6))
+            .isEqualTo(BackupValidationResult.VALID)
+    }
 }

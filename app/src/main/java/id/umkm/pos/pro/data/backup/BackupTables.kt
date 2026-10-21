@@ -4,6 +4,10 @@ object BackupTables {
 
     const val FORMAT_VERSION: Int = 1
 
+    const val SECURITY_TABLE: String = "security_store"
+
+    const val SECURITY_AUDIT_TABLE: String = "security_audit_log"
+
     val insertOrder: List<String> = listOf(
         "products",
         "product_variants_units",
@@ -14,10 +18,11 @@ object BackupTables {
         "returns",
         "return_lines",
         "cashier_shifts",
-        "security_store",
         "app_settings",
         "invoice_counters",
     )
+
+    val excludedTables: List<String> = listOf(SECURITY_TABLE, SECURITY_AUDIT_TABLE)
 
     val deleteOrder: List<String> = insertOrder.reversed()
 

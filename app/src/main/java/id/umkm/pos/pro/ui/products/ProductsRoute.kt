@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AdPlacement
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.monetization.admob.BannerAdSlot
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.EmptyState
@@ -44,6 +45,7 @@ import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.successDataOrNull
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -195,6 +197,7 @@ private fun ProductsEmptyCatalog(
 @Composable
 private fun DeleteProductDialog(actions: ProductsActions) {
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
     AlertDialog(
         onDismissRequest = actions.onCancelDelete,
         title = { Text(text = strings.productsDeleteConfirmTitle) },
@@ -206,7 +209,11 @@ private fun DeleteProductDialog(actions: ProductsActions) {
         },
         confirmButton = {
             TextButton(
-                onClick = actions.onConfirmDelete,
+                onClick = {
+                    gate.request(CriticalAction.DELETE_PRODUCT, strings.actionDelete) {
+                        actions.onConfirmDelete()
+                    }
+                },
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
                 Text(text = strings.actionDelete)

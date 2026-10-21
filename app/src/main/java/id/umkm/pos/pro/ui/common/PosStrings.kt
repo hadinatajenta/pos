@@ -2,6 +2,7 @@ package id.umkm.pos.pro.ui.common
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import id.umkm.pos.pro.core.model.AppLanguage
+import id.umkm.pos.pro.core.model.CriticalAction
 
 interface PosStrings {
 
@@ -686,6 +687,91 @@ interface PosStrings {
     val exportColumnSalesValue: String
     val cashierItemLabel: String
     val cashierItemCountLabel: String
+
+    // Security
+    val settingsSecurityTitle: String
+    val settingsSecurityMenuDescription: String
+    val securityMaskedValue: String
+    val securityRestoreResetNotice: String
+    val securityGateTitle: String
+    val securityGateMessage: (String) -> String
+    val securityGatePinLabel: String
+    val securityGateUnlock: String
+    val securityGateUseRecovery: String
+    val securityGateRecoveryTitle: String
+    val securityGateRecoveryMessage: String
+    val securityGateRecoveryLabel: String
+    val securityGateRecoveryConfirm: String
+    val securityGateBackToPin: String
+    val securityGateWrongPin: (Int) -> String
+    val securityGateRetryIn: (Int) -> String
+    val securityGateLockedFor: (Int) -> String
+    val securityGateUnavailable: String
+    val securityGateRecoveryInvalid: String
+    val securityGateRecoveryUnavailable: String
+
+    // Security screens
+    val securityStatusTitle: String
+    val securityStatusEnabled: String
+    val securityStatusDisabled: String
+    val securityStatusUpdatedAt: (String) -> String
+    val securityStatusRecoveryReady: String
+    val securityStatusRecoveryMissing: String
+    val securitySessionOpen: String
+    val securitySessionLock: String
+    val securitySessionLocked: String
+    val securityEnableAction: String
+    val securityChangeAction: String
+    val securityDisableAction: String
+    val securityRegenerateAction: String
+    val securityEnableIntro: String
+    val securityEnableRecoveryNote: String
+    val securityChangeIntro: String
+    val securityDisableIntro: String
+    val securityRegenerateIntro: String
+    val securityCurrentPinLabel: String
+    val securityNewPinLabel: String
+    val securityConfirmPinLabel: String
+    val securityPinLengthHint: (Int, Int) -> String
+    val securityPinLengthError: (Int, Int) -> String
+    val securityPinMismatch: String
+    val securityPinRequired: String
+    val securityWrongCurrentPin: String
+    val securityPinNotConfigured: String
+    val securityEnableSubmit: String
+    val securityChangeSubmit: String
+    val securityDisableSubmit: String
+    val securityRegenerateSubmit: String
+    val securityPinEnabledMessage: String
+    val securityPinChangedMessage: String
+    val securityPinDisabledMessage: String
+    val securityRegeneratedMessage: String
+    val securityRecoveryCodeTitle: String
+    val securityRecoveryCodeOnceWarning: String
+    val securityRecoveryCodePrint: String
+    val securityRecoveryCodePrintJobName: String
+    val securityRecoveryCodeAcknowledge: String
+    val securityRecoveryCodeDone: String
+    val securityRecoveryCodeUnsavedWarning: String
+    val securityRecoveryCodeLostWarning: String
+    val securityPrintCodeLabel: String
+    val securityPrintInstructionOne: String
+    val securityPrintInstructionTwo: String
+    val securityPrintInstructionThree: String
+    val securityPrintFooter: (String) -> String
+    val securityAuditTitle: String
+    val securityAuditEmpty: String
+    val securityAuditLatest: (Int) -> String
+    val securityAuditResultGranted: String
+    val securityAuditResultDenied: String
+    val securityAuditResultLocked: String
+    val securityAuditResultRecoveryUsed: String
+    val securityAuditResultPinEnabled: String
+    val securityAuditResultPinChanged: String
+    val securityAuditResultPinDisabled: String
+    val securityAuditResultRecoveryRegenerated: String
+    val securityAuditResultRestoreReset: String
+    val securityAuditActionLabel: (CriticalAction) -> String
 }
 
 fun stringsFor(language: AppLanguage): PosStrings = when (language) {

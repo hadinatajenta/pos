@@ -2,6 +2,7 @@ package id.umkm.pos.pro.feature.reports
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AppError
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.SalesSummary
@@ -68,6 +70,7 @@ import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.SalesLineChart
 import id.umkm.pos.pro.ui.components.paymentSliceColor
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
@@ -88,6 +91,11 @@ internal fun ReportsScreen(
 ) {
     val timeZone = remember { TimeZone.getDefault() }
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
+    val isProfitVisible = gate.isUnlocked(CriticalAction.VIEW_PROFIT_AND_COST)
+    val requestProfitUnlock: () -> Unit = {
+        gate.request(CriticalAction.VIEW_PROFIT_AND_COST, strings.reportsNetProfit) {}
+    }
     var isExportDialogVisible by remember { mutableStateOf(false) }
     var isFilterSheetVisible by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -108,7 +116,11 @@ internal fun ReportsScreen(
                         text = strings.reportsExportButton,
                         iconRes = R.drawable.ic_download,
                         contentDescription = strings.reportsExportAction,
-                        onClick = { isExportDialogVisible = true },
+                        onClick = {
+                            gate.request(CriticalAction.EXPORT_SALES_REPORT, strings.reportsExportButton) {
+                                isExportDialogVisible = true
+                            }
+                        },
                     )
                 },
             )
@@ -130,6 +142,8 @@ internal fun ReportsScreen(
                     else -> MainReportContent(
                         uiState = uiState,
                         isExpanded = isExpanded,
+                        isProfitVisible = isProfitVisible,
+                        onRequestProfitUnlock = requestProfitUnlock,
                     )
                 }
             }
@@ -217,6 +231,8 @@ private fun ReportsPeriodBar(
 private fun MainReportContent(
     uiState: ReportsUiState,
     isExpanded: Boolean,
+    isProfitVisible: Boolean,
+    onRequestProfitUnlock: () -> Unit,
 ) {
     val summary = uiState.summary ?: return
     val horizontalPadding = if (isExpanded) PosSpacing.lg else PosSpacing.md
@@ -230,6 +246,8 @@ private fun MainReportContent(
                 summary = summary,
                 averageTransaction = uiState.averageTransaction,
                 isExpanded = isExpanded,
+                isProfitVisible = isProfitVisible,
+                onRequestProfitUnlock = onRequestProfitUnlock,
             )
         }
         if (isExpanded && uiState.paymentShares.isNotEmpty()) {
@@ -271,10 +289,26 @@ private fun ReportTotals(
     summary: SalesSummary,
     averageTransaction: Long,
     isExpanded: Boolean,
+    isProfitVisible: Boolean,
+    onRequestProfitUnlock: () -> Unit,
 ) {
     val palette = LocalPosSemanticPalette.current
     val strings = LocalPosStrings.current
     val profitColor = if (summary.netProfit >= 0L) palette.success else palette.danger
+    val netProfitText = if (isProfitVisible) {
+        Rupiah.format(summary.netProfit)
+    } else {
+        strings.securityMaskedValue
+    }
+    val totalHppText = if (isProfitVisible) {
+        Rupiah.format(summary.totalHpp)
+    } else {
+        strings.securityMaskedValue
+    }
+    val unlockProfit: (() -> Unit)? = if (isProfitVisible) null else onRequestProfitUnlock
+    val hiddenValueColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val profitValueColor = if (isProfitVisible) profitColor else hiddenValueColor
+    val hppValueColor = if (isProfitVisible) MaterialTheme.colorScheme.onSurface else hiddenValueColor
     if (isExpanded) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -291,17 +325,21 @@ private fun ReportTotals(
             )
             ReportMetricCard(
                 label = strings.reportsNetProfit,
-                value = Rupiah.format(summary.netProfit),
+                value = netProfitText,
                 supportingText = strings.reportsNetProfitHint,
-                iconRes = R.drawable.ic_banknote,
+                iconRes = if (isProfitVisible) R.drawable.ic_banknote else R.drawable.ic_lock,
                 emphasized = true,
-                valueColor = profitColor,
+                valueColor = profitValueColor,
+                onValueClick = unlockProfit,
                 modifier = Modifier.weight(1.15f),
             )
             ReportMetricCard(
                 label = strings.reportsHppModal,
-                value = Rupiah.format(summary.totalHpp),
+                value = totalHppText,
                 supportingText = strings.reportsHppHint,
+                iconRes = if (isProfitVisible) null else R.drawable.ic_lock,
+                valueColor = hppValueColor,
+                onValueClick = unlockProfit,
                 modifier = Modifier.weight(1f),
             )
             ReportMetricCard(
@@ -341,36 +379,20 @@ private fun ReportTotals(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
             ) {
-                Column(
+                HiddenValueColumn(
+                    label = strings.reportsNetProfit,
+                    value = netProfitText,
+                    valueColor = profitValueColor,
+                    onValueClick = unlockProfit,
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = strings.reportsNetProfit,
-                        style = LocalAppTextStyles.current.supportingLabel,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    AutoSizeNumberText(
-                        text = Rupiah.format(summary.netProfit),
-                        style = LocalAppTextStyles.current.financialValue,
-                        color = profitColor,
-                    )
-                }
-                Column(
+                )
+                HiddenValueColumn(
+                    label = strings.reportsHppModal,
+                    value = totalHppText,
+                    valueColor = hppValueColor,
+                    onValueClick = unlockProfit,
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = strings.reportsHppModal,
-                        style = LocalAppTextStyles.current.supportingLabel,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    AutoSizeNumberText(
-                        text = Rupiah.format(summary.totalHpp),
-                        style = LocalAppTextStyles.current.financialValue,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                )
             }
         }
         Row(
@@ -392,6 +414,33 @@ private fun ReportTotals(
 }
 
 @Composable
+private fun HiddenValueColumn(
+    label: String,
+    value: String,
+    valueColor: Color,
+    onValueClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .then(if (onValueClick == null) Modifier else Modifier.clickable(onClick = onValueClick))
+            .padding(vertical = PosSpacing.xxs),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            text = label,
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        AutoSizeNumberText(
+            text = value,
+            style = LocalAppTextStyles.current.financialValue,
+            color = valueColor,
+        )
+    }
+}
+
+@Composable
 private fun ReportMetricCard(
     label: String,
     value: String,
@@ -400,11 +449,16 @@ private fun ReportMetricCard(
     @DrawableRes iconRes: Int? = null,
     emphasized: Boolean = false,
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    onValueClick: (() -> Unit)? = null,
 ) {
     PosCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.Top) {
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (onValueClick == null) Modifier else Modifier.clickable(onClick = onValueClick),
+                    ),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
             ) {
                 Text(

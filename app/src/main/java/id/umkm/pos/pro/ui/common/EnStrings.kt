@@ -1,5 +1,7 @@
 package id.umkm.pos.pro.ui.common
 
+import id.umkm.pos.pro.core.model.CriticalAction
+
 object EnStrings : PosStrings {
 
     override val navCashier = "Cashier"
@@ -677,4 +679,123 @@ object EnStrings : PosStrings {
     override val exportColumnSalesValue = "Sales Value"
     override val cashierItemLabel = "Items"
     override val cashierItemCountLabel = "Item count"
+
+    // Security
+    override val settingsSecurityTitle = "Security"
+    override val settingsSecurityMenuDescription = "PIN for sensitive actions and a recovery code"
+    override val securityMaskedValue = "•••••"
+    override val securityRestoreResetNotice =
+        "The PIN was turned off after the restore. Enable it again in Settings → Security."
+    override val securityGateTitle = "PIN required"
+    override val securityGateMessage = { label: String -> "Enter the PIN to continue: $label" }
+    override val securityGatePinLabel = "PIN"
+    override val securityGateUnlock = "Unlock"
+    override val securityGateUseRecovery = "Forgot the PIN? Use the recovery code"
+    override val securityGateRecoveryTitle = "Recovery code"
+    override val securityGateRecoveryMessage =
+        "Enter the recovery code. The PIN will be turned off and you can set it again."
+    override val securityGateRecoveryLabel = "Recovery code"
+    override val securityGateRecoveryConfirm = "Restore"
+    override val securityGateBackToPin = "Back to PIN"
+    override val securityGateWrongPin =
+        { remaining: Int -> "Wrong PIN. $remaining attempts left." }
+    override val securityGateRetryIn =
+        { seconds: Int -> "Wait $seconds seconds before trying again." }
+    override val securityGateLockedFor = { minutes: Int -> "Locked for $minutes minutes." }
+    override val securityGateUnavailable = "No PIN is configured."
+    override val securityGateRecoveryInvalid = "Wrong recovery code."
+    override val securityGateRecoveryUnavailable = "The recovery code is unavailable."
+
+    // Security screens
+    override val securityStatusTitle = "Security status"
+    override val securityStatusEnabled = "PIN is on"
+    override val securityStatusDisabled = "PIN is off"
+    override val securityStatusUpdatedAt = { value: String -> "Last changed $value" }
+    override val securityStatusRecoveryReady = "Recovery code saved"
+    override val securityStatusRecoveryMissing = "No recovery code yet"
+    override val securitySessionOpen =
+        "A session is open. Sensitive actions skip the PIN until the session ends."
+    override val securitySessionLock = "Lock session"
+    override val securitySessionLocked = "Session locked."
+    override val securityEnableAction = "Turn on PIN"
+    override val securityChangeAction = "Change PIN"
+    override val securityDisableAction = "Turn off PIN"
+    override val securityRegenerateAction = "Create a new recovery code"
+    override val securityEnableIntro =
+        "The PIN protects sensitive actions such as viewing profit, giving large discounts, and restoring a backup. Recording sales still works without a PIN."
+    override val securityEnableRecoveryNote =
+        "When the PIN is turned on, the app shows a recovery code once. Print or save it: without internet, that code is the only way back in if the PIN is forgotten."
+    override val securityChangeIntro = "Enter the current PIN to replace it with a new one."
+    override val securityDisableIntro =
+        "The PIN will be turned off and sensitive actions will run without it. Store data is unchanged."
+    override val securityRegenerateIntro =
+        "The old code stops working immediately. The new code is shown only once."
+    override val securityCurrentPinLabel = "Current PIN"
+    override val securityNewPinLabel = "New PIN"
+    override val securityConfirmPinLabel = "Repeat the new PIN"
+    override val securityPinLengthHint = { min: Int, max: Int -> "PIN is $min–$max digits." }
+    override val securityPinLengthError =
+        { min: Int, max: Int -> "The PIN must be $min–$max digits." }
+    override val securityPinMismatch = "The new PIN and its repeat do not match."
+    override val securityPinRequired = "Enter the current PIN."
+    override val securityWrongCurrentPin = "The current PIN is wrong."
+    override val securityPinNotConfigured = "No PIN is active."
+    override val securityEnableSubmit = "Turn on PIN"
+    override val securityChangeSubmit = "Save the new PIN"
+    override val securityDisableSubmit = "Turn off PIN"
+    override val securityRegenerateSubmit = "Create a new code"
+    override val securityPinEnabledMessage = "PIN is on."
+    override val securityPinChangedMessage = "The PIN was changed."
+    override val securityPinDisabledMessage = "PIN is off."
+    override val securityRegeneratedMessage = "A new recovery code was created."
+    override val securityRecoveryCodeTitle = "Recovery code"
+    override val securityRecoveryCodeOnceWarning =
+        "Write down or print this code now. It is shown only once and cannot be viewed again in the app."
+    override val securityRecoveryCodePrint = "Print or save as PDF"
+    override val securityRecoveryCodePrintJobName = "POS UMKM Pro recovery code"
+    override val securityRecoveryCodeAcknowledge = "I have saved this code"
+    override val securityRecoveryCodeDone = "Done"
+    override val securityRecoveryCodeUnsavedWarning =
+        "Not confirmed yet. Print it or tick \"I have saved this code\" before leaving."
+    override val securityRecoveryCodeLostWarning =
+        "The PIN is on, but the recovery code was never confirmed as saved. Create a new code on this screen if that code is lost."
+    override val securityPrintCodeLabel = "Your recovery code"
+    override val securityPrintInstructionOne =
+        "This code opens the app if the PIN is forgotten. Keep it somewhere safe and do not share it."
+    override val securityPrintInstructionTwo =
+        "The code is shown only once and cannot be viewed again in the app."
+    override val securityPrintInstructionThree =
+        "Recovery works offline: open the PIN screen, choose Forgot PIN, then enter this code. The PIN is turned off and can be set again."
+    override val securityPrintFooter = { date: String -> "Printed $date by POS UMKM Pro." }
+    override val securityAuditTitle = "Security history"
+    override val securityAuditEmpty = "No security activity yet."
+    override val securityAuditLatest = { count: Int -> "Showing the latest $count entries." }
+    override val securityAuditResultGranted = "Allowed"
+    override val securityAuditResultDenied = "Denied"
+    override val securityAuditResultLocked = "Locked out"
+    override val securityAuditResultRecoveryUsed = "Recovery code used"
+    override val securityAuditResultPinEnabled = "PIN turned on"
+    override val securityAuditResultPinChanged = "PIN changed"
+    override val securityAuditResultPinDisabled = "PIN turned off"
+    override val securityAuditResultRecoveryRegenerated = "Recovery code recreated"
+    override val securityAuditResultRestoreReset = "PIN reset after a data restore"
+    override val securityAuditActionLabel = { action: CriticalAction ->
+        when (action) {
+            CriticalAction.VIEW_PROFIT_AND_COST -> "View profit and COGS"
+            CriticalAction.EDIT_PRODUCT_COST -> "Edit product COGS"
+            CriticalAction.EDIT_PRODUCT_PRICE -> "Edit product price"
+            CriticalAction.ITEM_DISCOUNT_ABOVE_THRESHOLD -> "Large item discount"
+            CriticalAction.NEGOTIATED_PRICE_BELOW_COST -> "Negotiated price below COGS"
+            CriticalAction.PROCESS_RETURN -> "Process a return"
+            CriticalAction.EXPORT_SALES_REPORT -> "Export the sales report"
+            CriticalAction.EXPORT_BACKUP -> "Export a backup"
+            CriticalAction.RESTORE_BACKUP -> "Restore a backup"
+            CriticalAction.DELETE_PRODUCT -> "Delete a product"
+            CriticalAction.CHANGE_TAX_AND_ROUNDING -> "Change tax and rounding"
+            CriticalAction.REMOVE_QRIS -> "Remove QRIS"
+            CriticalAction.RECORD_DEBT_PAYMENT -> "Record a debt payment"
+            CriticalAction.CHANGE_PIN -> "PIN settings"
+            CriticalAction.VIEW_SECURITY_AUDIT -> "View security history"
+        }
+    }
 }

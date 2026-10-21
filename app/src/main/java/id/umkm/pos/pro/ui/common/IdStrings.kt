@@ -1,5 +1,7 @@
 package id.umkm.pos.pro.ui.common
 
+import id.umkm.pos.pro.core.model.CriticalAction
+
 object IdStrings : PosStrings {
 
     override val navCashier = "Kasir"
@@ -677,4 +679,120 @@ object IdStrings : PosStrings {
     override val exportColumnSalesValue = "Nilai Penjualan"
     override val cashierItemLabel = "Item"
     override val cashierItemCountLabel = "Jumlah item"
+
+    // Security
+    override val settingsSecurityTitle = "Keamanan"
+    override val settingsSecurityMenuDescription = "PIN untuk aksi sensitif dan kode pemulihan"
+    override val securityMaskedValue = "•••••"
+    override val securityRestoreResetNotice =
+        "PIN dinonaktifkan setelah pemulihan. Aktifkan kembali di Pengaturan → Keamanan."
+    override val securityGateTitle = "PIN diperlukan"
+    override val securityGateMessage = { label: String -> "Masukkan PIN untuk melanjutkan: $label" }
+    override val securityGatePinLabel = "PIN"
+    override val securityGateUnlock = "Buka"
+    override val securityGateUseRecovery = "Lupa PIN? Gunakan kode pemulihan"
+    override val securityGateRecoveryTitle = "Kode pemulihan"
+    override val securityGateRecoveryMessage =
+        "Masukkan kode pemulihan. PIN akan dinonaktifkan dan Anda dapat mengaturnya kembali."
+    override val securityGateRecoveryLabel = "Kode pemulihan"
+    override val securityGateRecoveryConfirm = "Pulihkan"
+    override val securityGateBackToPin = "Kembali ke PIN"
+    override val securityGateWrongPin = { remaining: Int -> "PIN salah. Sisa $remaining percobaan." }
+    override val securityGateRetryIn = { seconds: Int -> "Tunggu $seconds detik sebelum mencoba lagi." }
+    override val securityGateLockedFor = { minutes: Int -> "Terkunci selama $minutes menit." }
+    override val securityGateUnavailable = "PIN belum diatur."
+    override val securityGateRecoveryInvalid = "Kode pemulihan salah."
+    override val securityGateRecoveryUnavailable = "Kode pemulihan tidak tersedia."
+
+    // Security screens
+    override val securityStatusTitle = "Status keamanan"
+    override val securityStatusEnabled = "PIN aktif"
+    override val securityStatusDisabled = "PIN tidak aktif"
+    override val securityStatusUpdatedAt = { value: String -> "Terakhir diubah $value" }
+    override val securityStatusRecoveryReady = "Kode pemulihan tersimpan"
+    override val securityStatusRecoveryMissing = "Kode pemulihan belum dibuat"
+    override val securitySessionOpen =
+        "Sesi sedang terbuka. Aksi sensitif tidak meminta PIN sampai sesi berakhir."
+    override val securitySessionLock = "Kunci sesi"
+    override val securitySessionLocked = "Sesi dikunci."
+    override val securityEnableAction = "Aktifkan PIN"
+    override val securityChangeAction = "Ubah PIN"
+    override val securityDisableAction = "Nonaktifkan PIN"
+    override val securityRegenerateAction = "Buat ulang kode pemulihan"
+    override val securityEnableIntro =
+        "PIN melindungi aksi sensitif seperti melihat laba, memberi diskon besar, dan memulihkan backup. Mencatat penjualan tetap bisa tanpa PIN."
+    override val securityEnableRecoveryNote =
+        "Saat PIN diaktifkan, aplikasi menampilkan kode pemulihan satu kali. Cetak atau simpan kode itu: tanpa internet, kode tersebut satu-satunya cara membuka akses jika PIN lupa."
+    override val securityChangeIntro = "Masukkan PIN saat ini untuk menggantinya dengan PIN baru."
+    override val securityDisableIntro =
+        "PIN akan dimatikan dan aksi sensitif bisa dijalankan tanpa PIN. Data toko tidak berubah."
+    override val securityRegenerateIntro =
+        "Kode lama langsung tidak berlaku. Kode baru hanya ditampilkan sekali."
+    override val securityCurrentPinLabel = "PIN saat ini"
+    override val securityNewPinLabel = "PIN baru"
+    override val securityConfirmPinLabel = "Ulangi PIN baru"
+    override val securityPinLengthHint = { min: Int, max: Int -> "PIN $min–$max digit angka." }
+    override val securityPinLengthError = { min: Int, max: Int -> "PIN harus $min–$max digit angka." }
+    override val securityPinMismatch = "PIN baru dan ulangannya tidak sama."
+    override val securityPinRequired = "Masukkan PIN saat ini."
+    override val securityWrongCurrentPin = "PIN saat ini salah."
+    override val securityPinNotConfigured = "PIN belum aktif."
+    override val securityEnableSubmit = "Aktifkan PIN"
+    override val securityChangeSubmit = "Simpan PIN baru"
+    override val securityDisableSubmit = "Matikan PIN"
+    override val securityRegenerateSubmit = "Buat kode baru"
+    override val securityPinEnabledMessage = "PIN aktif."
+    override val securityPinChangedMessage = "PIN berhasil diubah."
+    override val securityPinDisabledMessage = "PIN dimatikan."
+    override val securityRegeneratedMessage = "Kode pemulihan baru dibuat."
+    override val securityRecoveryCodeTitle = "Kode pemulihan"
+    override val securityRecoveryCodeOnceWarning =
+        "Tulis atau cetak kode ini sekarang. Kode hanya ditampilkan sekali dan tidak bisa dilihat lagi di aplikasi."
+    override val securityRecoveryCodePrint = "Cetak atau simpan PDF"
+    override val securityRecoveryCodePrintJobName = "Kode pemulihan POS UMKM Pro"
+    override val securityRecoveryCodeAcknowledge = "Saya sudah menyimpan kode ini"
+    override val securityRecoveryCodeDone = "Selesai"
+    override val securityRecoveryCodeUnsavedWarning =
+        "Belum dikonfirmasi. Cetak atau centang \"Saya sudah menyimpan kode ini\" sebelum keluar."
+    override val securityRecoveryCodeLostWarning =
+        "PIN sudah aktif, tetapi kode pemulihan belum dikonfirmasi tersimpan. Buat ulang kode dari layar ini jika kode tersebut hilang."
+    override val securityPrintCodeLabel = "Kode pemulihan Anda"
+    override val securityPrintInstructionOne =
+        "Kode ini membuka akses ke aplikasi jika PIN lupa. Simpan di tempat aman dan jangan dibagikan."
+    override val securityPrintInstructionTwo =
+        "Kode hanya ditampilkan satu kali dan tidak bisa dilihat lagi di aplikasi."
+    override val securityPrintInstructionThree =
+        "Pemulihan bekerja tanpa internet: buka layar PIN, pilih Lupa PIN, lalu masukkan kode ini. PIN akan dimatikan dan bisa diatur kembali."
+    override val securityPrintFooter = { date: String -> "Dicetak $date oleh POS UMKM Pro." }
+    override val securityAuditTitle = "Riwayat keamanan"
+    override val securityAuditEmpty = "Belum ada aktivitas keamanan."
+    override val securityAuditLatest = { count: Int -> "Menampilkan $count aktivitas terbaru." }
+    override val securityAuditResultGranted = "Diizinkan"
+    override val securityAuditResultDenied = "Ditolak"
+    override val securityAuditResultLocked = "Terkunci"
+    override val securityAuditResultRecoveryUsed = "Kode pemulihan dipakai"
+    override val securityAuditResultPinEnabled = "PIN diaktifkan"
+    override val securityAuditResultPinChanged = "PIN diubah"
+    override val securityAuditResultPinDisabled = "PIN dimatikan"
+    override val securityAuditResultRecoveryRegenerated = "Kode pemulihan dibuat ulang"
+    override val securityAuditResultRestoreReset = "PIN direset setelah pemulihan data"
+    override val securityAuditActionLabel = { action: CriticalAction ->
+        when (action) {
+            CriticalAction.VIEW_PROFIT_AND_COST -> "Lihat laba & HPP"
+            CriticalAction.EDIT_PRODUCT_COST -> "Ubah HPP produk"
+            CriticalAction.EDIT_PRODUCT_PRICE -> "Ubah harga produk"
+            CriticalAction.ITEM_DISCOUNT_ABOVE_THRESHOLD -> "Diskon item besar"
+            CriticalAction.NEGOTIATED_PRICE_BELOW_COST -> "Harga nego di bawah HPP"
+            CriticalAction.PROCESS_RETURN -> "Proses retur"
+            CriticalAction.EXPORT_SALES_REPORT -> "Ekspor laporan penjualan"
+            CriticalAction.EXPORT_BACKUP -> "Ekspor backup"
+            CriticalAction.RESTORE_BACKUP -> "Pulihkan backup"
+            CriticalAction.DELETE_PRODUCT -> "Hapus produk"
+            CriticalAction.CHANGE_TAX_AND_ROUNDING -> "Ubah pajak & pembulatan"
+            CriticalAction.REMOVE_QRIS -> "Hapus QRIS"
+            CriticalAction.RECORD_DEBT_PAYMENT -> "Catat pembayaran utang"
+            CriticalAction.CHANGE_PIN -> "Pengaturan PIN"
+            CriticalAction.VIEW_SECURITY_AUDIT -> "Lihat riwayat keamanan"
+        }
+    }
 }

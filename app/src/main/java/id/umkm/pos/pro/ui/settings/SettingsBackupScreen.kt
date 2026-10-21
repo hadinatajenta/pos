@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AppError
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.PosStrings
@@ -43,6 +44,7 @@ import id.umkm.pos.pro.ui.components.ExportRunningRow
 import id.umkm.pos.pro.ui.components.ExportedFileCard
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -63,6 +65,7 @@ internal fun SettingsBackupScreen(
 ) {
     val strings = LocalPosStrings.current
     val context = LocalContext.current
+    val gate = rememberSecurityGate()
     var isConfirmingImport by remember { mutableStateOf(false) }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -113,7 +116,11 @@ internal fun SettingsBackupScreen(
                     iconRes = R.drawable.ic_download,
                     loading = state.backupState is BackupUiState.Exporting,
                     enabled = !isBusy,
-                    onClick = actions.onExportBackup,
+                    onClick = {
+                        gate.request(CriticalAction.EXPORT_BACKUP, strings.settingsBackupExportButton) {
+                            actions.onExportBackup()
+                        }
+                    },
                 )
             }
 
@@ -156,7 +163,9 @@ internal fun SettingsBackupScreen(
                 TextButton(
                     onClick = {
                         isConfirmingImport = false
-                        importLauncher.launch(BACKUP_DOCUMENT_TYPES)
+                        gate.request(CriticalAction.RESTORE_BACKUP, strings.settingsBackupImportButton) {
+                            importLauncher.launch(BACKUP_DOCUMENT_TYPES)
+                        }
                     },
                 ) {
                     Text(strings.settingsBackupConfirmAction)
@@ -192,15 +201,47 @@ private fun BackupStatus(
             onDismiss = onDismiss,
         )
 
-        is BackupUiState.Imported -> ExportDoneRow(
-            title = strings.settingsBackupImportedTitle,
-            detail = strings.settingsBackupImportedRows(backupState.rowCount),
-            onDismiss = onDismiss,
-        )
+        is BackupUiState.Imported -> Column(
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            ExportDoneRow(
+                title = strings.settingsBackupImportedTitle,
+                detail = strings.settingsBackupImportedRows(backupState.rowCount),
+                onDismiss = onDismiss,
+            )
+            if (backupState.securityResetFromBackup) {
+                SecurityResetNotice()
+            }
+        }
 
         is BackupUiState.Failed -> ExportFailedRow(
             message = backupErrorMessage(backupState.error, strings),
             onDismiss = onDismiss,
+        )
+    }
+}
+
+@Composable
+private fun SecurityResetNotice() {
+    val strings = LocalPosStrings.current
+    val palette = LocalPosSemanticPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PosSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_lock),
+            contentDescription = null,
+            tint = palette.warning,
+            modifier = Modifier.size(PosSizes.iconSmall),
+        )
+        Text(
+            text = strings.securityRestoreResetNotice,
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

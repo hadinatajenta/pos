@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import id.umkm.pos.pro.core.contract.AppError
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.domain.usecase.ProcessReturnUseCase
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.ErrorState
@@ -51,6 +52,7 @@ import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.formatQuantity
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -161,6 +163,12 @@ private fun ReturnForm(
     modifier: Modifier,
 ) {
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
+    val submitReturn: () -> Unit = {
+        gate.request(CriticalAction.PROCESS_RETURN, strings.returnSubmitButton) {
+            actions.onSubmit()
+        }
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -196,7 +204,7 @@ private fun ReturnForm(
             InlineError(message = submitError)
         }
         Button(
-            onClick = actions.onSubmit,
+            onClick = submitReturn,
             enabled = !state.isSubmitting,
             modifier = Modifier
                 .fillMaxWidth()

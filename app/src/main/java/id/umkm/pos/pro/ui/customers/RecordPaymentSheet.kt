@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.LocalPosStrings
@@ -45,6 +46,7 @@ import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -64,6 +66,7 @@ internal fun RecordPaymentSheet(
 ) {
     val configuration = LocalConfiguration.current
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
     val maxSheetHeight = (configuration.screenHeightDp * RECORD_PAYMENT_SHEET_HEIGHT_FRACTION).dp
     ModalBottomSheet(
         onDismissRequest = actions.onCloseRecordPayment,
@@ -161,7 +164,11 @@ internal fun RecordPaymentSheet(
             HorizontalDivider()
             PrimaryActionButton(
                 text = strings.customersConfirmPayment,
-                onClick = actions.onConfirmPayment,
+                onClick = {
+                    gate.request(CriticalAction.RECORD_DEBT_PAYMENT, strings.customersConfirmPayment) {
+                        actions.onConfirmPayment()
+                    }
+                },
                 enabled = draft.transactions.isNotEmpty(),
                 loading = isSubmitting,
                 modifier = Modifier.padding(PosSpacing.md),

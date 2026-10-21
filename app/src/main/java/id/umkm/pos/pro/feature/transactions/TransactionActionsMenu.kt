@@ -32,10 +32,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.PosStrings
+import id.umkm.pos.pro.ui.security.SecurityGate
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -91,6 +94,7 @@ private fun transactionMenuItems(
     onDismiss: () -> Unit,
     actions: TransactionActions,
     strings: PosStrings,
+    gate: SecurityGate,
 ): List<TransactionMenuItem> = listOfNotNull(
     TransactionMenuItem(strings.transactionsActionViewDetail, R.drawable.ic_eye, false) {
         onDismiss()
@@ -109,7 +113,9 @@ private fun transactionMenuItems(
     } else {
         TransactionMenuItem(strings.transactionsActionRefund, R.drawable.ic_undo, true) {
             onDismiss()
-            actions.onRefund(transaction.id)
+            gate.request(CriticalAction.PROCESS_RETURN, strings.transactionsActionRefund) {
+                actions.onRefund(transaction.id)
+            }
         }
     },
 )
@@ -123,7 +129,8 @@ private fun TransactionActionsDropdown(
 ) {
     val palette = LocalPosSemanticPalette.current
     val strings = LocalPosStrings.current
-    val menuItems = transactionMenuItems(transaction, onDismiss, actions, strings)
+    val gate = rememberSecurityGate()
+    val menuItems = transactionMenuItems(transaction, onDismiss, actions, strings, gate)
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
@@ -162,7 +169,8 @@ internal fun TransactionActionsSheet(
 ) {
     val palette = LocalPosSemanticPalette.current
     val strings = LocalPosStrings.current
-    val menuItems = transactionMenuItems(transaction, onDismiss, actions, strings)
+    val gate = rememberSecurityGate()
+    val menuItems = transactionMenuItems(transaction, onDismiss, actions, strings, gate)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier

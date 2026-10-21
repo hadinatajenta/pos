@@ -8,6 +8,18 @@
 - Preserve working behavior unless the task explicitly asks to change it.
 - Ask for clarification only when a decision materially affects money calculations, data integrity, security, architecture, or user flow. Otherwise choose the smallest reasonable implementation and document the assumption.
 
+## Documentation of changes — mandatory
+
+Every change must be documented in the same task that makes it. An undocumented change is an incomplete change.
+
+- Always record **the date** in ISO form (`YYYY-MM-DD`) and **the PRD reference** (the section numbers in `docs/prd.md`, plus requirement IDs such as `R-31` or `C-B2` from `docs/security/prd-code-reconciliation.md` when relevant).
+- State what changed, why it changed, which files, schema objects, or user-visible behavior were touched, and exactly what was verified.
+- Update `docs/prd.md` §16 (Revision History) whenever product behavior, a requirement, the schema contract, or any other statement in the PRD changes.
+- Update `docs/prd-gaps.md` whenever implementation status changes.
+- Keep the record in the repository. A chat message is not documentation.
+- If a change would contradict `docs/prd.md` and the resolution is not yet approved, record it as an open decision in `docs/prd.md` §15 instead of changing behavior.
+- Never record a change without its date, and never leave a dated entry without the PRD section it affects.
+
 ## Product priorities
 
 1. Correct and reliable transaction calculations.
@@ -92,6 +104,7 @@ Do not upgrade Kotlin, Gradle, Android Gradle Plugin, SDK levels, or major depen
 6. For responsive UI work, inspect actual screenshots at the PRD's required phone/tablet sizes and font scales. Use emulator/device screenshots or `scrcpy` where available.
 7. Review diffs for accidental changes, hardcoded secrets, unsafe data deletion, duplicated logic, and unrelated formatting churn.
 8. Report what was actually tested. Never claim browser/device/GPU/rendering validation unless it really ran.
+9. Document the change with its date and the PRD sections it touches (see "Documentation of changes — mandatory"), updating `docs/prd.md` §16 when the PRD itself changed, before reporting the task as done.
 
 ## Definition of done
 
@@ -103,6 +116,7 @@ A task is not done merely because code was generated or the project compiles. It
 - UI changes have been visually checked at relevant viewport sizes.
 - Data safety, errors, empty states, and loading states have been considered.
 - The final response summarizes changes, verification, and known limitations.
+- The change is documented with its date and its PRD reference, and `docs/prd.md` §16 is updated whenever the PRD itself changed.
 
 ## Physical device rules (mandatory)
 

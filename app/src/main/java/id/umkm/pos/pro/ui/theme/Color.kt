@@ -46,47 +46,6 @@ object PosColors {
     val ChartBarMuted = Color(0xFFB8D4C9)
 }
 
-object PosColorsDark {
-    val ForestGreen = Color(0xFF102620)
-    val DeepGreen = Color(0xFF0A1814)
-    val GreenElevated = Color(0xFF193D32)
-    val GreenSoft = Color(0xFF15352B)
-
-    val Secondary = Color(0xFF8CD4BC)
-    val Accent = Color(0xFF5CE0B5)
-
-    val Background = Color(0xFF0D1210)
-    val Surface = Color(0xFF151C19)
-    val SoftNeutral = Color(0xFF1E2623)
-    val Border = Color(0xFF28322E)
-
-    val TextPrimary = Color(0xFFECF2EF)
-    val TextSecondary = Color(0xFF9BA8A3)
-    val TextMuted = Color(0xFF75827D)
-
-    val Gold = Color(0xFFF59E0B)
-    val GoldContainer = Color(0xFF3B2A10)
-    val OnGoldContainer = Color(0xFFFDE68A)
-
-    val Success = Color(0xFF5CE0B5)
-    val SuccessContainer = Color(0xFF13392C)
-    val Warning = Color(0xFFFBBF24)
-    val WarningContainer = Color(0xFF3B2A10)
-    val Danger = Color(0xFFF87171)
-    val DangerContainer = Color(0xFF3F1D1D)
-    val NeutralContainer = Color(0xFF222B27)
-
-    val SuccessText = Success
-    val WarningText = Warning
-    val DangerText = Danger
-
-    val ChartGrid = Color(0xFF28322E)
-    val ChartLine = Color(0xFF5CE0B5)
-    val ChartArea = Color(0x335CE0B5)
-    val ChartBar = Color(0xFF349B7A)
-    val ChartBarMuted = Color(0xFF26473C)
-}
-
 @Immutable
 data class PosSemanticPalette(
     val success: Color,
@@ -109,7 +68,7 @@ data class PosSemanticPalette(
     val chartBarMuted: Color,
 )
 
-val PosLightSemanticPalette = PosSemanticPalette(
+val DefaultPosSemanticPalette = PosSemanticPalette(
     success = PosColors.Success,
     successContainer = PosColors.SuccessContainer,
     warning = PosColors.Warning,
@@ -130,25 +89,4 @@ val PosLightSemanticPalette = PosSemanticPalette(
     chartBarMuted = PosColors.ChartBarMuted,
 )
 
-val PosDarkSemanticPalette = PosSemanticPalette(
-    success = PosColorsDark.Success,
-    successContainer = PosColorsDark.SuccessContainer,
-    warning = PosColorsDark.Warning,
-    warningContainer = PosColorsDark.WarningContainer,
-    danger = PosColorsDark.Danger,
-    dangerContainer = PosColorsDark.DangerContainer,
-    gold = PosColorsDark.Gold,
-    goldContainer = PosColorsDark.GoldContainer,
-    onGoldContainer = PosColorsDark.OnGoldContainer,
-    neutralContainer = PosColorsDark.NeutralContainer,
-    successText = PosColorsDark.SuccessText,
-    warningText = PosColorsDark.WarningText,
-    dangerText = PosColorsDark.DangerText,
-    chartGrid = PosColorsDark.ChartGrid,
-    chartLine = PosColorsDark.ChartLine,
-    chartArea = PosColorsDark.ChartArea,
-    chartBar = PosColorsDark.ChartBar,
-    chartBarMuted = PosColorsDark.ChartBarMuted,
-)
-
-val LocalPosSemanticPalette = staticCompositionLocalOf { PosLightSemanticPalette }
+val LocalPosSemanticPalette = staticCompositionLocalOf { DefaultPosSemanticPalette }

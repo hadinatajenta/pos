@@ -400,7 +400,12 @@ class SettingsViewModel(
             _uiState.update { current -> current.copy(backupState = BackupUiState.Importing) }
             when (val result = dataBackupService.importJson(sourceUri)) {
                 is AppResult.Success -> _uiState.update { current ->
-                    current.copy(backupState = BackupUiState.Imported(result.value.totalRows))
+                    current.copy(
+                        backupState = BackupUiState.Imported(
+                            rowCount = result.value.totalRows,
+                            securityResetFromBackup = result.value.securityResetFromBackup,
+                        ),
+                    )
                 }
 
                 is AppResult.Failure -> _uiState.update { current ->

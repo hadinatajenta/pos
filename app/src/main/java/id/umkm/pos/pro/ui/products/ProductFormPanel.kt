@@ -5,6 +5,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -49,11 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.scanner.BarcodeScanDialog
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
@@ -132,7 +135,27 @@ internal fun ProductFormPanel(
     modifier: Modifier = Modifier,
 ) {
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
     val fieldFocus = remember { FormFieldFocus() }
+    var isCostRevealed by remember(form.productId) { mutableStateOf(false) }
+    val showsCostValue = form.persistedPricing == null ||
+        isCostRevealed ||
+        gate.isUnlocked(CriticalAction.EDIT_PRODUCT_COST)
+    val pricingChange = productPricingChange(form)
+    val pricingPinAction = when {
+        pricingChange.requiresCostPin && !isCostRevealed -> CriticalAction.EDIT_PRODUCT_COST
+        pricingChange.requiresPricePin -> CriticalAction.EDIT_PRODUCT_PRICE
+        else -> null
+    }
+    val onSave: () -> Unit = {
+        if (pricingPinAction == null || validateProductForm(form).isNotEmpty()) {
+            actions.onSubmitForm()
+        } else {
+            gate.request(pricingPinAction, pricingPinLabel(pricingPinAction, strings)) {
+                actions.onSubmitForm()
+            }
+        }
+    }
     LaunchedEffect(form.validationFailures) {
         if (form.validationFailures > 0L) {
             fieldFocus.focusFirstError(form.errors)
@@ -178,7 +201,17 @@ internal fun ProductFormPanel(
                 fieldFocus = fieldFocus,
                 actions = actions,
             )
-            PricingSection(form = form, fieldFocus = fieldFocus, actions = actions)
+            PricingSection(
+                form = form,
+                fieldFocus = fieldFocus,
+                actions = actions,
+                showsCostValue = showsCostValue,
+                onRequestCostUnlock = {
+                    gate.request(CriticalAction.EDIT_PRODUCT_COST, strings.productsBaseHpp) {
+                        isCostRevealed = true
+                    }
+                },
+            )
             StockSection(form = form, fieldFocus = fieldFocus, actions = actions)
         }
         HorizontalDivider()
@@ -191,7 +224,7 @@ internal fun ProductFormPanel(
         ) {
             PrimaryActionButton(
                 text = if (form.isEditing) strings.productsSaveChanges else strings.productsSaveNew,
-                onClick = actions.onSubmitForm,
+                onClick = onSave,
                 loading = isSaving,
                 modifier = Modifier.weight(1f),
             )
@@ -491,6 +524,8 @@ private fun PricingSection(
     form: ProductFormState,
     fieldFocus: FormFieldFocus,
     actions: ProductsActions,
+    showsCostValue: Boolean,
+    onRequestCostUnlock: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
@@ -505,17 +540,38 @@ private fun PricingSection(
             prefix = RUPIAH_PREFIX,
             modifier = fieldFocus.modifierFor(ProductFormField.BASE_PRICE),
         )
-        FormTextField(
-            label = strings.productsBaseHpp,
-            value = form.baseHpp,
-            onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_HPP, it) },
-            error = form.errorFor(ProductFormField.BASE_HPP),
-            keyboardType = KeyboardType.Number,
-            isRequired = true,
-            supportingText = strings.productsHppHint,
-            prefix = RUPIAH_PREFIX,
-            modifier = fieldFocus.modifierFor(ProductFormField.BASE_HPP),
-        )
+        if (showsCostValue) {
+            FormTextField(
+                label = strings.productsBaseHpp,
+                value = form.baseHpp,
+                onValueChange = { actions.onFormFieldChange(ProductFormField.BASE_HPP, it) },
+                error = form.errorFor(ProductFormField.BASE_HPP),
+                keyboardType = KeyboardType.Number,
+                isRequired = true,
+                supportingText = strings.productsHppHint,
+                prefix = RUPIAH_PREFIX,
+                modifier = fieldFocus.modifierFor(ProductFormField.BASE_HPP),
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                FormTextField(
+                    label = strings.productsBaseHpp,
+                    value = strings.securityMaskedValue,
+                    onValueChange = {},
+                    error = form.errorFor(ProductFormField.BASE_HPP),
+                    keyboardType = KeyboardType.Number,
+                    isRequired = true,
+                    supportingText = strings.productsHppHint,
+                    prefix = RUPIAH_PREFIX,
+                    readOnly = true,
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable(onClick = onRequestCostUnlock),
+                )
+            }
+        }
         TextButton(onClick = actions.onFormAdvancedToggle) {
             Icon(
                 painter = painterResource(if (form.isAdvancedExpanded) R.drawable.ic_chevron_up else R.drawable.ic_chevron_down),
@@ -635,6 +691,7 @@ private fun FormTextField(
     keyboardType: KeyboardType = KeyboardType.Text,
     supportingText: String? = null,
     prefix: String? = null,
+    readOnly: Boolean = false,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val strings = LocalPosStrings.current
@@ -649,6 +706,7 @@ private fun FormTextField(
         supportingText = helperText?.let { text -> { Text(text) } },
         prefix = prefix?.let { text -> { Text(text) } },
         trailingIcon = trailingIcon,
+        readOnly = readOnly,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
     )

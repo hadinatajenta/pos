@@ -55,7 +55,7 @@ ANDROID_SERIAL=<serial> ./gradlew :app:connectedDebugAndroidTest \
 
 Never run `adb uninstall` or `adb shell pm clear` on a connected device without the owner asking.
 Pass `--user 0` to `adb install` so the app lands in the owner's profile rather than a Secure Folder,
-and restore any device setting you changed (dark mode, font scale) before finishing.
+and restore any device setting you changed (font scale, display size) before finishing.
 
 - The camera path needs a physical device. There is no emulator image in this setup.
 - A USB or Bluetooth HID scanner can be simulated without hardware by sending fast keystrokes and a
@@ -66,8 +66,8 @@ and restore any device setting you changed (dark mode, font scale) before finish
   adb shell input keyevent 66
   ```
 
-- Toggle dark mode while checking the camera overlay against a bright scene:
-  `adb shell cmd uimode night yes` and `adb shell cmd uimode night no`.
+- Confirm the app ignores the system dark setting: `adb shell cmd uimode night yes` must leave every
+  screen light, and `adb shell cmd uimode night no` must restore the device setting.
 - On a device that has a Secure Folder or a second profile, pass `--user 0` to `adb install`.
   Without it the package can land in the other profile, and then the launcher and `am start` cannot
   see it.

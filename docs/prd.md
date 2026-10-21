@@ -2,7 +2,7 @@
 
 ## Product Requirements Document
 
-**Version:** 1.2 — Responsive UX & Visual Reliability  
+**Version:** 1.7 — Light-only theme (2026-10-21; see §15.1 Q12 and §16)  
 **Target implementation agent:** Deepseek V4.1 Flash (High Effort) with five parallel sub-agents  
 **Development environment:** Antigravity IDE, Android SDK command-line tools, Gradle, ADB, scrcpy, and a physical Android device  
 **Product promise:** **Free forever. No subscriptions. No paid feature tiers. No watermarks.**
@@ -48,8 +48,8 @@ Give small businesses an easy-to-trust POS that is fast at the counter, dependab
 - Bluetooth and USB OTG thermal printing, bitmap receipt rendering, and receipt sharing.
 - Camera barcode scanning and physical USB/Bluetooth HID scanner input.
 - Local export/import and Google Drive appDataFolder backup.
-- PIN/biometric protection for sensitive actions with an owner recovery path.
-- Responsive phone/tablet UI, light/dark themes, and adjustable text scaling.
+- PIN/biometric protection for sensitive actions with an owner recovery path. *(Biometric recovery is an open decision, §15 Q3. The approved recovery path is the offline recovery code; see §7.7.)*
+- Responsive phone/tablet UI, a single light theme, and adjustable text scaling.
 - AdMob placements limited to the non-critical screens specified in this PRD.
 
 ### 3.2 Out of scope for the first release
@@ -117,7 +117,7 @@ Use a **modern, simple, clean Material 3 interface** with the restraint of a wel
 - Consistent spacing based on an **8 dp grid**.
 - Use whitespace to separate tasks, not to waste space on low-end phones.
 - Use short headings, concise helper text, and clear empty states.
-- Default to the system theme, with both light and dark themes available.
+- Always use the light theme, regardless of the system dark setting.
 
 ### 5.2 Iconography
 
@@ -228,7 +228,7 @@ Keep device and data utilities under **More** with simple status rows and clear 
 
 - Keep initial setup short and allow the owner to reach the cashier quickly.
 - Explain PIN protection only when asking the user to enable it.
-- Use device biometrics where available and explicitly enabled by the owner.
+- Use device biometrics where available and explicitly enabled by the owner. *(Not implemented in code; open decision §15 Q3.)*
 - Always provide the documented offline recovery path; never create an unrecoverable owner lockout.
 
 ## 7. Functional Requirements
@@ -329,7 +329,7 @@ Provide local export/backup formats: SQLite `.db`, `.json`, `.csv`, and `.xlsx` 
 
 - Clearly distinguish local backup from cloud backup.
 - Keep local backup available offline.
-- Do not encrypt, hide, or hold local backup files hostage behind the cashier PIN.
+- Do not encrypt, hide, or hold local backup files hostage behind the cashier PIN. *(Open decision §15 Q2. Until it is decided, this is read as protecting access to the backup files themselves, not as forbidding an authorization check before an export action.)*
 - Give the user clear confirmation when a backup succeeds or fails.
 - Explain that cloud backup requires connectivity and appropriate account authorization.
 
@@ -339,9 +339,11 @@ PIN protection may restrict sensitive actions, such as deleting transaction hist
 
 Provide:
 
-- Device biometric recovery when available and enabled.
-- An offline recovery code generated during PIN setup, with an option to print or save it securely.
+- Device biometric recovery when available and enabled. *(Not implemented in code and no biometric dependency is present; open decision §15 Q3.)*
+- An offline recovery code generated during PIN setup, with an option to print or save it securely. *(Confirmed by the owner on 2026-10-20 as the only recovery path. Security questions are out of scope. The code is printed through the Android Print Framework so it can be saved as a PDF; a thermal printer is optional.)*
 - Clear recovery instructions that do not depend on internet access.
+
+**Implemented 2026-10-20.** The decisions are in §15.1. Phase 0–1 built the storage and policy layer: the `security_store` schema at database version 6 with `MIGRATION_5_6`, salted PBKDF2 hashing that stores the algorithm and the iteration count inside the encoded value, the PIN policy (required role per action, discount and below-cost thresholds, five-attempt lockout, ten-attempt global lockout, five-minute session unlock), a local `security_audit_log` table, exclusion of both security tables from the JSON backup, and a forced PIN reset after a restore. Phase 2–3 added the security settings screen (enable, change, disable, regenerate the recovery code), the one-time recovery-code screen that requires acknowledging the code was saved and prints it to PDF through the Android Print Framework, the read-only audit history, and one global PIN gate. Gated actions: viewing profit and HPP (values are masked until the session is elevated), editing HPP and selling prices, an item discount above 10% or Rp 20.000, a negotiated price below cost, refund or return, CSV/XLSX report export, JSON backup export, backup restore, product deletion, tax and rounding changes, QRIS removal, and recording a debt payment. Manager-level actions accept a five-minute session; owner-level actions always prompt. With the PIN off, every flow behaves exactly as before. Biometric recovery stays deferred (§15.1 Q3).
 
 ### 7.8 AdMob policy — zero friction at checkout
 
@@ -366,7 +368,11 @@ Use Room with SQLite and Write-Ahead Logging (WAL). The following entities and f
 | `transactions`           | `id` (PK), `invoice_no`, `created_at` (EpochMillis), `cashier_id`, `customer_id` (nullable FK), `subtotal`, `discount_total`, `tax_total`, `rounding`, `grand_total`, `total_hpp`, `net_profit` (Long), `payment_method` (CASH, QRIS, TRANSFER, SPLIT, KASBON), `paid_amount`, `change_amount`, `remaining_debt` (Long), `due_date` (nullable), `status` (COMPLETED, PARTIAL_DEBT, RETURNED), `notes` |
 | `transaction_items`      | `id` (PK), `transaction_id` (FK), `product_id` (FK), `variant_name`, `qty` (Double), `unit_hpp` (Long), `applied_unit_price` (Long), `is_nego_price` (Boolean), `is_wholesale_applied` (Boolean), `item_discount` (Long), `subtotal` (Long)                                                                                                                                                           |
 | `debt_payments`          | `id` (PK), `transaction_id` (FK), `customer_id` (FK), `paid_at`, `amount` (Long), `payment_method`, `note`                                                                                                                                                                                                                                                                                            |
-| `cashier_shifts`         | `id` (PK), `cashier_name`, `pin_hash`, `recovery_answer_hash`, `opened_at`, `closed_at`, `starting_cash` (Long), `expected_ending_cash` (Long), `actual_ending_cash` (Long)                                                                                                                                                                                                                           |
+| `cashier_shifts`         | `id` (PK), `cashier_name`, `pin_hash`†, `recovery_answer_hash`†, `opened_at`, `closed_at`, `starting_cash` (Long), `expected_ending_cash` (Long), `actual_ending_cash` (Long)                                                                                                                                                                                                                           |
+
+† `pin_hash` and `recovery_answer_hash` do not exist on the shipped `cashier_shifts` entity (`app/src/main/java/id/umkm/pos/pro/data/local/entity/CashierShiftEntity.kt:15-22`). PIN material lives in `security_store` (`data/local/entity/SecurityStoreEntity.kt`), which is the location decided on 2026-10-20 (see §15.1 Q1).
+
+**Present in code but missing from the table above (verified 2026-10-20):** `returns`, `return_lines`, `app_settings`, `security_store`, `security_audit_log`, `invoice_counters`. The database is at Room `version = 6` with explicit migrations `MIGRATION_1_2` through `MIGRATION_5_6` and no destructive fallback (`data/local/UmkmDatabase.kt`). Backup and restore iterate a fixed table list that **excludes** `security_store` and `security_audit_log` (`data/backup/BackupTables.kt`); a restore forces the PIN off and writes an audit entry. Evidence: `docs/security/prd-code-reconciliation.md` R-01, R-02, R-31.
 
 Use automatic schema migration where safe. Database upgrades must not silently delete user data. Destructive migrations require an explicit, tested migration plan and a backup strategy.
 
@@ -399,7 +405,7 @@ Use automatic schema migration where safe. Database upgrades must not silently d
 
 ### 9.3 UX and accessibility implementation
 
-- Support light and dark themes.
+- Use a single light theme.
 - Support text scaling from 100% to 135%.
 - Use semantic labels and content descriptions for icons and controls.
 - Provide visible focus/pressed/disabled states.
@@ -473,7 +479,7 @@ Run these checks after integration and before a release candidate.
 ./gradlew testDebugUnitTest
 adb devices
 ./gradlew installDebug
-adb shell monkey -p id.umkm.pos. pro -c android.intent.category.LAUNCHER 1
+adb shell monkey -p id.umkm.pos.pro -c android.intent.category.LAUNCHER 1
 adb logcat -v time AndroidRuntime:E *:S
 ```
 
@@ -485,7 +491,7 @@ adb logcat -v time AndroidRuntime:E *:S
 - The total, payment, change, and outstanding balance are clear at the right time.
 - Buttons remain visible at 135% font scale and on smaller screens.
 - Empty, loading, success, offline, and error states are concise and actionable.
-- Light and dark themes both have readable contrast.
+- The light theme has readable contrast at 100% and 135% font scale.
 - Icons are consistent and have appropriate accessibility labels.
 - Tablet layouts use available space without creating a dense dashboard.
 - Ad containers disappear cleanly when offline or when no ad is available.
@@ -522,7 +528,7 @@ The build is not accepted on the basis of compilation alone. Review screenshots 
 - Test camera barcode scanning and hardware scanner input.
 - Unplug USB devices during use and verify that the app remains stable.
 - Test local backup/restore, JSON/CSV/XLSX export, and Google Drive backup behavior online and offline.
-- Test PIN recovery and ensure local backup remains accessible.
+- Test PIN recovery and ensure local backup remains accessible. *(PIN is not implemented; see §15.)*
 - Run migration tests against existing user data.
 - Check performance on an actual low-end Android device; do not infer performance from emulator results alone.
 
@@ -553,3 +559,53 @@ Track these measures during testing and, where appropriate, after release:
 - Backup creation and restore success rate.
 - Frame responsiveness and cold-start time on low-end devices.
 - Usability at 100–135% font scale and ability to complete checkout without encountering ads.
+
+## 15. PIN decisions and remaining open items
+
+Recorded 2026-10-20 from `docs/security/prd-code-reconciliation.md`. The owner delegated these decisions to the main agent on 2026-10-20 ("do your best; I will say if I disagree"). The decisions actually taken are in §15.1 and remain revisable by the owner at any time. The table below is kept as the record of the options that were on the table.
+
+| ID | Open decision | Options | Blocking |
+| --- | --- | --- | --- |
+| Q1 | Where PIN material is stored | **A:** keep `security_store` and correct the `cashier_shifts` row in §8. **B:** add `pin_hash`/`recovery_answer_hash` to `cashier_shifts` and move PIN storage there. | Yes |
+| Q2 | Whether the backup export action may require a PIN | **A:** allow a PIN check before export and clarify §7.6. **B:** gate only restore; leave export open. | Yes |
+| Q3 | Biometric recovery | **A:** defer it and say so in §3.1/§6.6/§7.7. **B:** add `androidx.biometric` and build the prompt now. | Yes |
+| Q4 | Identity model | **A:** single owner PIN for the MVP. **B:** a `security_users` table with cashier/manager/owner roles. | Yes |
+| Q5 | Cashier-shift UI | **A:** keep "close shift" out of PIN scope until the shift UI exists (no UI calls `ShiftRepository` today). **B:** build the shift UI first. | Yes (scope) |
+| Q6 | Audit log | **A:** approve a local `security_audit_log` table and its retention. **B:** no audit log. | No |
+| Q7 | Report export: PIN and rewarded ad | **A:** PIN first, then the ad. **B:** PIN replaces the ad gate. | No |
+| Q8 | Changing the PIN | **A:** require the current PIN. **B:** the recovery code alone is sufficient. | No |
+| Q9 | Restore from a backup that contains `security_store` | **A:** ignore the key silently. **B:** tell the owner it was ignored. | No |
+| Q10 | HPP field in the product form | **A:** hide the field for roles without the right. **B:** keep it visible and gate only saving. | No |
+| Q11 | PIN thresholds and levels | Discount percentage/nominal that requires a PIN, the negotiated-price floor, and which role each level maps to. Numbers to be supplied by the owner. | Yes |
+
+### 15.1 Decisions recorded 2026-10-20 and 2026-10-21
+
+| ID | Decision | Rationale | Revisable |
+| --- | --- | --- | --- |
+| Q1 | PIN material stays in `security_store`; the `cashier_shifts` row in §8 is corrected and footnote † stands. | One shop, one POS, one authority. Two PIN locations would create two sources of truth and a larger migration for no benefit. | Yes |
+| Q2 | A PIN is required before exporting the JSON backup. The §7.6 prohibition is read as protecting access to the backup files, not as forbidding an authorization check before the export action. | The JSON backup carries customer names, phone numbers, and debts. Local backup still works offline and is never blocked by an ad. | Yes |
+| Q3 | Biometric recovery is deferred. The offline recovery code is the only recovery path. | No biometric code or dependency exists today; the app requests no `INTERNET` permission and has an 8 MB release budget; recovery must stay offline. | Yes |
+| Q4 | A single owner PIN. `SecurityRole` exists in the model as CASHIER/MANAGER/OWNER and every critical action declares the role it needs, but the MVP verifies only the owner PIN and ships no `security_users` table. | Matches a one-shop-one-POS product and keeps a path to per-user PINs without building one now. | Yes |
+| Q5 | Close-shift stays out of PIN scope until a shift UI exists. Recorded as deferred, not dropped. | No composable calls `ShiftRepository` today, so there is no call site to gate. | Yes |
+| Q6 | A local `security_audit_log` table is approved: it records the action, the actor label, the result, and the target; it never records the PIN; it is excluded from backups; the newest 1000 entries are retained. | Without it, denials, lockouts, and recoveries leave no trace. | Yes |
+| Q7 | Report export prompts for the PIN first, then follows the existing export path unchanged. | Keeps monetization behaviour out of this feature; PRD §7.8 leaves the rewarded video optional. | Yes |
+| Q8 | Changing the PIN requires the current PIN. The recovery code remains the escape hatch. | Stops an unlocked session from silently replacing the PIN. | Yes |
+| Q9 | A restore whose backup contains `security_store` ignores that key and tells the owner it was ignored and that the PIN is now off. | §7.6 requires clear confirmation; removing a security setting silently would be confusing. | Yes |
+| Q10 | Profit and HPP values stay hidden, and HPP/price editing stays gated, until the session is elevated. | §7.7 explicitly allows a PIN to restrict staff viewing HPP, and hiding a value is more honest than gating a save whose reason the user cannot see. | Yes |
+| Q11 | Thresholds: an item discount above 10% or above Rp 20.000 requires a PIN; a negotiated unit price below the product's HPP requires a PIN; owner-level actions (change PIN, restore backup, change tax and rounding, remove QRIS) always prompt even during an elevated session; all other gated actions accept a 5-minute session unlock. Constants live in `PinPolicy` and are tunable. | Balances the cashier-speed priority (§3.1) against the risk of money walking out of the till. | Yes |
+| Q12 | Dark mode is removed. The app always renders the light theme; the dark palette, night resources, and the system-theme switch are deleted. | The dark palette was never audited against the many hardcoded light colors in the cashier, receipt, thumbnail, and chart surfaces, so shipping it risked low-contrast screens. The owner chose light-only to reduce that risk and the QA matrix. | Yes |
+
+**Deferred, not dropped:** biometric recovery (Q3), shift UI and close-shift PIN (Q5), transaction void and per-invoice discount input (no UI exists), user/staff management with per-user PINs (Q4), and Google Drive backup. Dark mode is not deferred: it is removed by decision (Q12).
+
+## 16. Revision History
+
+Every change to this document is recorded here with its date and the sections it touched. See the "Documentation of changes" rule in the repository `AGENTS.md`.
+
+| Date | Version | Change | Sections | Reference |
+| --- | --- | --- | --- | --- |
+| 2026-10-21 | 1.7 | Removed dark mode by owner decision. The app now always renders the light theme; the dark palette, night resources, and the system-theme requirement were removed. | §3.1, §5.1, §9.3, §12, §15.1, §16 | owner decision 2026-10-21 |
+| 2026-10-20 | 1.6 | PIN Phase 2–3 implemented: security settings and recovery-code screens (one-time code, print to PDF, mandatory acknowledgement), audit history, and the global gate on all critical actions with profit/HPP masking. §7.7 now states the feature is implemented and lists the gated actions. | §7.7, §16 | `docs/security/prd-code-reconciliation.md` change record (Phase 2–3) |
+| 2026-10-20 | 1.5 | PIN Phase 0–1 implemented: shared security model and contracts, database version 6 with `MIGRATION_5_6` (PIN state columns plus `security_audit_log`), salted PBKDF2 hashing, the PIN policy and `SecurityService`, and the backup exclusion with a forced PIN reset after restore. §7.7 now separates what is implemented from what Phase 2–3 still owes. No action is gated yet. Verified: `testDebugUnitTest` (564 tests) and `assembleDebug` succeed; instrumented tests were not run. | §7.7, §8, §15.1, §16 | `docs/security/prd-code-reconciliation.md` change record |
+| 2026-10-20 | 1.4 | Recorded the owner-delegated decisions for Q1–Q11 in §15.1 and marked the deferred items. Records decisions only; no behaviour changed by that revision. | §15, §15.1, §16 | owner delegation, 2026-10-20 |
+| 2026-10-20 | 1.3 | Reconciled the data model, backup, and PIN statements with the code: corrected the `cashier_shifts` column list, listed the entities that exist in code but were missing from §8, recorded that `security_store` was exported at the time, marked biometric recovery as an open decision, recorded the owner's recovery-code-only decision, fixed the `adb shell monkey` command, corrected the stale PIN test note, and added §15. No product decision was made in that revision. | §3.1, §6.6, §7.6, §7.7, §8, §12, §15 | `docs/security/prd-code-reconciliation.md` |
+| — | 1.2 | Responsive UX & Visual Reliability: layout contract, viewport screenshot matrix, iconography, density rules. | §4.1, §5, §9.4, §12 | previous revision, not re-verified in this pass |

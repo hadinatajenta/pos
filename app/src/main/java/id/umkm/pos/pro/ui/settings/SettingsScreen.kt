@@ -29,6 +29,7 @@ import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.components.MenuListRow
+import id.umkm.pos.pro.ui.security.SecurityRoute
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -41,6 +42,7 @@ private enum class SettingsDestination {
     STORE,
     SCANNER,
     BACKUP,
+    SECURITY,
     ABOUT,
 }
 
@@ -167,6 +169,10 @@ private fun SettingsDetail(
             onBack = onBack,
             modifier = Modifier.fillMaxSize(),
         )
+        SettingsDestination.SECURITY -> SecurityRoute(
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
 
@@ -253,9 +259,17 @@ private fun SettingsHubColumn(
             )
 
             MenuListRow(
+                title = strings.settingsSecurityTitle,
+                description = strings.settingsSecurityMenuDescription,
+                iconRes = R.drawable.ic_lock,
+                isSelected = selectedDestination == SettingsDestination.SECURITY,
+                onClick = { onSelectDestination(SettingsDestination.SECURITY) },
+            )
+
+            MenuListRow(
                 title = strings.settingsAboutTitle,
                 description = strings.settingsAboutMenuDescription,
-                iconRes = R.drawable.ic_lock,
+                iconRes = R.drawable.ic_ellipsis,
                 isSelected = selectedDestination == SettingsDestination.ABOUT,
                 onClick = { onSelectDestination(SettingsDestination.ABOUT) },
             )

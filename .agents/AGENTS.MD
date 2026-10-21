@@ -169,6 +169,7 @@ Every specialist must send the orchestrator a concise handoff containing:
 4. **Verification:** exact commands/tests run and their actual outcomes.
 5. **Known gaps:** missing credentials, hardware not available, untested paths, or deferred requirements.
 6. **Integration notes:** dependencies on other agents and required follow-up.
+7. **Documentation:** the date (`YYYY-MM-DD`) and the `docs/prd.md` sections touched by the change, per the "Documentation of changes — mandatory" rule in the root `AGENTS.md`. A handoff without a date and a PRD reference is incomplete.
 
 ## Parallel execution policy
 

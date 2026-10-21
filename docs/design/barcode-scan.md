@@ -270,8 +270,7 @@ shows the code and offers the next step.
 ## Accessibility
 
 - Contrast is deterministic because **no text sits on the camera preview**. Every label lives on a
-  solid surface: measured 17.45:1 in the light theme (`#111C18` on `#FFFFFF`) and 15.28:1 in the
-  dark theme (`#ECF2EF` on `#151C19`). Secondary text on the bar is 6.60:1.
+  solid surface: measured 17.45:1 (`#111C18` on `#FFFFFF`). Secondary text on the bar is 6.60:1.
 - The white finder frame over the 55% scrim is 7.00:1 even against a pure white scene, which is the
   worst case the rule asks us to test. At 45% it would fall to 4.74:1, so 55% is the specified value.
 - Torch icon on the bar: 7.97:1 when active, 6.60:1 when inactive, both above the 3:1 bar for a
@@ -375,7 +374,7 @@ gates, not claimed as passing here.
 - R-02 PASS: no em dash in this document or in the specified copy.
 - R-03 PASS by design: the scan surface uses the window size classes already in the app, phone
   bottom-sheet shape and tablet panel, and no fixed widths.
-- R-25 PASS by measurement: 17.45:1 and 15.28:1 for text on the solid bars, 7.00:1 for the finder
+- R-25 PASS by measurement: 17.45:1 for text on the solid bars, 7.00:1 for the finder
   frame over the worst-case scene, 7.97:1 and 6.60:1 for the torch states.
 - R-19 PASS: no animation except press states, matching MOTION 1; no endless loop.
 - R-26 PASS by design: every action in the state table has a real outcome, and no control exists

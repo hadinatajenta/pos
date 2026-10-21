@@ -8,6 +8,7 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
+import id.umkm.pos.pro.domain.security.PinPolicy
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.domain.usecase.FakeClock
 import id.umkm.pos.pro.feature.reports.Rupiah
@@ -385,6 +386,44 @@ class CashierViewModelTest {
         assertThat(line.isNegotiated).isTrue()
         assertThat(viewModel.state.value.cartLineEditor).isNull()
     }
+
+    @Test
+    fun openingTheLineEditorExposesSubtotalAndUnitCostForThePinDecision() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = createViewModel()
+            viewModel.onAddProduct(1L)
+            val lineId = viewModel.state.value.cartLines.single().lineId
+
+            viewModel.onOpenLineEditor(lineId)
+
+            val pricing = requireNotNull(viewModel.state.value.cartLineEditor?.pricing)
+            assertThat(pricing.lineSubtotal).isEqualTo(2_000L)
+            assertThat(pricing.unitHpp).isEqualTo(1_000L)
+            assertThat(pricing.itemDiscount).isEqualTo(0L)
+            assertThat(resolveLineEditorPinRequest(PinPolicy(), pricing)).isNull()
+        }
+
+    @Test
+    fun editingTheDiscountRepricesTheEditorPreviewBeforeItIsApplied() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = createViewModel()
+            viewModel.onAddProduct(1L)
+            val lineId = viewModel.state.value.cartLines.single().lineId
+            viewModel.onOpenLineEditor(lineId)
+
+            viewModel.onLineEditorDiscountChange("500")
+
+            val pricing = requireNotNull(viewModel.state.value.cartLineEditor?.pricing)
+            assertThat(pricing.itemDiscount).isEqualTo(500L)
+            assertThat(viewModel.state.value.cartLines.single().itemDiscount).isEqualTo(0L)
+            assertThat(resolveLineEditorPinRequest(PinPolicy(), pricing))
+                .isEqualTo(LineEditorPinRequest.ITEM_DISCOUNT)
+
+            viewModel.onApplyLineEditor()
+
+            assertThat(viewModel.state.value.cartLines.single().itemDiscount).isEqualTo(500L)
+            assertThat(viewModel.state.value.grandTotal).isEqualTo(1_500L)
+        }
 
     @Test
     fun messageCanBeConsumed() = runTest(mainDispatcherRule.testDispatcher) {

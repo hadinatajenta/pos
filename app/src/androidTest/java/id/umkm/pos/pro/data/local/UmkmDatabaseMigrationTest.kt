@@ -31,6 +31,7 @@ class UmkmDatabaseMigrationTest {
         context.deleteDatabase(TEST_DATABASE_NAME_2_3)
         context.deleteDatabase(TEST_DATABASE_NAME_3_4)
         context.deleteDatabase(TEST_DATABASE_NAME_4_5)
+        context.deleteDatabase(TEST_DATABASE_NAME_5_6)
     }
 
 
@@ -137,6 +138,44 @@ class UmkmDatabaseMigrationTest {
         versionFive.close()
     }
 
+    @Test
+    fun migration5To6KeepsTheSecurityRowAndAddsPinStateColumnsAndTheAuditTable() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_5_6, 5).use { versionFive ->
+            versionFive.execSQL(INSERT_VERSION_FIVE_SECURITY_STORE)
+            versionFive.execSQL(INSERT_VERSION_TWO_PRODUCT)
+        }
+
+        val versionSix = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_5_6,
+            6,
+            true,
+            UmkmDatabase.MIGRATION_5_6,
+        )
+
+        versionSix.query(
+            "SELECT pin_hash, is_pin_enabled, failed_attempts, lockout_until, " +
+                "recovery_code_hash, session_role, session_unlocked_until, pin_updated_at " +
+                "FROM security_store",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.count)
+            assertEquals("legacy-pin-hash", cursor.getString(0))
+            assertEquals(0, cursor.getInt(1))
+            assertEquals(0, cursor.getInt(2))
+            assertTrue(cursor.isNull(3))
+            assertTrue(cursor.isNull(4))
+            assertTrue(cursor.isNull(5))
+            assertTrue(cursor.isNull(6))
+            assertTrue(cursor.isNull(7))
+        }
+
+        assertTableRowCount(versionSix, "security_audit_log", 0)
+        versionSix.execSQL(INSERT_SECURITY_AUDIT_ROW)
+        assertTableRowCount(versionSix, "security_audit_log", 1)
+        assertTableRowCount(versionSix, "products", 1)
+        versionSix.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -156,6 +195,18 @@ class UmkmDatabaseMigrationTest {
         const val TEST_DATABASE_NAME_3_4 = "umkm-migration-3-4.db"
 
         const val TEST_DATABASE_NAME_4_5 = "umkm-migration-4-5.db"
+
+        const val TEST_DATABASE_NAME_5_6 = "umkm-migration-5-6.db"
+
+        const val INSERT_VERSION_FIVE_SECURITY_STORE =
+            "INSERT INTO security_store " +
+                "(id, pin_hash, recovery_answer_hash, is_pin_enabled) " +
+                "VALUES (1, 'legacy-pin-hash', NULL, 0)"
+
+        const val INSERT_SECURITY_AUDIT_ROW =
+            "INSERT INTO security_audit_log " +
+                "(occurred_at, action_id, result, actor_label, target_type, target_id) " +
+                "VALUES (1700000000000, 'restore_backup', 'restore_reset_pin', NULL, NULL, NULL)"
 
         const val INSERT_VERSION_THREE_SETTINGS =
             "INSERT INTO app_settings " +

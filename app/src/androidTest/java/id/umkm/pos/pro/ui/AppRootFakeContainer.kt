@@ -11,6 +11,7 @@ import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
+import id.umkm.pos.pro.core.contract.PinHasher
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
@@ -41,10 +42,15 @@ import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.ReturnLine
 import id.umkm.pos.pro.core.model.ReturnRecord
 import id.umkm.pos.pro.core.model.SalesSummary
+import id.umkm.pos.pro.core.model.SecurityAuditEntry
+import id.umkm.pos.pro.core.model.SecurityCredentials
+import id.umkm.pos.pro.core.model.SecurityRole
+import id.umkm.pos.pro.core.model.SecurityState
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
 import id.umkm.pos.pro.domain.accounting.DefaultAccountingService
 import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
+import id.umkm.pos.pro.domain.security.SecurityService
 import id.umkm.pos.pro.hardware.receipt.AndroidReceiptRenderer
 import id.umkm.pos.pro.monetization.admob.NoAdsController
 import kotlinx.coroutines.flow.Flow
@@ -149,16 +155,49 @@ internal object AppRootFakeContainer : AppContainer {
     }
 
     override val securityRepository: SecurityRepository = object : SecurityRepository {
-        override suspend fun isPinEnabled(): Boolean = false
+        override fun observeState(): Flow<SecurityState> = flowOf(SecurityState())
 
-        override suspend fun setPin(pinHash: String, recoveryAnswerHash: String) = Unit
+        override suspend fun getState(): SecurityState = SecurityState()
 
-        override suspend fun clearPin() = Unit
+        override suspend fun getCredentials(): SecurityCredentials = SecurityCredentials(null, null)
 
-        override suspend fun verifyPin(pinHash: String): Boolean = false
+        override suspend fun saveCredentials(
+            pinHash: String,
+            recoveryCodeHash: String,
+            pinUpdatedAtMillis: Long,
+            audit: SecurityAuditEntry?,
+        ) = Unit
 
-        override suspend fun verifyRecoveryAnswer(recoveryAnswerHash: String): Boolean = false
+        override suspend fun clearCredentials(audit: SecurityAuditEntry?) = Unit
+
+        override suspend fun recordAttempt(
+            failedAttempts: Int,
+            lockoutUntilMillis: Long?,
+            audit: SecurityAuditEntry?,
+        ) = Unit
+
+        override suspend fun updateSession(role: SecurityRole?, unlockedUntilMillis: Long?) = Unit
+
+        override suspend fun appendAudit(entry: SecurityAuditEntry) = Unit
+
+        override suspend fun recentAudit(limit: Int): List<SecurityAuditEntry> = emptyList()
+
+        override suspend fun trimAudit(keep: Int) = Unit
     }
+
+    override val pinHasher: PinHasher = object : PinHasher {
+        override fun hash(secret: String): String = secret
+
+        override fun verify(secret: String, encodedHash: String): Boolean = secret == encodedHash
+    }
+
+    override val securityService: SecurityService = SecurityService(
+        securityRepository = securityRepository,
+        pinHasher = pinHasher,
+        clock = object : Clock {
+            override fun nowMillis(): Long = 0L
+        },
+    )
 
     override val settingsRepository: SettingsRepository = object : SettingsRepository {
         override fun observeSettings(): Flow<AppSettings> = settings

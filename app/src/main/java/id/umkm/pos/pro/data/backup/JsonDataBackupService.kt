@@ -13,6 +13,8 @@ import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.BackupImportSummary
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.DataBackupService
+import id.umkm.pos.pro.core.model.CriticalAction
+import id.umkm.pos.pro.core.model.SecurityAuditResult
 import id.umkm.pos.pro.data.file.BinarySink
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import kotlinx.coroutines.CancellationException
@@ -101,13 +103,41 @@ class JsonDataBackupService(
                     }
                     rows.size
                 }
+                resetSecurityAfterRestore(writableDatabase)
             }
-            AppResult.Success(BackupImportSummary(tableRowCounts))
+            AppResult.Success(
+                BackupImportSummary(
+                    tableRowCounts = tableRowCounts,
+                    securityResetFromBackup = true,
+                    ignoredSecurityData = payload.tables.containsKey(BackupTables.SECURITY_TABLE),
+                ),
+            )
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Exception) {
             AppResult.Failure(AppError.Storage(error.message ?: "failed to restore backup data"))
         }
+    }
+
+    private fun resetSecurityAfterRestore(database: SupportSQLiteDatabase) {
+        database.execSQL("DELETE FROM `${BackupTables.SECURITY_TABLE}`")
+        database.execSQL(
+            "INSERT INTO `${BackupTables.SECURITY_TABLE}` " +
+                "(`id`, `pin_hash`, `recovery_answer_hash`, `is_pin_enabled`, `recovery_code_hash`, " +
+                "`failed_attempts`, `lockout_until`, `session_role`, `session_unlocked_until`, " +
+                "`pin_updated_at`) VALUES (1, NULL, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL)",
+        )
+        database.execSQL("UPDATE `app_settings` SET `is_pin_enabled` = 0 WHERE id = 1")
+        database.execSQL(
+            "INSERT INTO `${BackupTables.SECURITY_AUDIT_TABLE}` " +
+                "(`occurred_at`, `action_id`, `result`, `actor_label`, `target_type`, `target_id`) " +
+                "VALUES (?, ?, ?, NULL, NULL, NULL)",
+            arrayOf(
+                clock.nowMillis(),
+                CriticalAction.RESTORE_BACKUP.id,
+                SecurityAuditResult.RESTORE_RESET_PIN.storageKey,
+            ),
+        )
     }
 
     private suspend fun readSourceText(sourceUri: String): String = withContext(Dispatchers.IO) {

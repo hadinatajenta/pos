@@ -14,6 +14,7 @@ import id.umkm.pos.pro.data.local.dao.InvoiceCounterDao
 import id.umkm.pos.pro.data.local.dao.ProductDao
 import id.umkm.pos.pro.data.local.dao.ReportDao
 import id.umkm.pos.pro.data.local.dao.ReturnDao
+import id.umkm.pos.pro.data.local.dao.SecurityAuditDao
 import id.umkm.pos.pro.data.local.dao.SecurityDao
 import id.umkm.pos.pro.data.local.dao.SettingsDao
 import id.umkm.pos.pro.data.local.dao.ShiftDao
@@ -26,6 +27,7 @@ import id.umkm.pos.pro.data.local.entity.ProductEntity
 import id.umkm.pos.pro.data.local.entity.ProductUnitEntity
 import id.umkm.pos.pro.data.local.entity.ReturnEntity
 import id.umkm.pos.pro.data.local.entity.ReturnLineEntity
+import id.umkm.pos.pro.data.local.entity.SecurityAuditEntity
 import id.umkm.pos.pro.data.local.entity.SecurityStoreEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
 import id.umkm.pos.pro.data.local.entity.TransactionEntity
@@ -41,12 +43,13 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         DebtPaymentEntity::class,
         CashierShiftEntity::class,
         SecurityStoreEntity::class,
+        SecurityAuditEntity::class,
         SettingsEntity::class,
         ReturnEntity::class,
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -63,6 +66,8 @@ abstract class UmkmDatabase : RoomDatabase() {
     abstract fun shiftDao(): ShiftDao
 
     abstract fun securityDao(): SecurityDao
+
+    abstract fun securityAuditDao(): SecurityAuditDao
 
     abstract fun settingsDao(): SettingsDao
 
@@ -106,10 +111,36 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE security_store ADD COLUMN recovery_code_hash TEXT")
+                db.execSQL(
+                    "ALTER TABLE security_store ADD COLUMN failed_attempts INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL("ALTER TABLE security_store ADD COLUMN lockout_until INTEGER")
+                db.execSQL("ALTER TABLE security_store ADD COLUMN session_role TEXT")
+                db.execSQL("ALTER TABLE security_store ADD COLUMN session_unlocked_until INTEGER")
+                db.execSQL("ALTER TABLE security_store ADD COLUMN pin_updated_at INTEGER")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `security_audit_log` " +
+                        "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`occurred_at` INTEGER NOT NULL, `action_id` TEXT NOT NULL, " +
+                        "`result` TEXT NOT NULL, `actor_label` TEXT, `target_type` TEXT, " +
+                        "`target_id` TEXT)",
+                )
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                )
                 .addCallback(SingletonRowsCallback)
                 .build()
 
@@ -123,8 +154,10 @@ abstract class UmkmDatabase : RoomDatabase() {
                 )
                 db.execSQL(
                     "INSERT INTO security_store " +
-                        "(id, pin_hash, recovery_answer_hash, is_pin_enabled) " +
-                        "VALUES (1, NULL, NULL, 0)",
+                        "(id, pin_hash, recovery_answer_hash, is_pin_enabled, recovery_code_hash, " +
+                        "failed_attempts, lockout_until, session_role, session_unlocked_until, " +
+                        "pin_updated_at) " +
+                        "VALUES (1, NULL, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL)",
                 )
             }
         }

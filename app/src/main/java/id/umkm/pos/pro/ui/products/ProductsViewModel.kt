@@ -358,6 +358,12 @@ private fun Product.toForm(unit: ProductUnit?): ProductFormState = ProductFormSt
     wholesaleMinQty = unit?.wholesaleMinQty?.toString().orEmpty(),
     wholesalePrice = unit?.wholesalePrice?.toString().orEmpty(),
     imagePath = imagePath,
+    persistedPricing = ProductPricingSnapshot(
+        baseHpp = baseHpp,
+        basePrice = basePrice,
+        unitPrice = unit?.unitPrice,
+        wholesalePrice = unit?.wholesalePrice,
+    ),
     persistedImagePath = imagePath,
 )
 

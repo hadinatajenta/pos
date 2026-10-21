@@ -36,12 +36,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.rememberImagePicker
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.components.rememberFileImageBitmap
+import id.umkm.pos.pro.ui.security.SecurityGate
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -60,6 +63,7 @@ internal fun SettingsQrisScreen(
     val palette = LocalPosSemanticPalette.current
     val pickQrisImage = rememberImagePicker(onImagePicked = actions.onQrisImagePicked)
     val isConfigured = state.isQrisConfigured
+    val gate = rememberSecurityGate()
 
     Column(modifier = modifier.fillMaxSize()) {
         ScreenHeader(
@@ -101,6 +105,7 @@ internal fun SettingsQrisScreen(
                         state = state,
                         actions = actions,
                         onPickImage = pickQrisImage,
+                        gate = gate,
                     )
                 } else {
                     QrisNotConfiguredUploadZone(
@@ -225,6 +230,7 @@ private fun QrisConfiguredContent(
     state: SettingsUiState,
     actions: SettingsActions,
     onPickImage: () -> Unit,
+    gate: SecurityGate,
 ) {
     val palette = LocalPosSemanticPalette.current
     val strings = LocalPosStrings.current
@@ -326,7 +332,11 @@ private fun QrisConfiguredContent(
                 )
             }
             OutlinedButton(
-                onClick = actions.onRemoveQris,
+                onClick = {
+                    gate.request(CriticalAction.REMOVE_QRIS, strings.settingsQrisRemove) {
+                        actions.onRemoveQris()
+                    }
+                },
                 enabled = !state.isImportingQris,
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = palette.danger,

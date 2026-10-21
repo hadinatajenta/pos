@@ -1,5 +1,7 @@
 package id.umkm.pos.pro.core.contract
 
+import id.umkm.pos.pro.domain.security.SecurityService
+
 interface AppContainer {
     val productRepository: ProductRepository
     val productImageRepository: ProductImageRepository
@@ -8,6 +10,8 @@ interface AppContainer {
     val returnRepository: ReturnRepository
     val shiftRepository: ShiftRepository
     val securityRepository: SecurityRepository
+    val pinHasher: PinHasher
+    val securityService: SecurityService
     val settingsRepository: SettingsRepository
     val reportRepository: ReportRepository
     val priceEngine: PriceEngine

@@ -11,6 +11,10 @@ import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.core.model.ReturnLine
 import id.umkm.pos.pro.core.model.ReturnRecord
 import id.umkm.pos.pro.core.model.SalesSummary
+import id.umkm.pos.pro.core.model.SecurityAuditEntry
+import id.umkm.pos.pro.core.model.SecurityCredentials
+import id.umkm.pos.pro.core.model.SecurityRole
+import id.umkm.pos.pro.core.model.SecurityState
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
 import kotlinx.coroutines.flow.Flow
@@ -52,11 +56,34 @@ interface ShiftRepository {
 }
 
 interface SecurityRepository {
-    suspend fun isPinEnabled(): Boolean
-    suspend fun setPin(pinHash: String, recoveryAnswerHash: String)
-    suspend fun clearPin()
-    suspend fun verifyPin(pinHash: String): Boolean
-    suspend fun verifyRecoveryAnswer(recoveryAnswerHash: String): Boolean
+    fun observeState(): Flow<SecurityState>
+
+    suspend fun getState(): SecurityState
+
+    suspend fun getCredentials(): SecurityCredentials
+
+    suspend fun saveCredentials(
+        pinHash: String,
+        recoveryCodeHash: String,
+        pinUpdatedAtMillis: Long,
+        audit: SecurityAuditEntry?,
+    )
+
+    suspend fun clearCredentials(audit: SecurityAuditEntry?)
+
+    suspend fun recordAttempt(
+        failedAttempts: Int,
+        lockoutUntilMillis: Long?,
+        audit: SecurityAuditEntry?,
+    )
+
+    suspend fun updateSession(role: SecurityRole?, unlockedUntilMillis: Long?)
+
+    suspend fun appendAudit(entry: SecurityAuditEntry)
+
+    suspend fun recentAudit(limit: Int): List<SecurityAuditEntry>
+
+    suspend fun trimAudit(keep: Int)
 }
 
 interface SettingsRepository {

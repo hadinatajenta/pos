@@ -14,6 +14,7 @@ import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.data.file.BinarySink
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import id.umkm.pos.pro.data.local.entity.ProductEntity
+import id.umkm.pos.pro.data.local.entity.SecurityStoreEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
@@ -127,6 +128,74 @@ class JsonDataBackupServiceTest {
 
         assertThat(imported).isInstanceOf(AppResult.Failure::class.java)
         assertThat((imported as AppResult.Failure).error).isInstanceOf(AppError.Validation::class.java)
+    }
+
+    @Test
+    fun theBackupCarriesNoPinMaterialAndARestoreTurnsThePinOff() = runBlocking {
+        database.securityDao().upsertSecurityStore(
+            SecurityStoreEntity(
+                pinHash = "pbkdf2\$sha256\$100000\$aa\$bb",
+                recoveryAnswerHash = null,
+                isPinEnabled = true,
+                recoveryCodeHash = "pbkdf2\$sha256\$100000\$cc\$dd",
+            ),
+        )
+        database.settingsDao().upsertSettings(settings(storeName = "Toko Berkah").copy(isPinEnabled = true))
+
+        val exported = backupService.exportJson("pin-backup.json")
+
+        assertThat(exported).isInstanceOf(AppResult.Success::class.java)
+        val payloadText = backupFile.readText()
+        assertThat(payloadText).doesNotContain("security_store")
+        assertThat(payloadText).doesNotContain("security_audit_log")
+        assertThat(payloadText).doesNotContain("pin_hash")
+        assertThat(payloadText).doesNotContain("recovery_code_hash")
+
+        val imported = backupService.importJson(Uri.fromFile(backupFile).toString())
+
+        assertThat(imported).isInstanceOf(AppResult.Success::class.java)
+        assertThat((imported as AppResult.Success<BackupImportSummary>).value.securityResetFromBackup)
+            .isTrue()
+        assertThat(imported.value.ignoredSecurityData).isFalse()
+
+        val store = database.securityDao().getSecurityStore()
+        assertThat(store?.isPinEnabled).isFalse()
+        assertThat(store?.pinHash).isNull()
+        assertThat(store?.recoveryCodeHash).isNull()
+        assertThat(store?.sessionRole).isNull()
+        assertThat(database.settingsDao().getSettings()?.isPinEnabled).isFalse()
+        assertThat(database.securityAuditDao().recent(10).map { entry -> entry.result })
+            .contains("restore_reset_pin")
+    }
+
+    @Test
+    fun aLegacyBackupThatStillCarriesTheSecurityTableIsIgnoredRatherThanImported() = runBlocking {
+        database.securityDao().upsertSecurityStore(
+            SecurityStoreEntity(
+                pinHash = "current-device-hash",
+                recoveryAnswerHash = null,
+                isPinEnabled = true,
+            ),
+        )
+        val tables = BackupTables.insertOrder
+            .associateWith { emptyList<Map<String, JsonPrimitive>>() }
+            .toMutableMap()
+        tables[BackupTables.SECURITY_TABLE] = listOf(mapOf("id" to JsonPrimitive(1L)))
+        val legacyPayload = BackupPayload(
+            formatVersion = BackupTables.FORMAT_VERSION,
+            schemaVersion = database.openHelper.readableDatabase.version,
+            exportedAt = 0L,
+            tables = tables,
+        )
+        backupFile.writeText(BackupJsonCodec.encode(legacyPayload))
+
+        val imported = backupService.importJson(Uri.fromFile(backupFile).toString())
+
+        assertThat(imported).isInstanceOf(AppResult.Success::class.java)
+        val summary = (imported as AppResult.Success<BackupImportSummary>).value
+        assertThat(summary.ignoredSecurityData).isTrue()
+        assertThat(database.securityDao().getSecurityStore()?.isPinEnabled).isFalse()
+        assertThat(database.securityDao().getSecurityStore()?.pinHash).isNull()
     }
 
     private fun product(name: String, price: Long): ProductEntity = ProductEntity(

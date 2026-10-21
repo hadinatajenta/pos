@@ -56,6 +56,7 @@ import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.components.SecondaryTextAction
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosShapes
@@ -396,6 +397,17 @@ internal fun CashierLineEditorSheet(
     actions: CashierActions,
 ) {
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
+    val applyLineEditor: () -> Unit = {
+        val pinRequest = resolveLineEditorPinRequest(gate.policy(), editor.pricing)
+        if (pinRequest == null) {
+            actions.onApplyLineEditor()
+        } else {
+            gate.request(pinRequest.action, pinRequest.label(strings)) {
+                actions.onApplyLineEditor()
+            }
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = actions.onCloseLineEditor,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -452,7 +464,7 @@ internal fun CashierLineEditorSheet(
                     Text(text = strings.actionCancel)
                 }
                 Button(
-                    onClick = actions.onApplyLineEditor,
+                    onClick = applyLineEditor,
                     modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
                 ) {
                     Text(text = strings.cashierApply, style = LocalAppTextStyles.current.buttonLabel)

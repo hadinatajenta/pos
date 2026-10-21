@@ -66,6 +66,9 @@ import id.umkm.pos.pro.ui.common.rememberReceiptSharer
 import id.umkm.pos.pro.ui.more.MoreRoute
 import id.umkm.pos.pro.ui.navigation.PosDestination
 import id.umkm.pos.pro.ui.products.ProductsRoute
+import id.umkm.pos.pro.ui.security.LocalSecurityGate
+import id.umkm.pos.pro.ui.security.SecurityGateHost
+import id.umkm.pos.pro.ui.security.rememberSecurityGateController
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -157,10 +160,15 @@ fun AppRoot(modifier: Modifier = Modifier) {
             )
         }
 
+        val securityGate = rememberSecurityGateController(
+            securityService = container.securityService,
+            clock = container.clock,
+        )
         CompositionLocalProvider(
             LocalConnectivityMonitor provides connectivityMonitor,
             LocalCurrentLanguage provides currentLanguage,
             LocalPosStrings provides posStrings,
+            LocalSecurityGate provides securityGate,
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
@@ -196,6 +204,8 @@ fun AppRoot(modifier: Modifier = Modifier) {
                         )
                     }
                 }
+
+                SecurityGateHost(securityGate)
             }
         }
     }

@@ -208,10 +208,9 @@ class CashierViewModel(
         val product = productCache[draft.productId] ?: return
         _state.update { current ->
             current.copy(
-                cartLineEditor = CartLineEditorState(
-                    lineId = draft.lineId,
-                    productName = product.name,
-                    unitOptions = unitsCache[draft.productId].orEmpty(),
+                cartLineEditor = lineEditorState(
+                    draft = draft,
+                    product = product,
                     selectedUnitId = draft.unitId,
                     negotiatedUnitPriceInput = draft.negotiatedUnitPrice?.toString().orEmpty(),
                     itemDiscountInput = draft.itemDiscount.takeIf { it > 0L }?.toString().orEmpty(),
@@ -226,25 +225,20 @@ class CashierViewModel(
     }
 
     fun onLineEditorUnitChange(unitId: Long?) {
-        _state.update { current ->
-            val editor = current.cartLineEditor ?: return@update current
-            current.copy(cartLineEditor = editor.copy(selectedUnitId = unitId, validationMessage = null))
-        }
+        updateLineEditor { editor -> editor.copy(selectedUnitId = unitId, validationMessage = null) }
     }
 
     fun onLineEditorPriceChange(value: String) {
         val digits = value.filter { it.isDigit() }
-        _state.update { current ->
-            val editor = current.cartLineEditor ?: return@update current
-            current.copy(cartLineEditor = editor.copy(negotiatedUnitPriceInput = digits, validationMessage = null))
+        updateLineEditor { editor ->
+            editor.copy(negotiatedUnitPriceInput = digits, validationMessage = null)
         }
     }
 
     fun onLineEditorDiscountChange(value: String) {
         val digits = value.filter { it.isDigit() }
-        _state.update { current ->
-            val editor = current.cartLineEditor ?: return@update current
-            current.copy(cartLineEditor = editor.copy(itemDiscountInput = digits, validationMessage = null))
+        updateLineEditor { editor ->
+            editor.copy(itemDiscountInput = digits, validationMessage = null)
         }
     }
 
@@ -852,6 +846,70 @@ class CashierViewModel(
             current.copy(cartLineEditor = editor.copy(validationMessage = message))
         }
     }
+
+    private fun lineEditorState(
+        draft: CartLineDraft,
+        product: Product,
+        selectedUnitId: Long?,
+        negotiatedUnitPriceInput: String,
+        itemDiscountInput: String,
+        validationMessage: UiText?,
+    ): CartLineEditorState = CartLineEditorState(
+        lineId = draft.lineId,
+        productName = product.name,
+        unitOptions = unitsCache[draft.productId].orEmpty(),
+        selectedUnitId = selectedUnitId,
+        negotiatedUnitPriceInput = negotiatedUnitPriceInput,
+        itemDiscountInput = itemDiscountInput,
+        validationMessage = validationMessage,
+        pricing = lineEditorPricing(
+            draft = draft,
+            product = product,
+            selectedUnitId = selectedUnitId,
+            negotiatedUnitPriceInput = negotiatedUnitPriceInput,
+            itemDiscountInput = itemDiscountInput,
+        ),
+    )
+
+    private fun updateLineEditor(transform: (CartLineEditorState) -> CartLineEditorState) {
+        _state.update { current ->
+            val editor = current.cartLineEditor ?: return@update current
+            val updated = transform(editor)
+            val draft = cartDrafts.value.firstOrNull { it.lineId == updated.lineId }
+            val product = draft?.let { productCache[it.productId] }
+            if (draft == null || product == null) {
+                current.copy(cartLineEditor = updated)
+            } else {
+                current.copy(
+                    cartLineEditor = updated.copy(
+                        pricing = lineEditorPricing(
+                            draft = draft,
+                            product = product,
+                            selectedUnitId = updated.selectedUnitId,
+                            negotiatedUnitPriceInput = updated.negotiatedUnitPriceInput,
+                            itemDiscountInput = updated.itemDiscountInput,
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun lineEditorPricing(
+        draft: CartLineDraft,
+        product: Product,
+        selectedUnitId: Long?,
+        negotiatedUnitPriceInput: String,
+        itemDiscountInput: String,
+    ): CartLineEditorPricing = buildLineEditorPricing(
+        quantity = draft.quantity,
+        selectedUnitId = selectedUnitId,
+        negotiatedUnitPrice = negotiatedUnitPriceInput.trim().toLongOrNull(),
+        itemDiscount = itemDiscountInput.trim().toLongOrNull() ?: 0L,
+        product = product,
+        units = unitsCache[draft.productId].orEmpty(),
+        priceEngine = priceEngine,
+    )
 
     private companion object {
         const val QUANTITY_STEP = 1.0

@@ -18,7 +18,7 @@ or wiring does not · **MISSING** = nothing in the code.
 | 2 | Thermal printer setup | DONE (Bluetooth only wired) |
 | 3 | Barcode scanner | DONE (camera and hardware HID) |
 | 4 | Local backup and restore (JSON) | DONE |
-| 5 | PIN, biometrics, offline recovery | MISSING |
+| 5 | PIN, biometrics, offline recovery | DONE (PIN, recovery code, audit and enforcement; biometrics deferred) |
 | 6 | Returns and exchanges | PARTIAL (returns DONE, exchanges MISSING) |
 | 7 | Cashier shifts | PARTIAL |
 | 8 | Receipt output | PARTIAL |
@@ -62,14 +62,50 @@ or wiring does not · **MISSING** = nothing in the code.
   the file name, the destination folder, and **Open** and **Share** actions instead of a one-line
   message.
 
+- **Light-only theme (§3.1, §5.1, §9.3, §12).** Dark mode was removed by owner decision on
+  2026-10-21 (PRD §15.1 Q12). The app now always renders the light theme, so the previous "dark
+  mode not visually verified" gap no longer applies. The change is recorded in PRD §16 revision 1.7.
+  Verified on 2026-10-21: `testDebugUnitTest` passed with 627 tests and 0 failures,
+  `assembleDebug` succeeded, and 48 instrumented tests passed on the TB321FU tablet. The TB321FU
+  tablet and the SM-S721B phone were inspected with Android night mode enabled: Kasir, Laporan,
+  Lainnya/Pengaturan, the barcode dialog, and the 135% font scale all stayed light with readable
+  system bars. Lint still reports 14 pre-existing errors unrelated to this change.
+
 ## Still open
 
-### 1. PIN, biometrics, and anti-lockout — MISSING (MVP scope)
+### 1. PIN, biometrics, and anti-lockout — DONE (PRD §6.6, §7.7)
 
-PRD §6.6, §7.7. `security_store`, `SecurityRepository`, and the `isPinEnabled` flag exist, but
-nothing writes or verifies a PIN: no `ui/security` package, no hashing, no biometric prompt, no
-offline recovery code, and no enforcement on sensitive actions such as deleting history or viewing
-HPP. `HashComparison.matchesHash` only compares strings; no PIN hash is produced anywhere.
+Implemented on 2026-10-20 in two passes. The data and policy layer: `core/model/Security.kt`
+(roles, the `CriticalAction` registry, security state, audit types), `core/contract/Security.kt`
+(`PinHasher`), an extended `SecurityRepository`, database version 6 with `MIGRATION_5_6` adding the
+PIN state columns and the `security_audit_log` table, `Pbkdf2PinHasher` (salted PBKDF2 that stores
+the algorithm and iteration count inside the encoded value, with a SHA-1 fallback for API 23–25),
+`PinPolicy` (role per action, discount and below-cost thresholds, lockout windows, session length),
+`RecoveryCodeGenerator`, and `SecurityService` (unlock, enable, change, disable, recovery-code
+rotation, session locking, audit). The JSON backup excludes `security_store` and
+`security_audit_log`, and a restore forces the PIN off and writes `restore_reset_pin` to the audit
+log.
+
+The UI and enforcement layer: `ui/security/SecurityGate.kt` with one global PIN dialog mounted in
+`AppRoot` (a single dialog, never stacked), `SecurityRoute`/`SecurityViewModel`/`SecurityScreen` for
+enable, change, disable, recovery-code regeneration, the one-time recovery code with a mandatory
+"code saved" acknowledgement and PDF printing through the Android Print Framework, and a read-only
+audit history. The gate is applied to profit/HPP viewing (values masked until elevated), HPP and
+price editing, item discounts above 10% or Rp 20.000, negotiated prices below cost, refund or
+return, CSV/XLSX export, JSON backup export, backup restore, product deletion, tax and rounding,
+QRIS removal, and debt payments. Manager-level actions accept a five-minute session; owner-level
+actions always prompt. With the PIN off, every flow is unchanged.
+
+Verified: `testDebugUnitTest` 627 tests / 0 failures, `assembleDebug` succeeds, and 48 instrumented
+tests pass on a physical tablet (including the 5→6 migration and a backup round trip that proves no
+PIN material is exported and that a restore turns the PIN off). On device: PIN enable, one-time
+recovery code, wrong-PIN feedback, correct-PIN unlock, profit/HPP masking, the owner-level gate
+prompting inside an open session, recovery code disabling the PIN, and the audit history showing
+every decision. A 135% font check and the compact phone layout were inspected; both are clean.
+
+**Remaining, deliberately deferred:** biometric recovery (PRD §15.1 Q3), per-user PINs and role
+management (Q4), and the shift/void scopes (Q5). The print dialog itself was not exercised on a
+device.
 
 ### 2. Barcode scanning — DONE (camera and hardware HID, read-rate gate pending)
 
@@ -170,6 +206,14 @@ update the PRD if so.
 | `lintRelease` | **Fails**: 11 errors, 38 warnings |
 | Release smoke test | Release APK installs and starts on a tablet; report export, JSON backup export/import, and the privacy policy link were exercised on a physical phone |
 
+### Test count correction (2026-10-20)
+
+The `testDebugUnitTest` figure in the table above (469 tests, 62 classes) predates the barcode
+stage-2 work and is not reproducible from the source tree. Counting annotation occurrences on
+2026-10-20 gives **505 `@Test` in 66 files** under `app/src/test/` and **45 `@Test` in 10 files**
+under `app/src/androidTest/`. The suite has not been re-run since, so no pass count is claimed
+here. Reference: `docs/security/prd-code-reconciliation.md` R-51.
+
 ### Lint errors
 
 - 9 × `NewApi` in `data/image/ImageDecoding.kt`. The code is guarded by
@@ -191,8 +235,9 @@ to switch. Wait for the main navigation to exist (for example
 1. **Lint to green and stabilize `PosAppTest`**: a release cannot ship with a red gate.
 2. **Hardware verification**: the Bluetooth printer, and a physical HID scanner on the new
    Pemindai Barcode test area.
-3. **PIN, biometrics, and recovery code**: protects sensitive actions; must include the offline
-   recovery path.
+3. **PIN UI and enforcement** — done on 2026-10-20. The next useful step is a hands-on pass on the
+   owner's device: print the recovery code to PDF, run five wrong PINs to see the lockout, and
+   restore a backup through the file picker.
 4. **Barcode scanning**: both stages are in. What remains is the read-rate gate on real product
    labels with a physical device aimed at a barcode.
 6. **PNG receipt and image share**: small, high value for WhatsApp receipts.

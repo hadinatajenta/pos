@@ -28,10 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
+import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -46,6 +48,7 @@ internal fun SettingsStoreScreen(
 ) {
     val settings = state.settings ?: return
     val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
     val initialStoreName = settings.storeName.ifBlank { strings.moreDefaultStoreName }
     var storeName by rememberSaveable(settings.storeName) { mutableStateOf(initialStoreName) }
     var cashierName by rememberSaveable(settings.cashierName) { mutableStateOf(settings.cashierName.orEmpty()) }
@@ -181,12 +184,29 @@ internal fun SettingsStoreScreen(
                     iconRes = R.drawable.ic_check,
                     enabled = storeName.isNotBlank() && hasChanges,
                     onClick = {
-                        actions.onSaveStoreSettings(
-                            storeName,
-                            cashierName,
-                            parsedTax,
-                            roundingIncrement,
+                        val saveStoreSettings = {
+                            actions.onSaveStoreSettings(
+                                storeName,
+                                cashierName,
+                                parsedTax,
+                                roundingIncrement,
+                            )
+                        }
+                        val changesTaxOrRounding = requiresTaxOrRoundingGate(
+                            storedTaxRatePercent = settings.taxRatePercent,
+                            storedRoundingIncrement = settings.roundingIncrement,
+                            taxRatePercent = parsedTax,
+                            roundingIncrement = roundingIncrement,
                         )
+                        if (changesTaxOrRounding) {
+                            gate.request(
+                                CriticalAction.CHANGE_TAX_AND_ROUNDING,
+                                strings.settingsSaveStore,
+                                saveStoreSettings,
+                            )
+                        } else {
+                            saveStoreSettings()
+                        }
                     },
                 )
             }
