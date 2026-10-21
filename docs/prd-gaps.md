@@ -73,8 +73,8 @@ or wiring does not · **MISSING** = nothing in the code.
 - **Launcher icon (§5.2).** The Android launcher icon now uses the green-and-white P mark from
   `newicon.jpeg`. The adaptive foreground, monochrome silhouette, square and round mipmaps at 48,
   72, 96, 144, and 192 px, and the adaptive background `#FCFFFE` were regenerated from that source.
-  The P was scaled down to about 55% of the icon height so it has more breathing room from the
-  border.
+  The P was scaled down to about 48% of the icon height, centered in the white field, so it has
+  more breathing room from the border.
   Verified on 2026-10-21: `assembleDebug` and `assembleRelease` succeeded, the release APK keeps the
   adaptive, monochrome, and every legacy icon asset after resource shrinking, and the adaptive icon
   rendered correctly on the SM-S721B app-info screen. Legacy icons were not exercised on API 23–25
