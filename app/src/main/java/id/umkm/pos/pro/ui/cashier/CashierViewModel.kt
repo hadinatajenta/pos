@@ -13,6 +13,7 @@ import id.umkm.pos.pro.core.contract.ReceiptPrinter
 import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SettingsRepository
+import id.umkm.pos.pro.core.contract.ShiftRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.AppLanguage
 import id.umkm.pos.pro.core.model.CartLine
@@ -72,6 +73,7 @@ class CashierViewModel(
     private val receiptPrinter: ReceiptPrinter,
     private val receiptRenderer: ReceiptRenderer,
     private val scannerInput: ScannerInput,
+    private val shiftRepository: ShiftRepository? = null,
     private val clock: Clock = SystemClock,
 ) : ViewModel() {
 
@@ -89,7 +91,7 @@ class CashierViewModel(
 
     private var pricingContext = PricingContext()
     private var storeName = ""
-    private var cashierName: String? = null
+    private var fallbackCashierName: String? = null
     private var currentStrings: PosStrings = IdStrings
     private var nextLineNumber = 1
     private var pendingReceiptDocument: ReceiptDocument? = null
@@ -99,6 +101,7 @@ class CashierViewModel(
         observeCatalog()
         observeCustomers()
         observeScanEvents()
+        observeActiveShift()
     }
 
     fun onSearchQueryChange(query: String) {
@@ -290,6 +293,10 @@ class CashierViewModel(
 
     fun onOpenPaymentSheet() {
         if (cartDrafts.value.isEmpty()) return
+        if (shiftRepository != null && _state.value.activeShift == null) {
+            setMessage(UiText.from { strings -> strings.cashierShiftRequired })
+            return
+        }
         _state.update {
             it.copy(
                 isPaymentSheetVisible = true,
@@ -393,6 +400,10 @@ class CashierViewModel(
         val pricedCart = _state.value.pricedCart ?: return
         val drafts = cartDrafts.value
         if (drafts.isEmpty() || _state.value.isSubmitting) return
+        if (shiftRepository != null && _state.value.activeShift == null) {
+            _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierShiftRequired }) }
+            return
+        }
 
         val draft = _state.value.paymentDraft
         val paidAmount = when (val resolution = resolvePaidAmount(draft, pricedCart.grandTotal)) {
@@ -427,6 +438,7 @@ class CashierViewModel(
             taxRatePercent = pricingContext.taxRatePercent,
             roundingIncrement = pricingContext.roundingIncrement,
             notes = null,
+            cashierName = _state.value.activeShift?.cashierName ?: fallbackCashierName,
         )
 
         viewModelScope.launch {
@@ -479,7 +491,7 @@ class CashierViewModel(
         viewModelScope.launch {
             settingsRepository.observeSettings().collect { settings ->
                 storeName = settings.storeName
-                cashierName = settings.cashierName
+                fallbackCashierName = settings.cashierName
                 currentStrings = stringsFor(AppLanguage.fromCode(settings.languageCode))
                 pricingContext = PricingContext(
                     invoiceDiscount = 0L,
@@ -526,6 +538,15 @@ class CashierViewModel(
     private fun observeScanEvents() {
         viewModelScope.launch {
             scannerInput.scanEvents.collect { scanEvent -> onScannedCode(scanEvent.code) }
+        }
+    }
+
+    private fun observeActiveShift() {
+        val repository = shiftRepository ?: return
+        viewModelScope.launch {
+            repository.observeActiveShift().collect { shift ->
+                _state.update { current -> current.copy(activeShift = shift) }
+            }
         }
     }
 
@@ -812,7 +833,7 @@ class CashierViewModel(
             storeName = storeName,
             invoiceNo = result.invoiceNo,
             createdAtLabel = formatDateTime(clock.nowMillis(), currentStrings),
-            cashierName = cashierName,
+            cashierName = _state.value.activeShift?.cashierName ?: fallbackCashierName,
             customerName = state.selectedCustomerName,
             paymentMethodLabel = paymentMethodLabel(result.allocation.paymentMethod, currentStrings),
             items = pricedCart.lines.map { pricedLine ->

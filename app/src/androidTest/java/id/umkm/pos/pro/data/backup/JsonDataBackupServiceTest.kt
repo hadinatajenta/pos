@@ -11,12 +11,18 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.BackupImportSummary
 import id.umkm.pos.pro.core.contract.Clock
+import id.umkm.pos.pro.core.model.PaymentMethod
+import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.data.file.BinarySink
 import id.umkm.pos.pro.data.local.UmkmDatabase
+import id.umkm.pos.pro.data.local.entity.CashierShiftEntity
 import id.umkm.pos.pro.data.local.entity.ProductEntity
 import id.umkm.pos.pro.data.local.entity.SecurityStoreEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
+import id.umkm.pos.pro.data.local.entity.TransactionEntity
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Before
@@ -197,6 +203,112 @@ class JsonDataBackupServiceTest {
         assertThat(database.securityDao().getSecurityStore()?.isPinEnabled).isFalse()
         assertThat(database.securityDao().getSecurityStore()?.pinHash).isNull()
     }
+
+    @Test
+    fun exportThenImportPreservesCashierShiftsAndTransactionCashierNames() = runBlocking {
+        val shiftId = database.shiftDao().insertShift(
+            CashierShiftEntity(
+                cashierName = "Sari",
+                openedAt = 1_700_000_000_000L,
+                closedAt = 1_700_003_600_000L,
+                startingCash = 100_000L,
+                expectedEndingCash = 450_000L,
+                actualEndingCash = 445_000L,
+            ),
+        )
+        val transactionId = database.transactionDao().insertTransaction(
+            transaction(invoiceNo = "INV-SHIFT-1", cashierName = "Sari"),
+        )
+
+        val exported = backupService.exportJson("shift-round-trip.json")
+
+        assertThat(exported).isInstanceOf(AppResult.Success::class.java)
+        database.openHelper.writableDatabase.delete("cashier_shifts", null, null)
+        database.openHelper.writableDatabase.delete("transactions", null, null)
+
+        val imported = backupService.importJson(Uri.fromFile(backupFile).toString())
+
+        assertThat(imported).isInstanceOf(AppResult.Success::class.java)
+        val restoredShift = database.shiftDao().getShift(shiftId)
+        assertThat(restoredShift?.cashierName).isEqualTo("Sari")
+        assertThat(restoredShift?.openedAt).isEqualTo(1_700_000_000_000L)
+        assertThat(restoredShift?.closedAt).isEqualTo(1_700_003_600_000L)
+        assertThat(restoredShift?.startingCash).isEqualTo(100_000L)
+        assertThat(restoredShift?.expectedEndingCash).isEqualTo(450_000L)
+        assertThat(restoredShift?.actualEndingCash).isEqualTo(445_000L)
+
+        val restoredTransaction = database.transactionDao().getTransaction(transactionId)
+        assertThat(restoredTransaction?.invoiceNo).isEqualTo("INV-SHIFT-1")
+        assertThat(restoredTransaction?.cashierName).isEqualTo("Sari")
+    }
+
+    @Test
+    fun importAcceptsATransactionRowWithoutACashierNameAndStoresNull() = runBlocking {
+        val tables = BackupTables.insertOrder
+            .associateWith { emptyList<Map<String, JsonElement>>() }
+            .toMutableMap()
+        tables["transactions"] = listOf(legacyTransactionRow())
+        val legacyPayload = BackupPayload(
+            formatVersion = BackupTables.FORMAT_VERSION,
+            schemaVersion = database.openHelper.readableDatabase.version,
+            exportedAt = 0L,
+            tables = tables,
+        )
+        backupFile.writeText(BackupJsonCodec.encode(legacyPayload))
+
+        val imported = backupService.importJson(Uri.fromFile(backupFile).toString())
+
+        assertThat(imported).isInstanceOf(AppResult.Success::class.java)
+        val restoredTransaction = database.transactionDao().getTransaction(1L)
+        assertThat(restoredTransaction?.invoiceNo).isEqualTo("INV-OLD-FORMAT")
+        assertThat(restoredTransaction?.cashierName).isNull()
+    }
+
+    private fun transaction(invoiceNo: String, cashierName: String?): TransactionEntity = TransactionEntity(
+        invoiceNo = invoiceNo,
+        createdAt = 1_700_000_000_000L,
+        cashierId = null,
+        customerId = null,
+        subtotal = 150_000L,
+        discountTotal = 0L,
+        invoiceDiscount = 0L,
+        taxTotal = 0L,
+        rounding = 0L,
+        grandTotal = 150_000L,
+        totalHpp = 90_000L,
+        netProfit = 60_000L,
+        paymentMethod = PaymentMethod.CASH,
+        paidAmount = 150_000L,
+        changeAmount = 0L,
+        remainingDebt = 0L,
+        dueDate = null,
+        status = TransactionStatus.COMPLETED,
+        notes = null,
+        cashierName = cashierName,
+    )
+
+    private fun legacyTransactionRow(): Map<String, JsonElement> = mapOf(
+        "id" to JsonPrimitive(1L),
+        "invoice_no" to JsonPrimitive("INV-OLD-FORMAT"),
+        "created_at" to JsonPrimitive(1_700_000_000_000L),
+        "cashier_id" to JsonNull,
+        "customer_id" to JsonNull,
+        "subtotal" to JsonPrimitive(150_000L),
+        "discount_total" to JsonPrimitive(0L),
+        "invoice_discount" to JsonPrimitive(0L),
+        "tax_total" to JsonPrimitive(0L),
+        "rounding" to JsonPrimitive(0L),
+        "grand_total" to JsonPrimitive(150_000L),
+        "total_hpp" to JsonPrimitive(90_000L),
+        "net_profit" to JsonPrimitive(60_000L),
+        "payment_method" to JsonPrimitive("CASH"),
+        "paid_amount" to JsonPrimitive(150_000L),
+        "change_amount" to JsonPrimitive(0L),
+        "remaining_debt" to JsonPrimitive(0L),
+        "due_date" to JsonNull,
+        "status" to JsonPrimitive("COMPLETED"),
+        "notes" to JsonNull,
+    )
 
     private fun product(name: String, price: Long): ProductEntity = ProductEntity(
         sku = "SKU-$name",

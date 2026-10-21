@@ -20,7 +20,7 @@ or wiring does not · **MISSING** = nothing in the code.
 | 4 | Local backup and restore (JSON) | DONE |
 | 5 | PIN, biometrics, offline recovery | DONE (PIN, recovery code, audit and enforcement; biometrics deferred) |
 | 6 | Returns and exchanges | PARTIAL (returns DONE, exchanges MISSING) |
-| 7 | Cashier shifts | PARTIAL |
+| 7 | Cashier shifts | DONE |
 | 8 | Receipt output | PARTIAL |
 | 9 | Reports summary and exports | DONE |
 | 10 | Ads | PARTIAL (placeholder) |
@@ -113,8 +113,8 @@ prompting inside an open session, recovery code disabling the PIN, and the audit
 every decision. A 135% font check and the compact phone layout were inspected; both are clean.
 
 **Remaining, deliberately deferred:** biometric recovery (PRD §15.1 Q3), per-user PINs and role
-management (Q4), and the shift/void scopes (Q5). The print dialog itself was not exercised on a
-device.
+management (Q4), and transaction void (no UI exists). The print dialog itself was not exercised on
+a device.
 
 ### 2. Barcode scanning — DONE (camera and hardware HID, read-rate gate pending)
 
@@ -162,10 +162,25 @@ scanner setup first (no new dependency, no size change), then camera capture.
 PRD §7.3. `domain/pos/ReturnCorrection.kt` contains `ExchangeSettlement` and `settleExchange` with
 tests, but no UI references them. The app records returns without the exchange path.
 
-### 4. Cashier shifts — PARTIAL
+### 4. Cashier shifts — DONE (PRD §7.7, §8)
 
-PRD §8. `CashierShiftEntity` and `ShiftRepository` exist; no UI opens or closes a shift, records
-starting cash, or reconciles expected versus actual cash.
+Implemented on 2026-10-21 in `feat/switch-cashier`. The cashier header names the active cashier
+and offers **Ganti** or **Buka**; **More → Shift & Kasir** shows the active shift and its history,
+and links to the cashier for switching. The history lists the last 30 with cashier, times, starting,
+expected, and actual cash plus variance. A shift
+is required before checkout, while browsing and cart building stay available. Opening needs no PIN;
+closing, switching, and ending use the owner-level `CriticalAction.SWITCH_CASHIER` gate.
+`ShiftRepository` computes expected cash from the shift time window
+(`startingCash + cashSales + cashDebtPayments − cashRefunds`), requires confirmation for a non-zero
+variance, keeps close and open atomic, and snapshots `cashier_name` onto each transaction. Refunds
+are assumed cash because the return flow has no refund method; no `shift_id` is stored in the MVP.
+Verified on 2026-10-22: `testDebugUnitTest` 642 tests / 0 failures; `connectedDebugAndroidTest` 60
+tests on the SM-S721B (59 passed, 1 expanded-device test skipped, 0 failed); `assembleDebug` and
+`assembleRelease` succeed. Manual phone QA covered opening a shift, a cash sale updating expected
+cash to Rp 204.000, the owner-PIN gate, the non-empty-cart guard, a non-zero variance (Kurang
+Rp 5.000) requiring the checkbox, the More card/history, and the close form at 135% font. The TB321FU tablet was disconnected for the final run, so its shift UI
+was not re-checked in this pass. Lint still reports 14 pre-existing errors and no shift-specific
+findings.
 
 ### 5. Receipt output — PARTIAL
 
@@ -251,6 +266,9 @@ to switch. Wait for the main navigation to exist (for example
    labels with a physical device aimed at a barcode.
 6. **PNG receipt and image share**: small, high value for WhatsApp receipts.
 7. **Exchanges in the returns UI**: domain logic already exists.
-8. **Shift management UI**: closes the §8 data model.
+8. **Shift management UI**: shipped on 2026-10-21. Phone QA on 2026-10-22 covered open shift,
+   cash sale, expected-cash update, the owner-PIN gate, the cart guard, a non-zero variance
+   confirmation, history, and 135% font. What remains is the same pass on the tablet and a
+   completed handover after entering the owner PIN.
 9. **Google Drive backup and SQLite `.db` export**: the remaining half of §7.6.
 10. **AdMob, shelf labels, Baseline Profiles**: monetization and polish.

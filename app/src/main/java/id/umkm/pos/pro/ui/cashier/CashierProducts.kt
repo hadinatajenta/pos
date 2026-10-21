@@ -45,6 +45,7 @@ import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
+import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
@@ -94,6 +95,17 @@ internal fun CashierCatalogPane(
         ScreenHeader(
             title = strings.cashierTitle,
             supportingText = catalogSupportingText(state, strings),
+            actions = {
+                HeaderActionButton(
+                    text = if (state.activeShift == null) {
+                        strings.cashierShiftOpenAction
+                    } else {
+                        strings.cashierShiftSwitchAction
+                    },
+                    iconRes = R.drawable.ic_users,
+                    onClick = { actions.onOpenShift(state.lineCount, actions.onClearCart) },
+                )
+            },
         )
         CashierSearchField(state = state, actions = actions)
         CashierCategoryChips(state = state, actions = actions)
@@ -124,9 +136,14 @@ internal fun CashierCatalogPane(
 }
 
 private fun catalogSupportingText(state: CashierUiState, strings: PosStrings): String? {
-    val items = (state.catalog as? UiState.Success)?.data ?: return null
+    val activeShift = state.activeShift ?: return strings.cashierShiftNotOpen
+    val items = (state.catalog as? UiState.Success)?.data
     return buildString {
-        append(strings.cashierProductCount(items.size))
+        append(
+            items?.let { catalogItems ->
+                strings.cashierShiftSupporting(activeShift.cashierName, catalogItems.size)
+            } ?: activeShift.cashierName,
+        )
         state.catalogFilter.category?.let { append(" · $it") }
         if (state.catalogFilter.isAvailableOnly) {
             append(" · ${strings.cashierFilterInStockOnly}")

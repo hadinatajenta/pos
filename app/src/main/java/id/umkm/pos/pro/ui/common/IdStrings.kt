@@ -196,6 +196,76 @@ object IdStrings : PosStrings {
     override val cashierCustomerNotFound = "Pelanggan tidak ditemukan."
     override val cashierCustomerDebtChip = { value: String -> "Utang $value" }
 
+    override val cashierShiftOpenAction = "Buka"
+    override val cashierShiftSwitchAction = "Ganti"
+    override val cashierShiftNotOpen = "Shift belum dibuka"
+    override val cashierShiftSupporting = { cashierName: String, productCount: Int ->
+        "$cashierName · $productCount produk"
+    }
+    override val cashierShiftRequired = "Buka shift terlebih dahulu sebelum menerima pembayaran."
+    override val shiftOpenTitle = "Buka shift"
+    override val shiftOpenSupporting = "Tentukan kasir dan modal awal."
+    override val shiftCloseTitle = "Tutup shift"
+    override val shiftCloseSupporting = { cashierName: String -> "Kasir aktif: $cashierName" }
+    override val shiftCashierNameLabel = "Nama kasir"
+    override val shiftCashierNamePlaceholder = "Contoh: Dini"
+    override val shiftRecentCashiersLabel = "Kasir terakhir"
+    override val shiftStartingCashLabel = "Modal awal"
+    override val shiftStartingCashHint = "Uang tunai di laci saat shift dimulai."
+    override val shiftNextCashierTitle = "Kasir berikutnya"
+    override val shiftNextCashierNameLabel = "Nama kasir berikutnya"
+    override val shiftNextCashierNamePlaceholder = "Contoh: Budi"
+    override val shiftNextStartingCashLabel = "Modal awal berikutnya"
+    override val shiftNextStartingCashHint = "Uang tunai yang diserahkan ke kasir berikutnya."
+    override val shiftSummaryTitle = "Ringkasan kas"
+    override val shiftCashSalesLabel = "Penjualan tunai"
+    override val shiftCashDebtPaymentsLabel = "Pembayaran utang tunai"
+    override val shiftCashRefundsLabel = "Retur tunai"
+    override val shiftExpectedEndingCashLabel = "Perkiraan uang di laci"
+    override val shiftTransactionCountLabel = { count: Int -> "$count transaksi" }
+    override val shiftActualEndingCashLabel = "Uang aktual di laci"
+    override val shiftActualEndingCashHint = "Hitung seluruh uang tunai yang ada di laci."
+    override val shiftVarianceLabel = "Selisih"
+    override val shiftVarianceBalanced = "Pas"
+    override val shiftVarianceOver = "Lebih"
+    override val shiftVarianceShort = "Kurang"
+    override val shiftVarianceAcknowledge = "Saya sudah memeriksa selisih kas ini."
+    override val shiftSummaryLoading = "Menghitung kas..."
+    override val shiftSummaryUnavailable = "Ringkasan kas belum tersedia. Coba lagi."
+    override val shiftValueEmpty = "—"
+    override val shiftOpenSubmit = "Buka shift"
+    override val shiftCloseAndSwitch = "Tutup & Ganti"
+    override val shiftCloseOnly = "Tutup Shift Saja"
+    override val shiftValidationCashierName = "Masukkan nama kasir."
+    override val shiftValidationStartingCash = "Masukkan modal awal yang valid."
+    override val shiftValidationActualCash = "Masukkan uang aktual di laci."
+    override val shiftValidationVarianceAck = "Centang konfirmasi pemeriksaan selisih kas."
+    override val shiftValidationNextCashier = "Isi nama kasir berikutnya."
+    override val shiftValidationNextStartingCash = "Masukkan modal awal kasir berikutnya yang valid."
+    override val shiftOpenSuccess = { cashierName: String -> "Shift $cashierName dibuka." }
+    override val shiftCloseSuccess = { cashierName: String -> "Shift $cashierName ditutup." }
+    override val shiftSwitchSuccess = { closedCashier: String, nextCashier: String ->
+        "Shift $closedCashier ditutup. $nextCashier mulai bertugas."
+    }
+    override val shiftCartGuardTitle = "Keranjang belum kosong"
+    override val shiftCartGuardMessage = "Ganti kasir akan mengosongkan keranjang saat ini. Lanjutkan?"
+    override val shiftCartGuardConfirm = "Kosongkan & Ganti"
+    override val shiftHistoryTitle = "Riwayat Shift"
+    override val shiftHistoryAction = "Riwayat"
+    override val shiftHistorySubtitle = "30 shift terakhir"
+    override val shiftHistoryEmptyTitle = "Belum ada riwayat shift"
+    override val shiftHistoryEmptyHint = "Shift yang sudah dibuka dan ditutup akan muncul di sini."
+    override val shiftHistoryLoading = "Memuat riwayat shift"
+    override val shiftHistoryStatusActive = "Berjalan"
+    override val shiftHistoryStatusClosed = "Selesai"
+    override val shiftHistoryOpened = { value: String -> "Dibuka $value" }
+    override val shiftHistoryClosed = { value: String -> "Ditutup $value" }
+    override val shiftHistoryStartingCash = "Modal"
+    override val shiftHistoryExpectedCash = "Perkiraan"
+    override val shiftHistoryActualCash = "Aktual"
+    override val shiftHistoryVariance = "Selisih"
+    override val shiftHistoryLiveNote = "Perkiraan berjalan"
+
     override val paymentCash = "Tunai"
     override val paymentQris = "QRIS"
     override val paymentTransfer = "Transfer"
@@ -508,8 +578,9 @@ object IdStrings : PosStrings {
     override val settingsStoreProfileTitle = "Profil Toko & Aturan Kasir"
     override val settingsStoreNameLabel = "Nama Toko / Usaha"
     override val settingsStoreNamePlaceholder = "Contoh: Toko Berkah Jaya"
-    override val settingsCashierNameLabel = "Nama Kasir Default (Opsional)"
+    override val settingsCashierNameLabel = "Nama Kasir Cadangan (Opsional)"
     override val settingsCashierNamePlaceholder = "Contoh: Kasir Utama"
+    override val settingsCashierNameHint = "Dipakai sebagai nama kasir bila tidak ada shift aktif."
     override val settingsTaxLabel = "Pajak / PPN Transaksi (%)"
     override val settingsRoundingLabel = "Pembulatan Nominal Struk"
     override val settingsNoRounding = "Tanpa Pembulatan"
@@ -589,6 +660,10 @@ object IdStrings : PosStrings {
     override val moreDefaultStoreName = "Toko Pookie POS"
     override val moreDefaultCashierName = "Kasir Utama"
     override val moreTaxSummary = { rate: Int -> "PPN $rate%" }
+    override val moreShiftTitle = "Shift & Kasir"
+    override val moreShiftActiveSubtitle = { cashierName: String -> "Kasir aktif: $cashierName" }
+    override val moreShiftEmptySubtitle = "Belum ada shift aktif"
+    override val moreShiftExpectedCash = "Perkiraan kas"
 
     override val demoDataTitle = "Data Demo"
     override val demoDataLoad = "Muat Demo"

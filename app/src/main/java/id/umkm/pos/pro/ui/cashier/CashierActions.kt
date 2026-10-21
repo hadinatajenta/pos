@@ -1,6 +1,8 @@
 package id.umkm.pos.pro.ui.cashier
 
 import id.umkm.pos.pro.core.model.PaymentMethod
+import id.umkm.pos.pro.ui.shift.NoOpShiftLauncher
+import id.umkm.pos.pro.ui.shift.ShiftLauncher
 
 class CashierActions(
     val onSearchQueryChange: (String) -> Unit,
@@ -39,9 +41,13 @@ class CashierActions(
     val onScannedCode: (String) -> Unit = {},
     val onClearCart: () -> Unit = {},
     val onQuickCreateCustomer: (name: String, whatsapp: String) -> Unit = { _, _ -> },
+    val onOpenShift: (cartItemCount: Int, onClearCart: () -> Unit) -> Unit = { _, _ -> },
 ) {
     companion object {
-        fun from(viewModel: CashierViewModel): CashierActions = CashierActions(
+        fun from(
+            viewModel: CashierViewModel,
+            shiftLauncher: ShiftLauncher = NoOpShiftLauncher,
+        ): CashierActions = CashierActions(
             onSearchQueryChange = viewModel::onSearchQueryChange,
             onCatalogCategoryChange = viewModel::onCatalogCategoryChange,
             onCatalogAvailableOnlyChange = viewModel::onCatalogAvailableOnlyChange,
@@ -78,6 +84,7 @@ class CashierActions(
             onScannedCode = viewModel::onScannedCode,
             onClearCart = viewModel::onClearCart,
             onQuickCreateCustomer = viewModel::onQuickCreateCustomer,
+            onOpenShift = shiftLauncher::openShift,
         )
     }
 }

@@ -4,7 +4,8 @@ Source of truth for product behavior is `docs/prd.md`. This document records the
 structural decisions the orchestrator froze during Phase 0. Agents build against
 these shapes and do not change them without orchestrator approval.
 
-Current state recorded at commit `5f1bc73`, 19 October 2026.
+Current state recorded at commit `5f1bc73`, 19 October 2026. The cashier-shift section was added on
+21 October 2026 and verified on 22 October 2026.
 
 ## Layout
 
@@ -162,6 +163,34 @@ row component. On wide windows the screen is master-detail
 (`PosBreakpoints.twoPane`, 840dp); on compact windows it pushes a sub-screen with
 a back action. Feedback messages are scoped to the page that produced them and
 are consumed on navigation.
+
+## Cashier shifts
+
+Shift handover is a first-class flow: the cashier header shows the active cashier and opens,
+switches, or ends a shift. **More → Shift & Kasir** shows the active shift and links to the
+cashier for switching; it also lists the last 30 shifts.
+
+- `ShiftRepository` (`core/contract/Repositories.kt`) is the contract;
+  `ShiftRepositoryImpl` (`data/local/repository/ShiftRepositoryImpl.kt`) owns the Room work over
+  `CashierShiftEntity`, `ShiftDao`, `TransactionDao`, `DebtPaymentDao`, and `ReturnDao`.
+- `openShift` succeeds only when no shift is active. `switchShift` closes the current shift and
+  inserts the next one inside one `database.withTransaction`, so a failed handover cannot leave
+  two active shifts or silently drop the close.
+- Cash reconciliation lives in `domain/pos/ShiftReconciliation.kt`. It sums over the shift's
+  `opened_at`–`closed_at` window: CASH sales as `paid_amount − change_amount`, SPLIT and KASBON
+  deposits as `paid_amount`, CASH debt payments, and return refunds.
+  `expectedEndingCash = startingCash + cashSales + cashDebtPayments − cashRefunds`. Refunds are
+  assumed cash because the return flow has no refund-method field.
+- `CashierShift`, `ShiftCashSummary`, and `ShiftSwitchResult` (`core/model/Sales.kt`) carry the
+  closed and opened records. `shift_id` is deliberately absent from `transactions` in the MVP;
+  attribution uses the single active shift's time window. A `shift_id` belongs to phase 2.
+- `transactions.cashier_name` (schema v7, `MIGRATION_6_7`) snapshots the cashier at checkout through
+  `CheckoutUseCase`; `StoredReceiptLoader` prefers it over the current settings name, so a reprint
+  names the cashier who made the sale.
+- Closing, switching, and ending are `CriticalAction.SWITCH_CASHIER`, mapped to
+  `SecurityRole.OWNER` with `PinPolicy.alwaysPrompts`. Opening is ungated. A non-zero variance
+  requires explicit confirmation in the shift flow; the repository stores the counted cash and the
+  computed expected cash.
 
 ## Barcode scanning
 

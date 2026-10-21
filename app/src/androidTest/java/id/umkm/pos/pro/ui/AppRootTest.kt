@@ -34,6 +34,7 @@ class AppRootTest {
     @Before
     fun resetOnboardingState() {
         AppRootFakeContainer.isOnboardingCompleted = true
+        AppRootFakeContainer.resetActiveShift()
     }
 
     private fun showConstrainedAppRoot(windowWidth: Dp) {

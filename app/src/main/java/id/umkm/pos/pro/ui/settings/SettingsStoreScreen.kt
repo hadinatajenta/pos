@@ -102,6 +102,7 @@ internal fun SettingsStoreScreen(
                     onValueChange = { cashierName = it },
                     label = { Text(strings.settingsCashierNameLabel) },
                     placeholder = { Text(strings.settingsCashierNamePlaceholder) },
+                    supportingText = { Text(strings.settingsCashierNameHint) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )

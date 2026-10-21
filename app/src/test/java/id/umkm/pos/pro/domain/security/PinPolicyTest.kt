@@ -25,6 +25,12 @@ class PinPolicyTest {
     }
 
     @Test
+    fun switchingCashierRequiresTheOwnerAndAlwaysPrompts() {
+        assertThat(policy.requiredRole(CriticalAction.SWITCH_CASHIER)).isEqualTo(SecurityRole.OWNER)
+        assertThat(policy.alwaysPrompts(CriticalAction.SWITCH_CASHIER)).isTrue()
+    }
+
+    @Test
     fun everyCriticalActionDeclaresARole() {
         CriticalAction.entries.forEach { action ->
             assertThat(policy.requiredRole(action)).isNotNull()

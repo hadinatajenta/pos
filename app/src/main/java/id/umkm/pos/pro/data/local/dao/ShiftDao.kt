@@ -28,8 +28,8 @@ interface ShiftDao {
     suspend fun getShiftHistory(limit: Int): List<CashierShiftEntity>
 
     @Query(
-        "SELECT DISTINCT cashier_name FROM cashier_shifts " +
-            "ORDER BY opened_at DESC LIMIT :limit",
+        "SELECT cashier_name FROM cashier_shifts " +
+            "GROUP BY cashier_name ORDER BY MAX(opened_at) DESC LIMIT :limit",
     )
     suspend fun getRecentCashierNames(limit: Int): List<String>
 

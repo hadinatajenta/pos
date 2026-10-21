@@ -58,6 +58,7 @@ import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
+import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -133,8 +134,15 @@ internal fun CashierCartBar(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            val hasActiveShift = state.activeShift != null
             FilledTonalButton(
-                onClick = actions.onOpenPaymentSheet,
+                onClick = {
+                    if (hasActiveShift) {
+                        actions.onOpenPaymentSheet()
+                    } else {
+                        actions.onOpenShift(state.lineCount, actions.onClearCart)
+                    }
+                },
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = Color.White,
                     contentColor = PosColors.ForestGreen,
@@ -142,7 +150,7 @@ internal fun CashierCartBar(
                 contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
             ) {
                 Text(
-                    text = strings.cashierPay,
+                    text = if (hasActiveShift) strings.cashierPay else strings.cashierShiftOpenAction,
                     style = LocalAppTextStyles.current.buttonLabel,
                     maxLines = 1,
                 )
@@ -230,9 +238,24 @@ private fun CartContents(
         }
         HorizontalDivider()
         CartTotals(state = state)
+        val hasActiveShift = state.activeShift != null
+        if (!hasActiveShift) {
+            Text(
+                text = strings.cashierShiftRequired,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = LocalPosSemanticPalette.current.warningText,
+                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
+            )
+        }
         PrimaryActionButton(
-            text = strings.cashierPay,
-            onClick = actions.onOpenPaymentSheet,
+            text = if (hasActiveShift) strings.cashierPay else strings.cashierShiftOpenAction,
+            onClick = {
+                if (hasActiveShift) {
+                    actions.onOpenPaymentSheet()
+                } else {
+                    actions.onOpenShift(state.lineCount, actions.onClearCart)
+                }
+            },
             enabled = state.cartLines.isNotEmpty(),
             loading = state.isSubmitting,
             modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),

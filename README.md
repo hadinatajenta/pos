@@ -15,11 +15,21 @@ Cashier
 - Tiered wholesale pricing, negotiated price overrides, and multi-unit products
 - Payment methods: cash, QRIS, bank transfer, split payment, and customer debt (kasbon), with
   change and remaining-balance calculation
+- Shift handover: the cashier header names the active cashier and opens, switches, or ends a shift
+  with cash reconciliation; **More → Shift & Kasir** shows the active shift and its history
 - QRIS: the merchant's static payload is converted on-device into a dynamic QR with the exact
   amount; no payment gateway is involved, so payment confirmation stays manual
 - Receipt sharing as text, plus a receipt preview and test print from Settings
 - Offline by default: no account, no sign-in, and no network access (the app does not request the
   `INTERNET` permission)
+
+**Shift & cashier.** A shift is required before checkout; browsing the catalogue and building a cart
+still work without one. Opening a shift needs no PIN, while closing, switching, or ending it
+requires the owner PIN when PIN protection is enabled. Expected cash is
+`startingCash + cashSales + cashDebtPayments − cashRefunds`; refunds are assumed cash in the MVP
+because the return flow has no refund method. A non-zero variance must be confirmed before the shift
+closes. Switching requires an empty cart, otherwise **Kosongkan & Ganti** asks for confirmation.
+Each sale snapshots the cashier name, so a reprint names the cashier who made the sale.
 
 Catalogue and stock
 - Products with category, unit, cost price (HPP), selling price, tier pricing, and optional photo
@@ -56,7 +66,6 @@ Settings
 
 - **Returns exchange flow**: `ExchangeSettlement` and `settleExchange` exist with tests, but the
   returns UI does not use them.
-- **Cashier shifts**: `CashierShiftEntity` and `ShiftRepository` exist without any UI.
 - **Receipt PNG sharing**: sharing is `text/plain` only; the printed receipt does include the QRIS
   image when configured.
 - **Google Drive backup** (the JSON backup is local only), **bulk shelf-label printing**, and
@@ -121,20 +130,23 @@ are generated from it:
 
 ## Verification status
 
-Verified on 21 October 2026:
+Verified on 22 October 2026:
 
 | Check | Result |
 | --- | --- |
-| `testDebugUnitTest` | 627 tests, 0 failures |
-| `connectedDebugAndroidTest` | 48 tests pass on the Lenovo TB321FU tablet |
+| `testDebugUnitTest` | 642 tests, 0 failures |
+| `connectedDebugAndroidTest` | 60 tests on the Samsung SM-S721B (59 passed, 1 expanded-device test skipped, 0 failed) |
 | `assembleDebug` | Builds |
 | `assembleRelease` | Builds with R8 and resource shrinking; launcher assets survive shrinking |
-| `lintDebug` | 14 pre-existing errors and 56 warnings; see [docs/prd-gaps.md](docs/prd-gaps.md) |
+| `lintDebug` | 14 pre-existing errors and 57 warnings; see [docs/prd-gaps.md](docs/prd-gaps.md) |
 
-The debug APK was installed on the Lenovo TB321FU tablet and the Samsung SM-S721B phone. The
-launcher icon was checked on both devices against other white-background apps. Legacy square and
-round icons were validated statically but not exercised on API 23–25. Bluetooth printer and HID
-scanner paths have not been exercised on physical hardware.
+The shift flow was exercised manually on the SM-S721B: open shift, cash sale, expected-cash update,
+owner-PIN gate, non-empty-cart guard, non-zero variance confirmation, More card/history, and the
+close form at 135% font. The
+Lenovo TB321FU tablet was disconnected for the final shift run. The launcher icon was checked on
+both devices in the previous pass. Legacy square and round icons were validated statically but not
+exercised on API 23–25. Bluetooth printer and HID scanner paths have not been exercised on physical
+hardware.
 
 ## Demo data
 

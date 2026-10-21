@@ -19,12 +19,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import id.umkm.pos.pro.core.contract.UiState
+import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.resolveStockStatus
+import id.umkm.pos.pro.ui.shift.LocalShiftLauncher
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosPaneWeights
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -54,13 +56,15 @@ fun CashierRoute(
                     receiptPrinter = container.receiptPrinter,
                     receiptRenderer = container.receiptRenderer,
                     scannerInput = container.scannerInput,
+                    shiftRepository = container.shiftRepository,
                 )
             }
         }
     }
     val viewModel: CashierViewModel = viewModel(factory = cashierViewModelFactory)
     val state by viewModel.state.collectAsState()
-    val actions = remember(viewModel) { CashierActions.from(viewModel) }
+    val shiftLauncher = LocalShiftLauncher.current
+    val actions = remember(viewModel, shiftLauncher) { CashierActions.from(viewModel, shiftLauncher) }
     CashierScreen(
         state = state,
         actions = actions,
@@ -204,6 +208,15 @@ private fun previewCashierState(): CashierUiState {
         ),
         cartLines = cartLines,
         pricedCart = previewPricedCart(grandTotal),
+        activeShift = CashierShift(
+            id = 1L,
+            cashierName = "Dini",
+            openedAt = 0L,
+            closedAt = null,
+            startingCash = 100_000L,
+            expectedEndingCash = null,
+            actualEndingCash = null,
+        ),
     )
 }
 

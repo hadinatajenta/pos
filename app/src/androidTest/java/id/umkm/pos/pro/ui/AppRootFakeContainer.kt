@@ -148,17 +148,21 @@ internal object AppRootFakeContainer : AppContainer {
         override suspend fun returnsInRange(range: ReportRange): List<ReturnRecord> = emptyList()
     }
 
-    private val activeShift = MutableStateFlow<CashierShift?>(
-        CashierShift(
-            id = 1L,
-            cashierName = "Kasir Uji",
-            openedAt = 0L,
-            closedAt = null,
-            startingCash = 0L,
-            expectedEndingCash = null,
-            actualEndingCash = null,
-        ),
+    private val defaultActiveShift = CashierShift(
+        id = 1L,
+        cashierName = "Kasir Uji",
+        openedAt = 0L,
+        closedAt = null,
+        startingCash = 0L,
+        expectedEndingCash = null,
+        actualEndingCash = null,
     )
+
+    private val activeShift = MutableStateFlow<CashierShift?>(defaultActiveShift)
+
+    fun resetActiveShift() {
+        activeShift.value = defaultActiveShift
+    }
 
     override val shiftRepository: ShiftRepository = object : ShiftRepository {
         override fun observeActiveShift(): Flow<CashierShift?> = activeShift

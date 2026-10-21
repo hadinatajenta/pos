@@ -196,6 +196,76 @@ object ZhStrings : PosStrings {
     override val cashierCustomerNotFound = "未找到该客户。"
     override val cashierCustomerDebtChip = { value: String -> "欠款 $value" }
 
+    override val cashierShiftOpenAction = "开班"
+    override val cashierShiftSwitchAction = "换班"
+    override val cashierShiftNotOpen = "未开班"
+    override val cashierShiftSupporting = { cashierName: String, productCount: Int ->
+        "$cashierName · $productCount 件商品"
+    }
+    override val cashierShiftRequired = "收款前请先开班。"
+    override val shiftOpenTitle = "开班"
+    override val shiftOpenSupporting = "设置收银员与备用金。"
+    override val shiftCloseTitle = "交班"
+    override val shiftCloseSupporting = { cashierName: String -> "当前收银员：$cashierName" }
+    override val shiftCashierNameLabel = "收银员姓名"
+    override val shiftCashierNamePlaceholder = "例如：Dini"
+    override val shiftRecentCashiersLabel = "最近收银员"
+    override val shiftStartingCashLabel = "备用金"
+    override val shiftStartingCashHint = "开班时钱箱内的现金。"
+    override val shiftNextCashierTitle = "下一班收银员"
+    override val shiftNextCashierNameLabel = "下一班收银员姓名"
+    override val shiftNextCashierNamePlaceholder = "例如：Budi"
+    override val shiftNextStartingCashLabel = "下一班备用金"
+    override val shiftNextStartingCashHint = "移交给下一班收银员的现金。"
+    override val shiftSummaryTitle = "现金汇总"
+    override val shiftCashSalesLabel = "现金销售"
+    override val shiftCashDebtPaymentsLabel = "现金还款"
+    override val shiftCashRefundsLabel = "现金退款"
+    override val shiftExpectedEndingCashLabel = "钱箱应有现金"
+    override val shiftTransactionCountLabel = { count: Int -> "$count 笔交易" }
+    override val shiftActualEndingCashLabel = "钱箱实际现金"
+    override val shiftActualEndingCashHint = "清点钱箱内全部现金。"
+    override val shiftVarianceLabel = "差额"
+    override val shiftVarianceBalanced = "相符"
+    override val shiftVarianceOver = "多出"
+    override val shiftVarianceShort = "缺少"
+    override val shiftVarianceAcknowledge = "我已核对本次现金差额。"
+    override val shiftSummaryLoading = "正在计算现金..."
+    override val shiftSummaryUnavailable = "现金汇总暂不可用，请重试。"
+    override val shiftValueEmpty = "—"
+    override val shiftOpenSubmit = "开班"
+    override val shiftCloseAndSwitch = "交班并换人"
+    override val shiftCloseOnly = "仅交班"
+    override val shiftValidationCashierName = "请输入收银员姓名。"
+    override val shiftValidationStartingCash = "请输入有效的备用金。"
+    override val shiftValidationActualCash = "请输入钱箱实际现金。"
+    override val shiftValidationVarianceAck = "请确认已核对现金差额。"
+    override val shiftValidationNextCashier = "请输入下一班收银员姓名。"
+    override val shiftValidationNextStartingCash = "请输入下一班有效的备用金。"
+    override val shiftOpenSuccess = { cashierName: String -> "$cashierName 已开班。" }
+    override val shiftCloseSuccess = { cashierName: String -> "$cashierName 的班次已结束。" }
+    override val shiftSwitchSuccess = { closedCashier: String, nextCashier: String ->
+        "$closedCashier 的班次已结束，$nextCashier 已接班。"
+    }
+    override val shiftCartGuardTitle = "购物车非空"
+    override val shiftCartGuardMessage = "换班将清空当前购物车，是否继续？"
+    override val shiftCartGuardConfirm = "清空并换班"
+    override val shiftHistoryTitle = "班次记录"
+    override val shiftHistoryAction = "记录"
+    override val shiftHistorySubtitle = "最近 30 个班次"
+    override val shiftHistoryEmptyTitle = "暂无班次记录"
+    override val shiftHistoryEmptyHint = "开班和交班后，记录会显示在这里。"
+    override val shiftHistoryLoading = "正在加载班次记录"
+    override val shiftHistoryStatusActive = "进行中"
+    override val shiftHistoryStatusClosed = "已结束"
+    override val shiftHistoryOpened = { value: String -> "开班 $value" }
+    override val shiftHistoryClosed = { value: String -> "交班 $value" }
+    override val shiftHistoryStartingCash = "备用金"
+    override val shiftHistoryExpectedCash = "应有"
+    override val shiftHistoryActualCash = "实际"
+    override val shiftHistoryVariance = "差额"
+    override val shiftHistoryLiveNote = "实时预估"
+
     override val paymentCash = "现金"
     override val paymentQris = "QRIS扫码"
     override val paymentTransfer = "银行转账"
@@ -506,8 +576,9 @@ object ZhStrings : PosStrings {
     override val settingsStoreProfileTitle = "店铺信息与收银规则"
     override val settingsStoreNameLabel = "店铺名称 / 商号"
     override val settingsStoreNamePlaceholder = "例如：福气杂货店"
-    override val settingsCashierNameLabel = "默认收银员名称 (选填)"
+    override val settingsCashierNameLabel = "备用收银员名称（选填）"
     override val settingsCashierNamePlaceholder = "例如：店长"
+    override val settingsCashierNameHint = "没有启用班次时使用此收银员名称。"
     override val settingsTaxLabel = "交易增值税率 (%)"
     override val settingsRoundingLabel = "小票金额尾数舍入"
     override val settingsNoRounding = "不舍入 (实付)"
@@ -587,6 +658,10 @@ object ZhStrings : PosStrings {
     override val moreDefaultStoreName = "我的杂货店"
     override val moreDefaultCashierName = "主收银员"
     override val moreTaxSummary = { rate: Int -> "增值税 $rate%" }
+    override val moreShiftTitle = "班次与收银员"
+    override val moreShiftActiveSubtitle = { cashierName: String -> "当前收银员：$cashierName" }
+    override val moreShiftEmptySubtitle = "暂无进行中的班次"
+    override val moreShiftExpectedCash = "预计现金"
 
     override val demoDataTitle = "演示数据"
     override val demoDataLoad = "载入演示数据"

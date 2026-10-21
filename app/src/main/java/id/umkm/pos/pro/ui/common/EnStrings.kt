@@ -196,6 +196,76 @@ object EnStrings : PosStrings {
     override val cashierCustomerNotFound = "Customer not found."
     override val cashierCustomerDebtChip = { value: String -> "Debt $value" }
 
+    override val cashierShiftOpenAction = "Open"
+    override val cashierShiftSwitchAction = "Switch"
+    override val cashierShiftNotOpen = "Shift not open"
+    override val cashierShiftSupporting = { cashierName: String, productCount: Int ->
+        "$cashierName · $productCount products"
+    }
+    override val cashierShiftRequired = "Open a shift before taking payments."
+    override val shiftOpenTitle = "Open shift"
+    override val shiftOpenSupporting = "Set the cashier and starting cash."
+    override val shiftCloseTitle = "Close shift"
+    override val shiftCloseSupporting = { cashierName: String -> "Active cashier: $cashierName" }
+    override val shiftCashierNameLabel = "Cashier name"
+    override val shiftCashierNamePlaceholder = "For example: Dini"
+    override val shiftRecentCashiersLabel = "Recent cashiers"
+    override val shiftStartingCashLabel = "Starting cash"
+    override val shiftStartingCashHint = "Cash in the drawer when the shift starts."
+    override val shiftNextCashierTitle = "Next cashier"
+    override val shiftNextCashierNameLabel = "Next cashier name"
+    override val shiftNextCashierNamePlaceholder = "For example: Budi"
+    override val shiftNextStartingCashLabel = "Next starting cash"
+    override val shiftNextStartingCashHint = "Cash handed to the next cashier."
+    override val shiftSummaryTitle = "Cash summary"
+    override val shiftCashSalesLabel = "Cash sales"
+    override val shiftCashDebtPaymentsLabel = "Cash debt payments"
+    override val shiftCashRefundsLabel = "Cash refunds"
+    override val shiftExpectedEndingCashLabel = "Expected cash in drawer"
+    override val shiftTransactionCountLabel = { count: Int -> "$count transactions" }
+    override val shiftActualEndingCashLabel = "Actual cash in drawer"
+    override val shiftActualEndingCashHint = "Count all cash currently in the drawer."
+    override val shiftVarianceLabel = "Variance"
+    override val shiftVarianceBalanced = "Balanced"
+    override val shiftVarianceOver = "Over"
+    override val shiftVarianceShort = "Short"
+    override val shiftVarianceAcknowledge = "I have reviewed this cash variance."
+    override val shiftSummaryLoading = "Counting cash..."
+    override val shiftSummaryUnavailable = "Cash summary is unavailable. Try again."
+    override val shiftValueEmpty = "—"
+    override val shiftOpenSubmit = "Open shift"
+    override val shiftCloseAndSwitch = "Close & Switch"
+    override val shiftCloseOnly = "Close Shift Only"
+    override val shiftValidationCashierName = "Enter the cashier name."
+    override val shiftValidationStartingCash = "Enter a valid starting cash amount."
+    override val shiftValidationActualCash = "Enter the actual cash in the drawer."
+    override val shiftValidationVarianceAck = "Confirm that you have reviewed the cash variance."
+    override val shiftValidationNextCashier = "Enter the next cashier name."
+    override val shiftValidationNextStartingCash = "Enter a valid starting cash amount for the next cashier."
+    override val shiftOpenSuccess = { cashierName: String -> "Shift for $cashierName is open." }
+    override val shiftCloseSuccess = { cashierName: String -> "Shift for $cashierName is closed." }
+    override val shiftSwitchSuccess = { closedCashier: String, nextCashier: String ->
+        "Shift for $closedCashier is closed. $nextCashier is now on duty."
+    }
+    override val shiftCartGuardTitle = "Cart is not empty"
+    override val shiftCartGuardMessage = "Switching cashier will clear the current cart. Continue?"
+    override val shiftCartGuardConfirm = "Clear & Switch"
+    override val shiftHistoryTitle = "Shift History"
+    override val shiftHistoryAction = "History"
+    override val shiftHistorySubtitle = "Last 30 shifts"
+    override val shiftHistoryEmptyTitle = "No shift history yet"
+    override val shiftHistoryEmptyHint = "Shifts you open and close will appear here."
+    override val shiftHistoryLoading = "Loading shift history"
+    override val shiftHistoryStatusActive = "Active"
+    override val shiftHistoryStatusClosed = "Closed"
+    override val shiftHistoryOpened = { value: String -> "Opened $value" }
+    override val shiftHistoryClosed = { value: String -> "Closed $value" }
+    override val shiftHistoryStartingCash = "Starting"
+    override val shiftHistoryExpectedCash = "Expected"
+    override val shiftHistoryActualCash = "Actual"
+    override val shiftHistoryVariance = "Variance"
+    override val shiftHistoryLiveNote = "Live estimate"
+
     override val paymentCash = "Cash"
     override val paymentQris = "QRIS"
     override val paymentTransfer = "Bank Transfer"
@@ -508,8 +578,9 @@ object EnStrings : PosStrings {
     override val settingsStoreProfileTitle = "Store Profile & Cashier Rules"
     override val settingsStoreNameLabel = "Store / Business Name"
     override val settingsStoreNamePlaceholder = "For example: Berkah Jaya Store"
-    override val settingsCashierNameLabel = "Default Cashier Name (Optional)"
+    override val settingsCashierNameLabel = "Fallback Cashier Name (Optional)"
     override val settingsCashierNamePlaceholder = "For example: Main Cashier"
+    override val settingsCashierNameHint = "Used as the cashier name when no shift is active."
     override val settingsTaxLabel = "Transaction Tax / VAT (%)"
     override val settingsRoundingLabel = "Receipt Amount Rounding"
     override val settingsNoRounding = "No Rounding"
@@ -589,6 +660,10 @@ object EnStrings : PosStrings {
     override val moreDefaultStoreName = "Pookie POS Store"
     override val moreDefaultCashierName = "Main Cashier"
     override val moreTaxSummary = { rate: Int -> "VAT $rate%" }
+    override val moreShiftTitle = "Shift & Cashier"
+    override val moreShiftActiveSubtitle = { cashierName: String -> "Active cashier: $cashierName" }
+    override val moreShiftEmptySubtitle = "No active shift"
+    override val moreShiftExpectedCash = "Expected cash"
 
     override val demoDataTitle = "Demo Data"
     override val demoDataLoad = "Load Demo"

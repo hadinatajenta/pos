@@ -32,6 +32,7 @@ class UmkmDatabaseMigrationTest {
         context.deleteDatabase(TEST_DATABASE_NAME_3_4)
         context.deleteDatabase(TEST_DATABASE_NAME_4_5)
         context.deleteDatabase(TEST_DATABASE_NAME_5_6)
+        context.deleteDatabase(TEST_DATABASE_NAME_6_7)
     }
 
 
@@ -176,6 +177,29 @@ class UmkmDatabaseMigrationTest {
         versionSix.close()
     }
 
+    @Test
+    fun migration6To7KeepsTransactionsAndAddsANullableCashierName() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_6_7, 6).use { versionSix ->
+            versionSix.execSQL(INSERT_VERSION_SIX_TRANSACTION)
+        }
+
+        val versionSeven = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_6_7,
+            7,
+            true,
+            UmkmDatabase.MIGRATION_6_7,
+        )
+
+        assertTableRowCount(versionSeven, "transactions", 1)
+        versionSeven.query("SELECT invoice_no, cashier_name FROM transactions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.count)
+            assertEquals("INV-V6-1", cursor.getString(0))
+            assertTrue(cursor.isNull(1))
+        }
+        versionSeven.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -197,6 +221,16 @@ class UmkmDatabaseMigrationTest {
         const val TEST_DATABASE_NAME_4_5 = "umkm-migration-4-5.db"
 
         const val TEST_DATABASE_NAME_5_6 = "umkm-migration-5-6.db"
+
+        const val TEST_DATABASE_NAME_6_7 = "umkm-migration-6-7.db"
+
+        const val INSERT_VERSION_SIX_TRANSACTION =
+            "INSERT INTO transactions " +
+                "(invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
+                "invoice_discount, tax_total, rounding, grand_total, total_hpp, net_profit, " +
+                "payment_method, paid_amount, change_amount, remaining_debt, due_date, status, notes) " +
+                "VALUES ('INV-V6-1', 1700000000000, NULL, NULL, 6000, 0, 0, 0, 0, 6000, " +
+                "3000, 3000, 'CASH', 6000, 0, 0, NULL, 'COMPLETED', NULL)"
 
         const val INSERT_VERSION_FIVE_SECURITY_STORE =
             "INSERT INTO security_store " +

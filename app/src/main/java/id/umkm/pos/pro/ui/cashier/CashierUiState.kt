@@ -1,6 +1,7 @@
 package id.umkm.pos.pro.ui.cashier
 
 import id.umkm.pos.pro.core.contract.UiState
+import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricedCart
@@ -119,6 +120,7 @@ data class CashierUiState(
     val message: UiText? = null,
     val shouldSuppressMessageSnackbar: Boolean = false,
     val qrisPayload: String? = null,
+    val activeShift: CashierShift? = null,
 ) {
     val lineCount: Int get() = cartLines.size
 

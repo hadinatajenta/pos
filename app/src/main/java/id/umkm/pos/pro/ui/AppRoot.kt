@@ -68,6 +68,7 @@ import id.umkm.pos.pro.ui.products.ProductsRoute
 import id.umkm.pos.pro.ui.security.LocalSecurityGate
 import id.umkm.pos.pro.ui.security.SecurityGateHost
 import id.umkm.pos.pro.ui.security.rememberSecurityGateController
+import id.umkm.pos.pro.ui.shift.ShiftHost
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosColors
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -172,35 +173,37 @@ fun AppRoot(modifier: Modifier = Modifier) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
                 val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
-                    bottomBar = {
-                        if (!isExpandedWindow) {
-                            PrimaryNavigationBar(
-                                selectedDestination = selectedDestination,
-                                onDestinationSelected = { destination -> selectedDestination = destination },
+                ShiftHost {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
+                        bottomBar = {
+                            if (!isExpandedWindow) {
+                                PrimaryNavigationBar(
+                                    selectedDestination = selectedDestination,
+                                    onDestinationSelected = { destination -> selectedDestination = destination },
+                                )
+                            }
+                        },
+                    ) { contentPadding ->
+                        Row(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+                            if (isExpandedWindow) {
+                                PrimaryNavigationRail(
+                                    selectedDestination = selectedDestination,
+                                    onDestinationSelected = { destination -> selectedDestination = destination },
+                                )
+                            }
+                            DestinationHost(
+                                destination = selectedDestination,
+                                salesPresenter = salesPresenter,
+                                onShareReceipt = shareReceipt,
+                                onOpenCashier = { selectedDestination = PosDestination.KASIR },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .imePadding(),
                             )
                         }
-                    },
-                ) { contentPadding ->
-                    Row(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                        if (isExpandedWindow) {
-                            PrimaryNavigationRail(
-                                selectedDestination = selectedDestination,
-                                onDestinationSelected = { destination -> selectedDestination = destination },
-                            )
-                        }
-                        DestinationHost(
-                            destination = selectedDestination,
-                            salesPresenter = salesPresenter,
-                            onShareReceipt = shareReceipt,
-                            onOpenCashier = { selectedDestination = PosDestination.KASIR },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .imePadding(),
-                        )
                     }
                 }
 
@@ -417,7 +420,10 @@ private fun DestinationHost(
             modifier = modifier,
         )
         PosDestination.LAPORAN -> ReportsRoute(presenter = salesPresenter, modifier = modifier)
-        PosDestination.LAINNYA -> MoreRoute(modifier = modifier)
+        PosDestination.LAINNYA -> MoreRoute(
+            onOpenCashier = onOpenCashier,
+            modifier = modifier,
+        )
     }
 }
 

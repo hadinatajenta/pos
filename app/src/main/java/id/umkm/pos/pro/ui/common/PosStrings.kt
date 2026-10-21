@@ -198,6 +198,73 @@ interface PosStrings {
     val cashierCustomerNotFound: String
     val cashierCustomerDebtChip: (String) -> String
 
+    // Shift & Cashier
+    val cashierShiftOpenAction: String
+    val cashierShiftSwitchAction: String
+    val cashierShiftNotOpen: String
+    val cashierShiftSupporting: (String, Int) -> String
+    val cashierShiftRequired: String
+    val shiftOpenTitle: String
+    val shiftOpenSupporting: String
+    val shiftCloseTitle: String
+    val shiftCloseSupporting: (String) -> String
+    val shiftCashierNameLabel: String
+    val shiftCashierNamePlaceholder: String
+    val shiftRecentCashiersLabel: String
+    val shiftStartingCashLabel: String
+    val shiftStartingCashHint: String
+    val shiftNextCashierTitle: String
+    val shiftNextCashierNameLabel: String
+    val shiftNextCashierNamePlaceholder: String
+    val shiftNextStartingCashLabel: String
+    val shiftNextStartingCashHint: String
+    val shiftSummaryTitle: String
+    val shiftCashSalesLabel: String
+    val shiftCashDebtPaymentsLabel: String
+    val shiftCashRefundsLabel: String
+    val shiftExpectedEndingCashLabel: String
+    val shiftTransactionCountLabel: (Int) -> String
+    val shiftActualEndingCashLabel: String
+    val shiftActualEndingCashHint: String
+    val shiftVarianceLabel: String
+    val shiftVarianceBalanced: String
+    val shiftVarianceOver: String
+    val shiftVarianceShort: String
+    val shiftVarianceAcknowledge: String
+    val shiftSummaryLoading: String
+    val shiftSummaryUnavailable: String
+    val shiftValueEmpty: String
+    val shiftOpenSubmit: String
+    val shiftCloseAndSwitch: String
+    val shiftCloseOnly: String
+    val shiftValidationCashierName: String
+    val shiftValidationStartingCash: String
+    val shiftValidationActualCash: String
+    val shiftValidationVarianceAck: String
+    val shiftValidationNextCashier: String
+    val shiftValidationNextStartingCash: String
+    val shiftOpenSuccess: (String) -> String
+    val shiftCloseSuccess: (String) -> String
+    val shiftSwitchSuccess: (String, String) -> String
+    val shiftCartGuardTitle: String
+    val shiftCartGuardMessage: String
+    val shiftCartGuardConfirm: String
+    val shiftHistoryTitle: String
+    val shiftHistoryAction: String
+    val shiftHistorySubtitle: String
+    val shiftHistoryEmptyTitle: String
+    val shiftHistoryEmptyHint: String
+    val shiftHistoryLoading: String
+    val shiftHistoryStatusActive: String
+    val shiftHistoryStatusClosed: String
+    val shiftHistoryOpened: (String) -> String
+    val shiftHistoryClosed: (String) -> String
+    val shiftHistoryStartingCash: String
+    val shiftHistoryExpectedCash: String
+    val shiftHistoryActualCash: String
+    val shiftHistoryVariance: String
+    val shiftHistoryLiveNote: String
+
     // Payment Methods
     val paymentCash: String
     val paymentQris: String
@@ -517,6 +584,7 @@ interface PosStrings {
     val settingsStoreNamePlaceholder: String
     val settingsCashierNameLabel: String
     val settingsCashierNamePlaceholder: String
+    val settingsCashierNameHint: String
     val settingsTaxLabel: String
     val settingsRoundingLabel: String
     val settingsNoRounding: String
@@ -597,6 +665,10 @@ interface PosStrings {
     val moreDefaultStoreName: String
     val moreDefaultCashierName: String
     val moreTaxSummary: (Int) -> String
+    val moreShiftTitle: String
+    val moreShiftActiveSubtitle: (String) -> String
+    val moreShiftEmptySubtitle: String
+    val moreShiftExpectedCash: String
 
     // Demo Data
     val demoDataTitle: String
