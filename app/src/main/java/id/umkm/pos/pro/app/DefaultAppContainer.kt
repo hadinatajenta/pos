@@ -89,8 +89,14 @@ class DefaultAppContainer(
         database.productDao(),
     )
 
-    override val shiftRepository: ShiftRepository =
-        ShiftRepositoryImpl(database.shiftDao(), database.transactionDao(), clock)
+    override val shiftRepository: ShiftRepository = ShiftRepositoryImpl(
+        database = database,
+        shiftDao = database.shiftDao(),
+        transactionDao = database.transactionDao(),
+        debtPaymentDao = database.debtPaymentDao(),
+        returnDao = database.returnDao(),
+        clock = clock,
+    )
 
     override val securityRepository: SecurityRepository = SecurityRepositoryImpl(
         database,

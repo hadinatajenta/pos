@@ -29,6 +29,7 @@ data class Transaction(
     val dueDate: Long?,
     val status: TransactionStatus,
     val notes: String?,
+    val cashierName: String? = null,
 )
 
 data class TransactionItem(
@@ -64,4 +65,20 @@ data class CashierShift(
     val startingCash: Long,
     val expectedEndingCash: Long?,
     val actualEndingCash: Long?,
+)
+
+data class ShiftCashSummary(
+    val startingCash: Long,
+    val cashSales: Long,
+    val cashDebtPayments: Long,
+    val cashRefunds: Long,
+    val transactionCount: Int,
+) {
+    val expectedEndingCash: Long
+        get() = startingCash + cashSales + cashDebtPayments - cashRefunds
+}
+
+data class ShiftSwitchResult(
+    val closedShift: CashierShift,
+    val openedShift: CashierShift,
 )

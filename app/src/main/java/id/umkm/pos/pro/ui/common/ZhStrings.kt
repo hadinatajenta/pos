@@ -781,6 +781,7 @@ object ZhStrings : PosStrings {
             CriticalAction.CHANGE_TAX_AND_ROUNDING -> "修改税费与舍入"
             CriticalAction.REMOVE_QRIS -> "删除 QRIS"
             CriticalAction.RECORD_DEBT_PAYMENT -> "记录还款"
+            CriticalAction.SWITCH_CASHIER -> "切换收银员"
             CriticalAction.CHANGE_PIN -> "PIN 设置"
             CriticalAction.VIEW_SECURITY_AUDIT -> "查看安全记录"
         }

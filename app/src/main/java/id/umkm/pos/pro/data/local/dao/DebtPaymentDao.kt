@@ -14,4 +14,10 @@ interface DebtPaymentDao {
 
     @Query("SELECT * FROM debt_payments WHERE customer_id = :customerId ORDER BY paid_at DESC")
     fun observeDebtPayments(customerId: Long): Flow<List<DebtPaymentEntity>>
+
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0) FROM debt_payments " +
+            "WHERE payment_method = 'CASH' AND paid_at BETWEEN :startMillis AND :endMillis",
+    )
+    suspend fun sumCashPaymentsBetween(startMillis: Long, endMillis: Long): Long
 }

@@ -32,6 +32,7 @@ data class PinPolicy(
         CriticalAction.RESTORE_BACKUP,
         CriticalAction.CHANGE_TAX_AND_ROUNDING,
         CriticalAction.REMOVE_QRIS,
+        CriticalAction.SWITCH_CASHIER,
         CriticalAction.CHANGE_PIN,
         CriticalAction.VIEW_SECURITY_AUDIT,
         -> SecurityRole.OWNER

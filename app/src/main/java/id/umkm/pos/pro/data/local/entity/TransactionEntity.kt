@@ -47,4 +47,5 @@ data class TransactionEntity(
     @ColumnInfo(name = "due_date") val dueDate: Long?,
     @ColumnInfo(name = "status") val status: TransactionStatus,
     @ColumnInfo(name = "notes") val notes: String?,
+    @ColumnInfo(name = "cashier_name") val cashierName: String? = null,
 )

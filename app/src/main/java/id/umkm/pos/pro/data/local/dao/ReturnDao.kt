@@ -22,6 +22,12 @@ abstract class ReturnDao {
     @Query("SELECT * FROM returns WHERE created_at BETWEEN :startMillis AND :endMillis ORDER BY created_at ASC")
     abstract suspend fun getReturnsInRange(startMillis: Long, endMillis: Long): List<ReturnEntity>
 
+    @Query(
+        "SELECT COALESCE(SUM(refund_amount), 0) FROM returns " +
+            "WHERE created_at BETWEEN :startMillis AND :endMillis",
+    )
+    abstract suspend fun sumRefundsBetween(startMillis: Long, endMillis: Long): Long
+
     @Query("SELECT * FROM return_lines WHERE return_id = :returnId ORDER BY id ASC")
     abstract suspend fun getLines(returnId: Long): List<ReturnLineEntity>
 

@@ -101,6 +101,8 @@ private class FakeReturnDao : ReturnDao() {
 
     override suspend fun getReturnsInRange(startMillis: Long, endMillis: Long): List<ReturnEntity> = unused()
 
+    override suspend fun sumRefundsBetween(startMillis: Long, endMillis: Long): Long = unused()
+
     override suspend fun getLines(returnId: Long): List<ReturnLineEntity> = unused()
 }
 
@@ -118,7 +120,9 @@ private class FakeTransactionDao : TransactionDao() {
 
     override suspend fun transactionsInRange(startMillis: Long, endMillis: Long): List<TransactionEntity> = unused()
 
-    override suspend fun sumCashSalesSince(openedAtMillis: Long): Long = unused()
+    override suspend fun sumCashReceivedBetween(startMillis: Long, endMillis: Long): Long = unused()
+
+    override suspend fun countTransactionsBetween(startMillis: Long, endMillis: Long): Int = unused()
 
     override suspend fun updateStatus(transactionId: Long, status: TransactionStatus) {
         unused()

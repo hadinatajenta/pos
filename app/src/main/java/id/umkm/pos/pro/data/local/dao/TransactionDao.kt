@@ -37,10 +37,18 @@ abstract class TransactionDao {
     abstract suspend fun transactionsInRange(startMillis: Long, endMillis: Long): List<TransactionEntity>
 
     @Query(
-        "SELECT COALESCE(SUM(paid_amount - change_amount), 0) FROM transactions " +
-            "WHERE payment_method = 'CASH' AND created_at >= :openedAtMillis",
+        "SELECT COALESCE(SUM(" +
+            "CASE " +
+            "WHEN payment_method = 'CASH' THEN paid_amount - change_amount " +
+            "WHEN payment_method IN ('SPLIT', 'KASBON') THEN paid_amount " +
+            "ELSE 0 " +
+            "END), 0) FROM transactions " +
+            "WHERE created_at BETWEEN :startMillis AND :endMillis",
     )
-    abstract suspend fun sumCashSalesSince(openedAtMillis: Long): Long
+    abstract suspend fun sumCashReceivedBetween(startMillis: Long, endMillis: Long): Long
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE created_at BETWEEN :startMillis AND :endMillis")
+    abstract suspend fun countTransactionsBetween(startMillis: Long, endMillis: Long): Int
 
     @Query("UPDATE transactions SET status = :status WHERE id = :transactionId")
     abstract suspend fun updateStatus(transactionId: Long, status: TransactionStatus)

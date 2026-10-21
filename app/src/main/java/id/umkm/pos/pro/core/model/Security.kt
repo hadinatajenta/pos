@@ -27,6 +27,7 @@ enum class CriticalAction(val id: String) {
     CHANGE_TAX_AND_ROUNDING("change_tax_and_rounding"),
     REMOVE_QRIS("remove_qris"),
     RECORD_DEBT_PAYMENT("record_debt_payment"),
+    SWITCH_CASHIER("switch_cashier"),
     CHANGE_PIN("change_pin"),
     VIEW_SECURITY_AUDIT("view_security_audit"),
     ;

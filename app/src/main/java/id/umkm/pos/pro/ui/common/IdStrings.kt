@@ -791,6 +791,7 @@ object IdStrings : PosStrings {
             CriticalAction.CHANGE_TAX_AND_ROUNDING -> "Ubah pajak & pembulatan"
             CriticalAction.REMOVE_QRIS -> "Hapus QRIS"
             CriticalAction.RECORD_DEBT_PAYMENT -> "Catat pembayaran utang"
+            CriticalAction.SWITCH_CASHIER -> "Ganti kasir"
             CriticalAction.CHANGE_PIN -> "Pengaturan PIN"
             CriticalAction.VIEW_SECURITY_AUDIT -> "Lihat riwayat keamanan"
         }

@@ -34,7 +34,7 @@ internal object StoredReceiptLoader {
             items = items,
             productsById = productsById,
             storeName = settings.storeName,
-            cashierName = settings.cashierName,
+            cashierName = transaction.cashierName ?: settings.cashierName,
             customerName = customerName,
             createdAtLabel = formatDateTime(transaction.createdAt, strings),
             dueDateLabel = transaction.dueDate?.let { dueDate -> formatDate(dueDate, strings) },

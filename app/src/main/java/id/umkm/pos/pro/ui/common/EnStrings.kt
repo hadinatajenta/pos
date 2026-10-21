@@ -794,6 +794,7 @@ object EnStrings : PosStrings {
             CriticalAction.CHANGE_TAX_AND_ROUNDING -> "Change tax and rounding"
             CriticalAction.REMOVE_QRIS -> "Remove QRIS"
             CriticalAction.RECORD_DEBT_PAYMENT -> "Record a debt payment"
+            CriticalAction.SWITCH_CASHIER -> "Switch cashier"
             CriticalAction.CHANGE_PIN -> "PIN settings"
             CriticalAction.VIEW_SECURITY_AUDIT -> "View security history"
         }

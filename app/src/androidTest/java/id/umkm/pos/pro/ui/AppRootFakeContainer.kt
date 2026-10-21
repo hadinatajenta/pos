@@ -46,6 +46,8 @@ import id.umkm.pos.pro.core.model.SecurityAuditEntry
 import id.umkm.pos.pro.core.model.SecurityCredentials
 import id.umkm.pos.pro.core.model.SecurityRole
 import id.umkm.pos.pro.core.model.SecurityState
+import id.umkm.pos.pro.core.model.ShiftCashSummary
+import id.umkm.pos.pro.core.model.ShiftSwitchResult
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
 import id.umkm.pos.pro.domain.accounting.DefaultAccountingService
@@ -146,12 +148,92 @@ internal object AppRootFakeContainer : AppContainer {
         override suspend fun returnsInRange(range: ReportRange): List<ReturnRecord> = emptyList()
     }
 
+    private val activeShift = MutableStateFlow<CashierShift?>(
+        CashierShift(
+            id = 1L,
+            cashierName = "Kasir Uji",
+            openedAt = 0L,
+            closedAt = null,
+            startingCash = 0L,
+            expectedEndingCash = null,
+            actualEndingCash = null,
+        ),
+    )
+
     override val shiftRepository: ShiftRepository = object : ShiftRepository {
-        override suspend fun openShift(shift: CashierShift): Long = 0L
+        override fun observeActiveShift(): Flow<CashierShift?> = activeShift
 
-        override suspend fun closeShift(shiftId: Long, actualEndingCash: Long) = Unit
+        override suspend fun getActiveShift(): CashierShift? = activeShift.value
 
-        override suspend fun getActiveShift(): CashierShift? = null
+        override suspend fun getRecentCashierNames(limit: Int): List<String> =
+            listOfNotNull(activeShift.value?.cashierName)
+
+        override suspend fun getShiftHistory(limit: Int): List<CashierShift> =
+            listOfNotNull(activeShift.value)
+
+        override suspend fun getShiftSummary(shiftId: Long): AppResult<ShiftCashSummary> {
+            val shift = activeShift.value
+                ?: return AppResult.Failure(AppError.NotFound("shift $shiftId was not found"))
+            return AppResult.Success(
+                ShiftCashSummary(
+                    startingCash = shift.startingCash,
+                    cashSales = 0L,
+                    cashDebtPayments = 0L,
+                    cashRefunds = 0L,
+                    transactionCount = 0,
+                ),
+            )
+        }
+
+        override suspend fun openShift(
+            cashierName: String,
+            startingCash: Long,
+        ): AppResult<CashierShift> {
+            val shift = CashierShift(
+                id = (activeShift.value?.id ?: 0L) + 1L,
+                cashierName = cashierName,
+                openedAt = 0L,
+                closedAt = null,
+                startingCash = startingCash,
+                expectedEndingCash = null,
+                actualEndingCash = null,
+            )
+            activeShift.value = shift
+            return AppResult.Success(shift)
+        }
+
+        override suspend fun closeShift(
+            shiftId: Long,
+            actualEndingCash: Long,
+        ): AppResult<CashierShift> {
+            val shift = activeShift.value
+                ?: return AppResult.Failure(AppError.NotFound("shift $shiftId was not found"))
+            val closed = shift.copy(closedAt = 0L, actualEndingCash = actualEndingCash)
+            activeShift.value = null
+            return AppResult.Success(closed)
+        }
+
+        override suspend fun switchShift(
+            closeShiftId: Long,
+            actualEndingCash: Long,
+            nextCashierName: String,
+            nextStartingCash: Long,
+        ): AppResult<ShiftSwitchResult> {
+            val current = activeShift.value
+                ?: return AppResult.Failure(AppError.NotFound("shift $closeShiftId was not found"))
+            val closed = current.copy(closedAt = 0L, actualEndingCash = actualEndingCash)
+            val opened = CashierShift(
+                id = current.id + 1L,
+                cashierName = nextCashierName,
+                openedAt = 0L,
+                closedAt = null,
+                startingCash = nextStartingCash,
+                expectedEndingCash = null,
+                actualEndingCash = null,
+            )
+            activeShift.value = opened
+            return AppResult.Success(ShiftSwitchResult(closedShift = closed, openedShift = opened))
+        }
     }
 
     override val securityRepository: SecurityRepository = object : SecurityRepository {

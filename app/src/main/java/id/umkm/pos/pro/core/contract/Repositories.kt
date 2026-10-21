@@ -15,6 +15,8 @@ import id.umkm.pos.pro.core.model.SecurityAuditEntry
 import id.umkm.pos.pro.core.model.SecurityCredentials
 import id.umkm.pos.pro.core.model.SecurityRole
 import id.umkm.pos.pro.core.model.SecurityState
+import id.umkm.pos.pro.core.model.ShiftCashSummary
+import id.umkm.pos.pro.core.model.ShiftSwitchResult
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
 import kotlinx.coroutines.flow.Flow
@@ -50,9 +52,26 @@ interface TransactionRepository {
 }
 
 interface ShiftRepository {
-    suspend fun openShift(shift: CashierShift): Long
-    suspend fun closeShift(shiftId: Long, actualEndingCash: Long)
+    fun observeActiveShift(): Flow<CashierShift?>
+
     suspend fun getActiveShift(): CashierShift?
+
+    suspend fun getRecentCashierNames(limit: Int): List<String>
+
+    suspend fun getShiftHistory(limit: Int): List<CashierShift>
+
+    suspend fun getShiftSummary(shiftId: Long): AppResult<ShiftCashSummary>
+
+    suspend fun openShift(cashierName: String, startingCash: Long): AppResult<CashierShift>
+
+    suspend fun closeShift(shiftId: Long, actualEndingCash: Long): AppResult<CashierShift>
+
+    suspend fun switchShift(
+        closeShiftId: Long,
+        actualEndingCash: Long,
+        nextCashierName: String,
+        nextStartingCash: Long,
+    ): AppResult<ShiftSwitchResult>
 }
 
 interface SecurityRepository {

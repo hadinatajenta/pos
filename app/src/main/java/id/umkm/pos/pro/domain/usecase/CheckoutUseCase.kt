@@ -35,6 +35,7 @@ data class CheckoutRequest(
     val taxRatePercent: Int,
     val roundingIncrement: Long,
     val notes: String?,
+    val cashierName: String? = null,
 )
 
 data class CheckoutResult(
@@ -116,6 +117,7 @@ class CheckoutUseCase(
             dueDate = if (allocation.remainingDebt > 0L) request.dueDate else null,
             status = allocation.status,
             notes = request.notes,
+            cashierName = request.cashierName?.trim()?.ifEmpty { null },
         )
 
         val items = ArrayList<TransactionItem>(pricedCart.lines.size)
