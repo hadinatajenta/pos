@@ -586,7 +586,7 @@ object IdStrings : PosStrings {
     override val moreHubPrinter = "Printer Kasir"
     override val moreKasbonCount = { count: Int -> "$count Kasbon" }
     override val moreCustomerCount = { count: Int -> "$count Data" }
-    override val moreDefaultStoreName = "Toko UMKM Pro"
+    override val moreDefaultStoreName = "Toko Pookie POS"
     override val moreDefaultCashierName = "Kasir Utama"
     override val moreTaxSummary = { rate: Int -> "PPN $rate%" }
 
@@ -612,7 +612,7 @@ object IdStrings : PosStrings {
     override val welcomeBulletStock = "Stok multi-satuan, harga grosir bertingkat, & harga nego"
     override val welcomeBulletProfit = "Pencatatan kasbon pelanggan & laporan laba bersih"
     override val welcomeOwnership = "Tanpa langganan\n100% milik toko Anda"
-    override val welcomeReadyOffline = "POS UMKM Pro • Siap Offline"
+    override val welcomeReadyOffline = "Pookie POS • Siap Offline"
     override val welcomeFeatureCashier = "Kasir"
     override val welcomeFeatureInventory = "Stok"
     override val welcomeFeatureProfit = "Laporan"
@@ -630,7 +630,7 @@ object IdStrings : PosStrings {
     override val welcomeShowcaseProfitHint = "Rekap HPP, Kasbon & Ekspor Excel"
     override val welcomeShowcaseReady = "Siap Offline"
 
-    override val receiptDefaultStoreName = "POS UMKM Pro"
+    override val receiptDefaultStoreName = "Pookie POS"
     override val receiptInvoiceLabel = { value: String -> "No. Invoice : $value" }
     override val receiptDateLabel = { value: String -> "Tanggal : $value" }
     override val receiptCashierLabel = { value: String -> "Kasir : $value" }
@@ -749,7 +749,7 @@ object IdStrings : PosStrings {
     override val securityRecoveryCodeOnceWarning =
         "Tulis atau cetak kode ini sekarang. Kode hanya ditampilkan sekali dan tidak bisa dilihat lagi di aplikasi."
     override val securityRecoveryCodePrint = "Cetak atau simpan PDF"
-    override val securityRecoveryCodePrintJobName = "Kode pemulihan POS UMKM Pro"
+    override val securityRecoveryCodePrintJobName = "Kode pemulihan Pookie POS"
     override val securityRecoveryCodeAcknowledge = "Saya sudah menyimpan kode ini"
     override val securityRecoveryCodeDone = "Selesai"
     override val securityRecoveryCodeUnsavedWarning =
@@ -763,7 +763,7 @@ object IdStrings : PosStrings {
         "Kode hanya ditampilkan satu kali dan tidak bisa dilihat lagi di aplikasi."
     override val securityPrintInstructionThree =
         "Pemulihan bekerja tanpa internet: buka layar PIN, pilih Lupa PIN, lalu masukkan kode ini. PIN akan dimatikan dan bisa diatur kembali."
-    override val securityPrintFooter = { date: String -> "Dicetak $date oleh POS UMKM Pro." }
+    override val securityPrintFooter = { date: String -> "Dicetak $date oleh Pookie POS." }
     override val securityAuditTitle = "Riwayat keamanan"
     override val securityAuditEmpty = "Belum ada aktivitas keamanan."
     override val securityAuditLatest = { count: Int -> "Menampilkan $count aktivitas terbaru." }

@@ -586,7 +586,7 @@ object EnStrings : PosStrings {
     override val moreHubPrinter = "Receipt Printer"
     override val moreKasbonCount = { count: Int -> "$count credit" }
     override val moreCustomerCount = { count: Int -> "$count records" }
-    override val moreDefaultStoreName = "UMKM Pro Store"
+    override val moreDefaultStoreName = "Pookie POS Store"
     override val moreDefaultCashierName = "Main Cashier"
     override val moreTaxSummary = { rate: Int -> "VAT $rate%" }
 
@@ -612,7 +612,7 @@ object EnStrings : PosStrings {
     override val welcomeBulletStock = "Multi-unit stock, tiered wholesale prices, and negotiated prices"
     override val welcomeBulletProfit = "Customer credit tracking and net profit reports"
     override val welcomeOwnership = "No subscription\n100% owned by your store"
-    override val welcomeReadyOffline = "POS UMKM Pro • Ready Offline"
+    override val welcomeReadyOffline = "Pookie POS • Ready Offline"
     override val welcomeFeatureCashier = "Cashier"
     override val welcomeFeatureInventory = "Stock"
     override val welcomeFeatureProfit = "Reports"
@@ -630,7 +630,7 @@ object EnStrings : PosStrings {
     override val welcomeShowcaseProfitHint = "COGS recap, credit, and Excel export"
     override val welcomeShowcaseReady = "Ready Offline"
 
-    override val receiptDefaultStoreName = "POS UMKM Pro"
+    override val receiptDefaultStoreName = "Pookie POS"
     override val receiptInvoiceLabel = { value: String -> "Invoice no. : $value" }
     override val receiptDateLabel = { value: String -> "Date : $value" }
     override val receiptCashierLabel = { value: String -> "Cashier : $value" }
@@ -752,7 +752,7 @@ object EnStrings : PosStrings {
     override val securityRecoveryCodeOnceWarning =
         "Write down or print this code now. It is shown only once and cannot be viewed again in the app."
     override val securityRecoveryCodePrint = "Print or save as PDF"
-    override val securityRecoveryCodePrintJobName = "POS UMKM Pro recovery code"
+    override val securityRecoveryCodePrintJobName = "Pookie POS recovery code"
     override val securityRecoveryCodeAcknowledge = "I have saved this code"
     override val securityRecoveryCodeDone = "Done"
     override val securityRecoveryCodeUnsavedWarning =
@@ -766,7 +766,7 @@ object EnStrings : PosStrings {
         "The code is shown only once and cannot be viewed again in the app."
     override val securityPrintInstructionThree =
         "Recovery works offline: open the PIN screen, choose Forgot PIN, then enter this code. The PIN is turned off and can be set again."
-    override val securityPrintFooter = { date: String -> "Printed $date by POS UMKM Pro." }
+    override val securityPrintFooter = { date: String -> "Printed $date by Pookie POS." }
     override val securityAuditTitle = "Security history"
     override val securityAuditEmpty = "No security activity yet."
     override val securityAuditLatest = { count: Int -> "Showing the latest $count entries." }

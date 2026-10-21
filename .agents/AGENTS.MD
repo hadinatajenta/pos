@@ -1,4 +1,4 @@
-# POS UMKM Pro — Agent Team
+# Pookie POS — Agent Team
 
 The Master Orchestrator is responsible for planning, shared contracts, integration, and final verification. Use specialist agents only when the task can be split cleanly. The product source of truth is `docs/prd.md`.
 

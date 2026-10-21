@@ -610,7 +610,7 @@ object ZhStrings : PosStrings {
     override val welcomeBulletStock = "多单位库存、阶梯批发价与议价"
     override val welcomeBulletProfit = "客户赊账记录与净利润报表"
     override val welcomeOwnership = "无需订阅\n数据 100% 归店铺所有"
-    override val welcomeReadyOffline = "POS UMKM Pro • 离线可用"
+    override val welcomeReadyOffline = "Pookie POS • 离线可用"
     override val welcomeFeatureCashier = "收银"
     override val welcomeFeatureInventory = "库存"
     override val welcomeFeatureProfit = "报表"
@@ -628,7 +628,7 @@ object ZhStrings : PosStrings {
     override val welcomeShowcaseProfitHint = "成本汇总、赊账与 Excel 导出"
     override val welcomeShowcaseReady = "离线可用"
 
-    override val receiptDefaultStoreName = "POS UMKM Pro"
+    override val receiptDefaultStoreName = "Pookie POS"
     override val receiptInvoiceLabel = { value: String -> "单据编号 : $value" }
     override val receiptDateLabel = { value: String -> "日期 : $value" }
     override val receiptCashierLabel = { value: String -> "收银员 : $value" }
@@ -741,7 +741,7 @@ object ZhStrings : PosStrings {
     override val securityRecoveryCodeTitle = "恢复码"
     override val securityRecoveryCodeOnceWarning = "请现在抄写或打印此恢复码。它只显示一次，之后无法在应用中再次查看。"
     override val securityRecoveryCodePrint = "打印或保存为 PDF"
-    override val securityRecoveryCodePrintJobName = "POS UMKM Pro 恢复码"
+    override val securityRecoveryCodePrintJobName = "Pookie POS 恢复码"
     override val securityRecoveryCodeAcknowledge = "我已保存此恢复码"
     override val securityRecoveryCodeDone = "完成"
     override val securityRecoveryCodeUnsavedWarning =
@@ -753,7 +753,7 @@ object ZhStrings : PosStrings {
     override val securityPrintInstructionTwo = "恢复码只显示一次，无法在应用中再次查看。"
     override val securityPrintInstructionThree =
         "恢复过程无需网络：打开 PIN 页面，选择“忘记 PIN”，然后输入此恢复码。PIN 将被关闭，可重新设置。"
-    override val securityPrintFooter = { date: String -> "由 POS UMKM Pro 于 $date 打印。" }
+    override val securityPrintFooter = { date: String -> "由 Pookie POS 于 $date 打印。" }
     override val securityAuditTitle = "安全记录"
     override val securityAuditEmpty = "暂无安全操作记录。"
     override val securityAuditLatest = { count: Int -> "显示最近 $count 条记录。" }

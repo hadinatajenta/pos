@@ -1,8 +1,8 @@
-# UMKM POS Pro
+# Pookie POS
 
 ## Product Requirements Document
 
-**Version:** 1.7 — Light-only theme (2026-10-21; see §15.1 Q12 and §16)  
+**Version:** 1.9 — Renamed to Pookie POS (2026-10-21; see §16)  
 **Target implementation agent:** Deepseek V4.1 Flash (High Effort) with five parallel sub-agents  
 **Development environment:** Antigravity IDE, Android SDK command-line tools, Gradle, ADB, scrcpy, and a physical Android device  
 **Product promise:** **Free forever. No subscriptions. No paid feature tiers. No watermarks.**
@@ -13,7 +13,7 @@
 
 ## 1. Executive Summary
 
-UMKM POS Pro is an Android point-of-sale application for Indonesian micro, small, and medium-sized businesses (UMKM). It is designed for low-end Android devices, works offline for core operations, and provides cashier, inventory, customer-debt, reporting, receipt-printing, and backup capabilities without subscription fees.
+Pookie POS is an Android point-of-sale application for Indonesian micro, small, and medium-sized businesses (UMKM). It is designed for low-end Android devices, works offline for core operations, and provides cashier, inventory, customer-debt, reporting, receipt-printing, and backup capabilities without subscription fees.
 
 The app targets a release size below **8 MB** where feasible and must remain usable on devices with **2 GB RAM**. Monetization uses Google AdMob only in non-critical areas. Ads must never interrupt checkout, payment, or receipt printing.
 
@@ -127,6 +127,7 @@ Use one consistent modern icon set compatible with Jetpack Compose and Material 
 - Icon-only buttons are acceptable for widely recognized actions (back, close, search, overflow) when they have a tooltip/content description and a sufficient touch target.
 - Do not mix emoji, unrelated icon packs, or multiple visual styles.
 - Use icons to help scanning—not as decoration.
+- The launcher icon uses the green-and-white P mark in `newicon.jpeg`; preserve its shape and proportions.
 
 ### 5.3 Typography and density
 
@@ -603,6 +604,8 @@ Every change to this document is recorded here with its date and the sections it
 
 | Date | Version | Change | Sections | Reference |
 | --- | --- | --- | --- | --- |
+| 2026-10-21 | 1.9 | Renamed the product from UMKM POS Pro to Pookie POS. Updated the launcher label (`app_name`), the welcome and receipt strings in all three languages, the receipt fallback store name, the recovery-code print text, and the product documentation. Package name, applicationId, theme name, and the signing certificate DN are unchanged. | §1, §16 | owner request 2026-10-21 |
+| 2026-10-21 | 1.8 | Replaced the Android launcher icon with the green-and-white P mark from `newicon.jpeg`, with increased padding around the P. Regenerated the adaptive foreground, all legacy square and round mipmaps, changed the adaptive background to `#FCFFFE`, and added a monochrome layer for themed icons. | §5.2, §16 | `newicon.jpeg` |
 | 2026-10-21 | 1.7 | Removed dark mode by owner decision. The app now always renders the light theme; the dark palette, night resources, and the system-theme requirement were removed. | §3.1, §5.1, §9.3, §12, §15.1, §16 | owner decision 2026-10-21 |
 | 2026-10-20 | 1.6 | PIN Phase 2–3 implemented: security settings and recovery-code screens (one-time code, print to PDF, mandatory acknowledgement), audit history, and the global gate on all critical actions with profit/HPP masking. §7.7 now states the feature is implemented and lists the gated actions. | §7.7, §16 | `docs/security/prd-code-reconciliation.md` change record (Phase 2–3) |
 | 2026-10-20 | 1.5 | PIN Phase 0–1 implemented: shared security model and contracts, database version 6 with `MIGRATION_5_6` (PIN state columns plus `security_audit_log`), salted PBKDF2 hashing, the PIN policy and `SecurityService`, and the backup exclusion with a forced PIN reset after restore. §7.7 now separates what is implemented from what Phase 2–3 still owes. No action is gated yet. Verified: `testDebugUnitTest` (564 tests) and `assembleDebug` succeed; instrumented tests were not run. | §7.7, §8, §15.1, §16 | `docs/security/prd-code-reconciliation.md` change record |

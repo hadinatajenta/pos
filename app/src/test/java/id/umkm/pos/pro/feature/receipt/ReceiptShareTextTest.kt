@@ -120,7 +120,7 @@ class ReceiptShareTextTest {
             IdStrings,
         )
 
-        assertThat(text).contains("*POS UMKM Pro*")
+        assertThat(text).contains("*Pookie POS*")
         assertThat(text).doesNotContain("Kasir :")
         assertThat(text).doesNotContain("Pelanggan :")
     }

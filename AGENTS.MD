@@ -1,4 +1,4 @@
-# POS UMKM Pro — Project Instructions
+# Pookie POS — Project Instructions
 
 ## Source of truth
 

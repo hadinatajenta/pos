@@ -1,4 +1,4 @@
-# Google Play release guide — UMKM POS Pro
+# Google Play release guide — Pookie POS
 
 Owner labels used below:
 
@@ -56,7 +56,7 @@ PIN, camera scanning).
    - **Organization** — requires a D-U-N-S number (free from Dun & Bradstreet), skips the testing
      gate. Choose this only if a registered business entity represents the app.
 3. **[YOU]** Complete Android developer verification if the Console asks for it.
-4. **[YOU]** Accept the Play Console agreements, then **Create app**: name `UMKM POS Pro`, default
+4. **[YOU]** Accept the Play Console agreements, then **Create app**: name `Pookie POS`, default
    language Indonesian, type App, free.
 5. **[YOU]** When first asked for the package name, use `id.umkm.pos.pro`.
 6. **[BOTH]** Keep Google-managed Play App Signing enabled (the default). Upload the AAB signed with
@@ -68,7 +68,7 @@ Deliverables and exact requirements:
 
 | Asset | Requirement | Owner |
 | --- | --- | --- |
-| App name | max 30 characters, e.g. `UMKM POS Pro — Kasir & Stok` | [ME] draft |
+| App name | max 30 characters, e.g. `Pookie POS — Kasir & Stok` | [ME] draft |
 | Short description | max 80 characters | [ME] draft |
 | Full description | max 4000 characters | [ME] draft |
 | App icon | 512 × 512 px, 32-bit PNG, max 1 MB | [ME] generate from `docs/mocks/icon.jpeg` |

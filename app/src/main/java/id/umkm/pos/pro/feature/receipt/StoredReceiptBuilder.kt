@@ -19,7 +19,7 @@ internal data class StoredReceipt(
 internal object StoredReceiptBuilder {
 
     private const val RECEIPT_WIDTH_CHARS = 32
-    private const val FALLBACK_STORE_NAME = "POS UMKM Pro"
+    private const val FALLBACK_STORE_NAME = "Pookie POS"
 
     fun build(
         transaction: Transaction,

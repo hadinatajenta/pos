@@ -1,4 +1,4 @@
-# UMKM POS Pro
+# Pookie POS
 
 Offline-first point-of-sale app for Indonesian small businesses (UMKM). Built with Kotlin, Jetpack
 Compose, Material 3, and Room.
