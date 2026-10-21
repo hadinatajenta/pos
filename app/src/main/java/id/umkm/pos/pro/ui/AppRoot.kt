@@ -44,7 +44,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -313,27 +312,36 @@ private fun PrimaryNavigationRail(
     onDestinationSelected: (PosDestination) -> Unit,
 ) {
     Surface(
-        color = PosColors.ForestGreen,
-        contentColor = Color.White,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier
             .fillMaxHeight()
             .width(NavigationRailLaneWidth)
             .testTag(EXPANDED_NAVIGATION_TEST_TAG),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .selectableGroup(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            PosDestination.entries.forEach { destination ->
-                RailNavItem(
-                    destination = destination,
-                    isSelected = destination == selectedDestination,
-                    onClick = { onDestinationSelected(destination) },
-                )
+        Row(modifier = Modifier.fillMaxHeight()) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .selectableGroup(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                PosDestination.entries.forEach { destination ->
+                    RailNavItem(
+                        destination = destination,
+                        isSelected = destination == selectedDestination,
+                        onClick = { onDestinationSelected(destination) },
+                    )
+                }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            )
         }
     }
 }
@@ -344,7 +352,9 @@ private fun RailNavItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val contentColor = if (isSelected) Color.White else Color.White.copy(alpha = 0.72f)
+    val contentColor = if (isSelected) PosColors.Accent else PosColors.TextPrimary
+    val fontScale = LocalDensity.current.fontScale
+    val labelFontSize = minOf(BOTTOM_NAVIGATION_LABEL_SP, BOTTOM_NAVIGATION_LABEL_MAX_SP / fontScale)
     Box(
         modifier = Modifier
             .widthIn(min = NavigationRailItemMinWidth)
@@ -364,7 +374,7 @@ private fun RailNavItem(
                     .width(4.dp)
                     .height(28.dp)
                     .clip(RoundedCornerShape(percent = 50))
-                    .background(Color.White),
+                    .background(PosColors.Accent),
             )
         }
         Column(
@@ -383,7 +393,7 @@ private fun RailNavItem(
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = labelFontSize.sp, letterSpacing = 0.sp),
             )
         }
     }
