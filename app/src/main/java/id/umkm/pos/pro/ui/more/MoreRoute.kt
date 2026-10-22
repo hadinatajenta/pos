@@ -42,6 +42,7 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.Customer
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.HeaderActionButton
@@ -78,6 +79,9 @@ fun MoreRoute(
     val activeShift by remember(container) {
         container.shiftRepository.observeActiveShift()
     }.collectAsState(initial = null)
+    val activeStaff by remember(container) {
+        container.staffRepository.observeActiveStaff()
+    }.collectAsState(initial = null)
     var expectedCash by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(activeShift?.id) {
         expectedCash = null
@@ -107,6 +111,7 @@ fun MoreRoute(
                     settings = settings,
                     customers = customers,
                     activeShift = activeShift,
+                    activeStaff = activeStaff,
                     expectedCash = expectedCash,
                     selectedDestination = selectedPane,
                     onSelectDestination = { destination -> activeDetail = destination },
@@ -157,6 +162,7 @@ fun MoreRoute(
                     settings = settings,
                     customers = customers,
                     activeShift = activeShift,
+                    activeStaff = activeStaff,
                     expectedCash = expectedCash,
                     selectedDestination = null,
                     onSelectDestination = { destination -> activeDetail = destination },
@@ -182,6 +188,7 @@ private fun MoreHubColumn(
     settings: AppSettings?,
     customers: List<Customer>,
     activeShift: CashierShift?,
+    activeStaff: Staff?,
     expectedCash: Long?,
     selectedDestination: MoreDestination?,
     onSelectDestination: (MoreDestination) -> Unit,
@@ -211,11 +218,13 @@ private fun MoreHubColumn(
             StoreIdentityHeroCard(
                 settings = settings,
                 activeShift = activeShift,
+                activeStaff = activeStaff,
                 onOpenSettings = { onSelectDestination(MoreDestination.SETTINGS) },
             )
 
             ShiftCard(
                 activeShift = activeShift,
+                activeStaff = activeStaff,
                 expectedCash = expectedCash,
                 onOpenCashier = onOpenCashier,
             )
@@ -262,11 +271,17 @@ private fun MoreHubColumn(
 @Composable
 private fun ShiftCard(
     activeShift: CashierShift?,
+    activeStaff: Staff?,
     expectedCash: Long?,
     onOpenCashier: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
     val shiftLauncher = LocalShiftLauncher.current
+    val activeOperatorName = if (activeShift == null) {
+        null
+    } else {
+        activeStaff?.name ?: activeShift.cashierName
+    }
     PosCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -285,10 +300,10 @@ private fun ShiftCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = if (activeShift == null) {
+                    text = if (activeOperatorName == null) {
                         strings.moreShiftEmptySubtitle
                     } else {
-                        strings.moreShiftActiveSubtitle(activeShift.cashierName)
+                        strings.moreShiftActiveSubtitle(activeOperatorName)
                     },
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -322,7 +337,11 @@ private fun ShiftCard(
             verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         ) {
             HeaderActionButton(
-                text = strings.navCashier,
+                text = if (activeShift == null) {
+                    strings.cashierShiftOpenAction
+                } else {
+                    strings.cashierShiftSwitchAction
+                },
                 iconRes = R.drawable.ic_users,
                 onClick = onOpenCashier,
             )
@@ -338,13 +357,20 @@ private fun ShiftCard(
 private fun StoreIdentityHeroCard(
     settings: AppSettings?,
     activeShift: CashierShift?,
+    activeStaff: Staff?,
     onOpenSettings: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
     val storeName = settings?.storeName?.takeIf { it.isNotBlank() } ?: strings.moreDefaultStoreName
-    val cashierName = activeShift?.cashierName?.takeIf { it.isNotBlank() }
-        ?: settings?.cashierName?.takeIf { it.isNotBlank() }
-        ?: strings.moreDefaultCashierName
+    val cashierName = if (activeShift != null) {
+        activeStaff?.name?.takeIf { it.isNotBlank() }
+            ?: activeShift.cashierName.takeIf { it.isNotBlank() }
+            ?: settings?.cashierName?.takeIf { it.isNotBlank() }
+            ?: strings.moreDefaultCashierName
+    } else {
+        settings?.cashierName?.takeIf { it.isNotBlank() }
+            ?: strings.moreDefaultCashierName
+    }
     val taxRate = settings?.taxRatePercent ?: 0
 
     PosCard(

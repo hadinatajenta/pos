@@ -63,6 +63,14 @@ data class ShiftUiState(
 
     val selectedNextStaff: Staff? get() = staffOptions.firstOrNull { it.id == selectedNextStaffId }
 
+    val operatorStaffId: Long? get() = selectedStaffId ?: activeStaff?.id
+
+    val isOperatorSwitchReady: Boolean
+        get() = activeShift != null &&
+            operatorStaffId != null &&
+            operatorStaffId != activeStaff?.id &&
+            !isSubmitting
+
     val isCloseInputReady: Boolean
         get() = activeShift != null &&
             summary != null &&

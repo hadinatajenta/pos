@@ -36,7 +36,9 @@ interface ShiftDao {
     @Query(
         "UPDATE cashier_shifts SET closed_at = :closedAt, " +
             "expected_ending_cash = :expectedEndingCash, " +
-            "actual_ending_cash = :actualEndingCash " +
+            "actual_ending_cash = :actualEndingCash, " +
+            "closed_by_staff_id = :closedByStaffId, " +
+            "closed_by_name = :closedByName " +
             "WHERE id = :shiftId AND closed_at IS NULL",
     )
     suspend fun closeShift(
@@ -44,5 +46,7 @@ interface ShiftDao {
         closedAt: Long,
         expectedEndingCash: Long,
         actualEndingCash: Long,
+        closedByStaffId: Long?,
+        closedByName: String?,
     ): Int
 }

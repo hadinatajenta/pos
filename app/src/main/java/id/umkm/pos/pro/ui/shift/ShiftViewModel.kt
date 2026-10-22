@@ -52,7 +52,15 @@ class ShiftViewModel(
             if (activeShift != null && !_state.value.isSummaryLoading) {
                 loadSummary(activeShift.id)
             }
-            staffRepository.ensureDefaultStaff()
+            try {
+                staffRepository.ensureDefaultStaff()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                _state.update {
+                    it.copy(submitErrorMessage = AppError.Storage(error.message ?: "").toUiText())
+                }
+            }
             val staffOptions = try {
                 staffRepository.observeStaff().first()
             } catch (cancellation: CancellationException) {
@@ -151,7 +159,7 @@ class ShiftViewModel(
         }
         val staffId = current.selectedStaffId
         if (staffId == null) {
-            setValidation { strings -> strings.shiftValidationCashierName }
+            setValidation { strings -> strings.shiftValidationStaff }
             return
         }
         val startingCash = current.startingCashInput.toLongOrNull()
@@ -470,8 +478,6 @@ class ShiftViewModel(
     }
 
     private companion object {
-        const val RECENT_CASHIER_LIMIT = 5
         const val HISTORY_LIMIT = 30
-        const val MAX_CASHIER_NAME_LENGTH = 60
     }
 }

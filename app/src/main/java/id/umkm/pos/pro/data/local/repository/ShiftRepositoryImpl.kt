@@ -115,6 +115,8 @@ class ShiftRepositoryImpl(
                     closedAt = now,
                     expectedEndingCash = summary.expectedEndingCash,
                     actualEndingCash = actualEndingCash,
+                    closedByStaffId = closer?.id,
+                    closedByName = closer?.name ?: shift.cashierName,
                 )
                 if (updated == 0) {
                     return@withTransaction AppResult.Failure(
@@ -177,6 +179,8 @@ class ShiftRepositoryImpl(
                     closedAt = now,
                     expectedEndingCash = summary.expectedEndingCash,
                     actualEndingCash = actualEndingCash,
+                    closedByStaffId = closer?.id,
+                    closedByName = closer?.name ?: current.cashierName,
                 )
                 if (updated == 0) {
                     return@withTransaction AppResult.Failure(

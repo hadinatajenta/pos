@@ -19,7 +19,9 @@ import id.umkm.pos.pro.data.local.entity.CashierShiftEntity
 import id.umkm.pos.pro.data.local.entity.ProductEntity
 import id.umkm.pos.pro.data.local.entity.SecurityStoreEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
+import id.umkm.pos.pro.data.local.entity.StaffEntity
 import id.umkm.pos.pro.data.local.entity.TransactionEntity
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -64,7 +66,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun exportThenImportRestoresProductsAndSettings() = runBlocking {
+    fun exportThenImportRestoresProductsAndSettings() = runBlocking<Unit> {
         val productId = database.productDao().insertProduct(product(name = "Kopi Susu", price = 15_000L))
         database.settingsDao().upsertSettings(settings(storeName = "Toko Berkah"))
 
@@ -86,7 +88,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun importRejectsAnInvalidFileAndKeepsExistingData() = runBlocking {
+    fun importRejectsAnInvalidFileAndKeepsExistingData() = runBlocking<Unit> {
         val productId = database.productDao().insertProduct(product(name = "Teh Manis", price = 5_000L))
         backupFile.writeText("this is not a backup")
 
@@ -98,7 +100,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun importRejectsABackupFromANewerSchema() = runBlocking {
+    fun importRejectsABackupFromANewerSchema() = runBlocking<Unit> {
         val productId = database.productDao().insertProduct(product(name = "Gula", price = 12_000L))
         val futurePayload = BackupPayload(
             formatVersion = BackupTables.FORMAT_VERSION,
@@ -118,7 +120,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun importRejectsAFileWithUnknownColumns() = runBlocking {
+    fun importRejectsAFileWithUnknownColumns() = runBlocking<Unit> {
         val payload = BackupPayload(
             formatVersion = BackupTables.FORMAT_VERSION,
             schemaVersion = database.openHelper.readableDatabase.version,
@@ -137,7 +139,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun theBackupCarriesNoPinMaterialAndARestoreTurnsThePinOff() = runBlocking {
+    fun theBackupCarriesNoPinMaterialAndARestoreTurnsThePinOff() = runBlocking<Unit> {
         database.securityDao().upsertSecurityStore(
             SecurityStoreEntity(
                 pinHash = "pbkdf2\$sha256\$100000\$aa\$bb",
@@ -175,7 +177,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun aLegacyBackupThatStillCarriesTheSecurityTableIsIgnoredRatherThanImported() = runBlocking {
+    fun aLegacyBackupThatStillCarriesTheSecurityTableIsIgnoredRatherThanImported() = runBlocking<Unit> {
         database.securityDao().upsertSecurityStore(
             SecurityStoreEntity(
                 pinHash = "current-device-hash",
@@ -205,7 +207,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun exportThenImportPreservesCashierShiftsAndTransactionCashierNames() = runBlocking {
+    fun exportThenImportPreservesCashierShiftsAndTransactionCashierNames() = runBlocking<Unit> {
         val shiftId = database.shiftDao().insertShift(
             CashierShiftEntity(
                 cashierName = "Sari",
@@ -243,7 +245,7 @@ class JsonDataBackupServiceTest {
     }
 
     @Test
-    fun importAcceptsATransactionRowWithoutACashierNameAndStoresNull() = runBlocking {
+    fun importAcceptsATransactionRowWithoutACashierNameAndStoresNull() = runBlocking<Unit> {
         val tables = BackupTables.insertOrder
             .associateWith { emptyList<Map<String, JsonElement>>() }
             .toMutableMap()
@@ -262,6 +264,103 @@ class JsonDataBackupServiceTest {
         val restoredTransaction = database.transactionDao().getTransaction(1L)
         assertThat(restoredTransaction?.invoiceNo).isEqualTo("INV-OLD-FORMAT")
         assertThat(restoredTransaction?.cashierName).isNull()
+    }
+
+    @Test
+    fun exportThenImportPreservesStaffShiftAndTransactionAttribution() = runBlocking<Unit> {
+        val sariId = database.staffDao().insertStaff(
+            StaffEntity(name = "Sari", createdAt = 1_700_000_000_000L, updatedAt = 1_700_000_000_000L),
+        )
+        val budiId = database.staffDao().insertStaff(
+            StaffEntity(name = "Budi", createdAt = 1_700_000_000_000L, updatedAt = 1_700_000_000_000L),
+        )
+        database.settingsDao().upsertSettings(settings(storeName = "Toko Staf"))
+        database.staffDao().setActiveStaffId(sariId)
+        val shiftId = database.shiftDao().insertShift(
+            CashierShiftEntity(
+                cashierName = "Sari",
+                openedAt = 1_700_000_000_000L,
+                closedAt = 1_700_003_600_000L,
+                startingCash = 100_000L,
+                expectedEndingCash = 450_000L,
+                actualEndingCash = 445_000L,
+                openedByStaffId = sariId,
+                closedByStaffId = budiId,
+                closedByName = "Budi",
+            ),
+        )
+        val transactionId = database.transactionDao().insertTransaction(
+            transaction(invoiceNo = "INV-STAFF-1", cashierName = "Sari").copy(
+                shiftId = shiftId,
+                staffId = sariId,
+            ),
+        )
+
+        val exported = backupService.exportJson("staff-round-trip.json")
+
+        assertThat(exported).isInstanceOf(AppResult.Success::class.java)
+        database.openHelper.writableDatabase.delete("cashier_shifts", null, null)
+        database.openHelper.writableDatabase.delete("transactions", null, null)
+        database.openHelper.writableDatabase.delete("staffs", null, null)
+
+        val imported = backupService.importJson(Uri.fromFile(backupFile).toString())
+
+        assertThat(imported).isInstanceOf(AppResult.Success::class.java)
+        val summary = (imported as AppResult.Success<BackupImportSummary>).value
+        assertThat(summary.tableRowCounts[BackupTables.STAFF_TABLE]).isEqualTo(2)
+
+        val restoredStaff = database.staffDao().observeStaff().first()
+        assertThat(restoredStaff.map { staff -> staff.name }).containsExactly("Budi", "Sari")
+        assertThat(restoredStaff.map { staff -> staff.id }).containsExactly(sariId, budiId)
+        assertThat(database.staffDao().getActiveStaffId()).isEqualTo(sariId)
+        assertThat(database.settingsDao().getSettings()?.activeStaffId).isEqualTo(sariId)
+
+        val restoredShift = database.shiftDao().getShift(shiftId)
+        assertThat(restoredShift?.cashierName).isEqualTo("Sari")
+        assertThat(restoredShift?.openedByStaffId).isEqualTo(sariId)
+        assertThat(restoredShift?.closedByStaffId).isEqualTo(budiId)
+        assertThat(restoredShift?.closedByName).isEqualTo("Budi")
+
+        val restoredTransaction = database.transactionDao().getTransaction(transactionId)
+        assertThat(restoredTransaction?.cashierName).isEqualTo("Sari")
+        assertThat(restoredTransaction?.shiftId).isEqualTo(shiftId)
+        assertThat(restoredTransaction?.staffId).isEqualTo(sariId)
+    }
+
+    @Test
+    fun importingALegacyBackupWithoutStaffsSeedsTheDefaultStaff() = runBlocking<Unit> {
+        val tables = BackupTables.insertOrder
+            .associateWith { emptyList<Map<String, JsonElement>>() }
+            .toMutableMap()
+        tables.remove(BackupTables.STAFF_TABLE)
+        tables["transactions"] = listOf(legacyTransactionRow())
+        tables["app_settings"] = listOf(legacySettingsRow())
+        val legacyPayload = BackupPayload(
+            formatVersion = BackupTables.FORMAT_VERSION,
+            schemaVersion = 7,
+            exportedAt = 0L,
+            tables = tables,
+        )
+        backupFile.writeText(BackupJsonCodec.encode(legacyPayload))
+
+        val imported = backupService.importJson(Uri.fromFile(backupFile).toString())
+
+        assertThat(imported).isInstanceOf(AppResult.Success::class.java)
+        val summary = (imported as AppResult.Success<BackupImportSummary>).value
+        assertThat(summary.tableRowCounts[BackupTables.STAFF_TABLE]).isEqualTo(0)
+
+        val seededStaff = database.staffDao().observeStaff().first().single()
+        assertThat(seededStaff.name).isEqualTo("Kasir Utama")
+        assertThat(seededStaff.isActive).isTrue()
+        assertThat(database.staffDao().getActiveStaffId()).isEqualTo(seededStaff.id)
+        assertThat(database.settingsDao().getSettings()?.activeStaffId).isEqualTo(seededStaff.id)
+        assertThat(database.settingsDao().getSettings()?.storeName).isEqualTo("Toko Lama")
+
+        val restoredTransaction = database.transactionDao().getTransaction(1L)
+        assertThat(restoredTransaction?.invoiceNo).isEqualTo("INV-OLD-FORMAT")
+        assertThat(restoredTransaction?.cashierName).isNull()
+        assertThat(restoredTransaction?.staffId).isNull()
+        assertThat(restoredTransaction?.shiftId).isNull()
     }
 
     private fun transaction(invoiceNo: String, cashierName: String?): TransactionEntity = TransactionEntity(
@@ -308,6 +407,21 @@ class JsonDataBackupServiceTest {
         "due_date" to JsonNull,
         "status" to JsonPrimitive("COMPLETED"),
         "notes" to JsonNull,
+    )
+
+    private fun legacySettingsRow(): Map<String, JsonElement> = mapOf(
+        "id" to JsonPrimitive(1L),
+        "store_name" to JsonPrimitive("Toko Lama"),
+        "cashier_name" to JsonPrimitive("Sari"),
+        "tax_rate_percent" to JsonPrimitive(0L),
+        "rounding_increment" to JsonPrimitive(0L),
+        "is_pin_enabled" to JsonPrimitive(0L),
+        "printer_address" to JsonNull,
+        "printer_name" to JsonNull,
+        "paper_width_mm" to JsonPrimitive(58L),
+        "language_code" to JsonPrimitive("id"),
+        "qris_image_path" to JsonNull,
+        "qris_payload" to JsonNull,
     )
 
     private fun product(name: String, price: Long): ProductEntity = ProductEntity(

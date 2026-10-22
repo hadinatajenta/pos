@@ -272,6 +272,32 @@ interface PosStrings {
     val shiftHistoryActualCash: String
     val shiftHistoryVariance: String
     val shiftHistoryLiveNote: String
+    val settingsStaffTitle: String
+    val settingsMenuStaffDescription: String
+    val staffTitle: String
+    val staffSubtitle: String
+    val staffAddAction: String
+    val staffEditAction: String
+    val staffNameLabel: String
+    val staffNamePlaceholder: String
+    val staffActiveLabel: String
+    val staffInactiveLabel: String
+    val staffEmptyTitle: String
+    val staffEmptyHint: String
+    val staffLastActiveError: String
+    val staffNameRequired: String
+    val staffNameTooLong: String
+    val staffNameDuplicate: String
+    val staffSaved: String
+    val staffDeactivated: String
+    val staffReactivated: String
+    val staffDeactivateAction: String
+    val staffReactivateAction: String
+    val staffDeactivateConfirmTitle: String
+    val staffDeactivateConfirmMessage: (String) -> String
+    val staffActiveCount: (Int) -> String
+    val staffInactiveCount: (Int) -> String
+    val staffOnDutyLabel: String
 
     // Payment Methods
     val paymentCash: String

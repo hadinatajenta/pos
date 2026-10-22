@@ -7,6 +7,10 @@ running the checks in "Release gate status", not inferred.
 This replaces the previous audit at commit `cc74255` (17 October 2026). Several items that were
 open then have since been closed; they are listed under "Closed since the previous audit".
 
+The cashier-shift entry was updated on 22 October 2026 for the staff directory and staff selector.
+Implementation and verification of that change are finalized by the orchestrator; this audit does
+not claim new test, build, or device results for it.
+
 Legend: **DONE** = usable by an end user today · **PARTIAL** = data/domain layer exists but the UI
 or wiring does not · **MISSING** = nothing in the code.
 
@@ -20,7 +24,7 @@ or wiring does not · **MISSING** = nothing in the code.
 | 4 | Local backup and restore (JSON) | DONE |
 | 5 | PIN, biometrics, offline recovery | DONE (PIN, recovery code, audit and enforcement; biometrics deferred) |
 | 6 | Returns and exchanges | PARTIAL (returns DONE, exchanges MISSING) |
-| 7 | Cashier shifts | DONE |
+| 7 | Cashier shifts | DONE (shift handover and staff selector; per-cashier PIN not included) |
 | 8 | Receipt output | PARTIAL |
 | 9 | Reports summary and exports | DONE |
 | 10 | Ads | PARTIAL (placeholder) |
@@ -162,25 +166,54 @@ scanner setup first (no new dependency, no size change), then camera capture.
 PRD §7.3. `domain/pos/ReturnCorrection.kt` contains `ExchangeSettlement` and `settleExchange` with
 tests, but no UI references them. The app records returns without the exchange path.
 
-### 4. Cashier shifts — DONE (PRD §7.7, §8)
+### 4. Cashier shifts and staff selector — DONE (handover); per-cashier PIN deferred (PRD §6.1, §6.6, §7.7, §8)
 
-Implemented on 2026-10-21 in `feat/switch-cashier`. The cashier header names the active cashier
+Shift handover was implemented on 2026-10-21 in `feat/switch-cashier`. The staff directory and
+staff selector landed on 2026-10-22 in the same branch. The shift bar names the active staff member
 and offers **Ganti** or **Buka**; **More → Shift & Kasir** shows the active shift and its history,
 and links to the cashier for switching. The history lists the last 30 with cashier, times, starting,
-expected, and actual cash plus variance. A shift
-is required before checkout, while browsing and cart building stay available. Opening needs no PIN;
-closing, switching, and ending use the owner-level `CriticalAction.SWITCH_CASHIER` gate.
-`ShiftRepository` computes expected cash from the shift time window
+expected, and actual cash plus variance. A shift is required before checkout, while browsing and
+cart building stay available.
+
+**Staff directory.** Cashiers are rows in `staffs` (`id`, case-insensitive unique `name`, `role`,
+`is_active`, timestamps) behind `StaffRepository`. **Settings → Staf & Kasir** is the only place
+that accepts free text: the owner can add, rename, and activate or deactivate staff. The directory
+is seeded with one default staff member from the previous settings cashier name, or **Kasir Utama**
+when that name is blank. The active operator is stored in `app_settings.active_staff_id`.
+
+**Shift flows.** Opening a shift needs no PIN and selects an active staff member plus starting cash.
+With an active shift the sheet separates two flows:
+
+- **Ganti operator** changes the active staff member without a cash count. The shift stays open, so
+  its opening time and starting cash do not change.
+- **Tutup shift** records the cash count, shows expected versus actual cash, and closes the shift.
+  It may optionally open a new shift for another staff member.
+
+Both flows require an empty cart; otherwise **Kosongkan & Ganti** asks for confirmation. Closing,
+switching, and changing operator use the owner-level `CriticalAction.SWITCH_CASHIER` gate. `ShiftRepository` computes
+expected cash from the shift time window
 (`startingCash + cashSales + cashDebtPayments − cashRefunds`), requires confirmation for a non-zero
-variance, keeps close and open atomic, and snapshots `cashier_name` onto each transaction. Refunds
-are assumed cash because the return flow has no refund method; no `shift_id` is stored in the MVP.
-Verified on 2026-10-22: `testDebugUnitTest` 642 tests / 0 failures; `connectedDebugAndroidTest` 60
-tests on the SM-S721B (59 passed, 1 expanded-device test skipped, 0 failed); `assembleDebug` and
-`assembleRelease` succeed. Manual phone QA covered opening a shift, a cash sale updating expected
-cash to Rp 204.000, the owner-PIN gate, the non-empty-cart guard, a non-zero variance (Kurang
-Rp 5.000) requiring the checkbox, the More card/history, and the close form at 135% font. The TB321FU tablet was disconnected for the final run, so its shift UI
-was not re-checked in this pass. Lint still reports 14 pre-existing errors and no shift-specific
-findings.
+variance, keeps close and open atomic, and links transactions to `staff_id` and `shift_id` while
+retaining the `cashier_name` snapshot. Refunds are assumed cash because the return flow has no
+refund method. Schema version 8 and `MIGRATION_7_8` add `staffs`,
+`cashier_shifts.opened_by_staff_id`/`closed_by_staff_id`/`closed_by_name`,
+`transactions.staff_id`/`shift_id`, and `app_settings.active_staff_id`. Backups include `staffs`;
+older backups without it are accepted and seed a default staff.
+
+**Verification.** Verified on 2026-10-22:
+`testDebugUnitTest` 654 tests / 0 failures; `connectedDebugAndroidTest` 88 tests on `s24fe(AVD)`
+(87 passed, 1 expanded-device test skipped, 0 failed); `assembleDebug` and `assembleRelease`
+succeed. Manual emulator QA covered staff add and on-duty status, the two-tab operator/close flow,
+operator switching, the staff selector, and the close form. The earlier phone QA covered opening a
+shift, a cash sale updating expected cash to Rp 204.000, the owner-PIN gate, the non-empty-cart
+guard, a non-zero variance (Kurang Rp 5.000) requiring the checkbox, the More card/history, and the
+close form at 135% font. The TB321FU tablet was disconnected for these runs. Lint reported 14
+pre-existing errors, 57 warnings, and no staff/shift-specific findings.
+
+**Remaining, deliberately deferred:** a per-cashier PIN. The owner PIN still protects the cash
+handover, and the staff selector fixes names and operator attribution, but the till is not
+authenticated per person yet. Per-user credentials, enrollment, recovery, and role-based staff
+permissions are a later security step (PRD §15.1 Q15), not part of this change.
 
 ### 5. Receipt output — PARTIAL
 
@@ -264,11 +297,15 @@ to switch. Wait for the main navigation to exist (for example
    restore a backup through the file picker.
 4. **Barcode scanning**: both stages are in. What remains is the read-rate gate on real product
    labels with a physical device aimed at a barcode.
+5. **Per-cashier PIN and staff roles**: the next security step after the staff directory. Add
+   per-person credentials, enrollment and recovery, and role-based permissions so the till
+   authenticates the operator instead of relying only on the owner PIN (PRD §15.1 Q15).
 6. **PNG receipt and image share**: small, high value for WhatsApp receipts.
 7. **Exchanges in the returns UI**: domain logic already exists.
-8. **Shift management UI**: shipped on 2026-10-21. Phone QA on 2026-10-22 covered open shift,
-   cash sale, expected-cash update, the owner-PIN gate, the cart guard, a non-zero variance
-   confirmation, history, and 135% font. What remains is the same pass on the tablet and a
-   completed handover after entering the owner PIN.
+8. **Shift management UI**: shipped on 2026-10-21, with the staff directory and staff selector
+   added on 2026-10-22. Phone QA on 2026-10-22 covered open shift, cash sale, expected-cash update,
+   the owner-PIN gate, the cart guard, a non-zero variance confirmation, history, and 135% font.
+   What remains is the same pass on the tablet, a completed handover after entering the owner PIN,
+   and device verification of the staff selector and both shift flows.
 9. **Google Drive backup and SQLite `.db` export**: the remaining half of §7.6.
 10. **AdMob, shelf labels, Baseline Profiles**: monetization and polish.

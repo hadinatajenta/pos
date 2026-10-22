@@ -33,6 +33,7 @@ class UmkmDatabaseMigrationTest {
         context.deleteDatabase(TEST_DATABASE_NAME_4_5)
         context.deleteDatabase(TEST_DATABASE_NAME_5_6)
         context.deleteDatabase(TEST_DATABASE_NAME_6_7)
+        context.deleteDatabase(TEST_DATABASE_NAME_7_8)
     }
 
 
@@ -200,6 +201,86 @@ class UmkmDatabaseMigrationTest {
         versionSeven.close()
     }
 
+    @Test
+    fun migration7To8SeedsStaffAndLinksExistingShiftsAndTransactions() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_7_8, 7).use { versionSeven ->
+            versionSeven.execSQL(INSERT_VERSION_SEVEN_SETTINGS)
+            versionSeven.execSQL(INSERT_VERSION_SEVEN_OPEN_SHIFT)
+            versionSeven.execSQL(INSERT_VERSION_SEVEN_CLOSED_SHIFT)
+            versionSeven.execSQL(INSERT_VERSION_SEVEN_TRANSACTION)
+            versionSeven.execSQL(INSERT_VERSION_SIX_TRANSACTION)
+        }
+
+        val versionEight = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_7_8,
+            8,
+            true,
+            UmkmDatabase.MIGRATION_7_8,
+        )
+
+        assertTableRowCount(versionEight, "staffs", 1)
+        var staffId = 0L
+        versionEight.query("SELECT id, name, role, is_active FROM staffs").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            staffId = cursor.getLong(0)
+            assertEquals("Sari", cursor.getString(1))
+            assertEquals("CASHIER", cursor.getString(2))
+            assertEquals(1, cursor.getInt(3))
+        }
+        assertTrue(staffId > 0L)
+
+        versionEight.query(
+            "SELECT store_name, cashier_name, active_staff_id FROM app_settings",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Toko Tujuh", cursor.getString(0))
+            assertEquals("Sari", cursor.getString(1))
+            assertEquals(staffId, cursor.getLong(2))
+        }
+
+        assertTableRowCount(versionEight, "cashier_shifts", 2)
+        versionEight.query(
+            "SELECT id, cashier_name, closed_at, actual_ending_cash, " +
+                "opened_by_staff_id, closed_by_staff_id, closed_by_name " +
+                "FROM cashier_shifts ORDER BY id",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Sari", cursor.getString(1))
+            assertTrue(cursor.isNull(2))
+            assertTrue(cursor.isNull(3))
+            assertEquals(staffId, cursor.getLong(4))
+            assertTrue(cursor.isNull(5))
+            assertTrue(cursor.isNull(6))
+
+            assertTrue(cursor.moveToNext())
+            assertEquals("Sari", cursor.getString(1))
+            assertEquals(1_700_003_600_000L, cursor.getLong(2))
+            assertEquals(445_000L, cursor.getLong(3))
+            assertTrue(cursor.isNull(4))
+            assertTrue(cursor.isNull(5))
+            assertTrue(cursor.isNull(6))
+        }
+
+        assertTableRowCount(versionEight, "transactions", 2)
+        versionEight.query(
+            "SELECT invoice_no, cashier_name, shift_id, staff_id " +
+                "FROM transactions ORDER BY id",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("INV-V7-1", cursor.getString(0))
+            assertEquals("Sari", cursor.getString(1))
+            assertTrue(cursor.isNull(2))
+            assertEquals(staffId, cursor.getLong(3))
+
+            assertTrue(cursor.moveToNext())
+            assertEquals("INV-V6-1", cursor.getString(0))
+            assertTrue(cursor.isNull(1))
+            assertTrue(cursor.isNull(2))
+            assertTrue(cursor.isNull(3))
+        }
+        versionEight.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -223,6 +304,36 @@ class UmkmDatabaseMigrationTest {
         const val TEST_DATABASE_NAME_5_6 = "umkm-migration-5-6.db"
 
         const val TEST_DATABASE_NAME_6_7 = "umkm-migration-6-7.db"
+
+        const val TEST_DATABASE_NAME_7_8 = "umkm-migration-7-8.db"
+
+        const val INSERT_VERSION_SEVEN_SETTINGS =
+            "INSERT INTO app_settings " +
+                "(id, store_name, cashier_name, tax_rate_percent, rounding_increment, " +
+                "is_pin_enabled, printer_address, printer_name, paper_width_mm, " +
+                "language_code, qris_image_path, qris_payload) " +
+                "VALUES (1, 'Toko Tujuh', 'Sari', 0, 0, 0, NULL, NULL, 58, 'id', NULL, NULL)"
+
+        const val INSERT_VERSION_SEVEN_OPEN_SHIFT =
+            "INSERT INTO cashier_shifts " +
+                "(cashier_name, opened_at, closed_at, starting_cash, " +
+                "expected_ending_cash, actual_ending_cash) " +
+                "VALUES ('Sari', 1700007200000, NULL, 50000, NULL, NULL)"
+
+        const val INSERT_VERSION_SEVEN_CLOSED_SHIFT =
+            "INSERT INTO cashier_shifts " +
+                "(cashier_name, opened_at, closed_at, starting_cash, " +
+                "expected_ending_cash, actual_ending_cash) " +
+                "VALUES ('Sari', 1700000000000, 1700003600000, 100000, 450000, 445000)"
+
+        const val INSERT_VERSION_SEVEN_TRANSACTION =
+            "INSERT INTO transactions " +
+                "(invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
+                "invoice_discount, tax_total, rounding, grand_total, total_hpp, net_profit, " +
+                "payment_method, paid_amount, change_amount, remaining_debt, due_date, status, notes, " +
+                "cashier_name) " +
+                "VALUES ('INV-V7-1', 1700007300000, NULL, NULL, 6000, 0, 0, 0, 0, 6000, " +
+                "3000, 3000, 'CASH', 6000, 0, 0, NULL, 'COMPLETED', NULL, 'Sari')"
 
         const val INSERT_VERSION_SIX_TRANSACTION =
             "INSERT INTO transactions " +

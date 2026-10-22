@@ -30,6 +30,7 @@ import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.components.MenuListRow
 import id.umkm.pos.pro.ui.security.SecurityRoute
+import id.umkm.pos.pro.ui.staff.StaffRoute
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -40,6 +41,7 @@ private enum class SettingsDestination {
     PRINTER,
     QRIS,
     STORE,
+    STAFF,
     SCANNER,
     BACKUP,
     SECURITY,
@@ -153,6 +155,10 @@ private fun SettingsDetail(
             onBack = onBack,
             modifier = Modifier.fillMaxSize(),
         )
+        SettingsDestination.STAFF -> StaffRoute(
+            onBack = onBack,
+            modifier = Modifier.fillMaxSize(),
+        )
         SettingsDestination.SCANNER -> SettingsScannerScreen(
             state = state,
             actions = actions,
@@ -240,6 +246,14 @@ private fun SettingsHubColumn(
                 isSelected = selectedDestination == SettingsDestination.STORE,
                 badge = { StoreTaxBadge(taxRatePercent = settings?.taxRatePercent ?: 0) },
                 onClick = { onSelectDestination(SettingsDestination.STORE) },
+            )
+
+            MenuListRow(
+                title = strings.settingsStaffTitle,
+                description = strings.settingsMenuStaffDescription,
+                iconRes = R.drawable.ic_users,
+                isSelected = selectedDestination == SettingsDestination.STAFF,
+                onClick = { onSelectDestination(SettingsDestination.STAFF) },
             )
 
             MenuListRow(

@@ -32,6 +32,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,6 +43,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -70,6 +75,11 @@ private const val TABLET_SHEET_HEIGHT_FRACTION = 0.86f
 private const val TABLET_SHEET_MAX_WIDTH_DP = 640
 private val TRAILING_VALUE_MAX_WIDTH = 168.dp
 
+private enum class ShiftFormTab {
+    OPERATOR,
+    CLOSE,
+}
+
 @Composable
 internal fun SwitchCashierSheet(
     state: ShiftUiState,
@@ -77,15 +87,28 @@ internal fun SwitchCashierSheet(
 ) {
     val strings = LocalPosStrings.current
     val isOpening = state.activeShift == null
+    var selectedTab by rememberSaveable(state.activeShift?.id) {
+        mutableStateOf(ShiftFormTab.OPERATOR)
+    }
     ShiftSheetContainer(
-        title = if (isOpening) strings.shiftOpenTitle else strings.shiftCloseTitle,
+        title = if (isOpening) strings.shiftOpenTitle else strings.moreShiftTitle,
         supportingText = if (isOpening) {
             strings.shiftOpenSupporting
         } else {
-            strings.shiftCloseSupporting(state.activeShift?.cashierName.orEmpty())
+            strings.shiftCloseSupporting(activeOperatorName(state))
         },
         onDismiss = actions.onDismissForm,
-        footer = { ShiftFormFooter(state = state, actions = actions) },
+        footer = {
+            if (isOpening) {
+                OpenShiftFooter(state = state, actions = actions)
+            } else {
+                ActiveShiftFooter(
+                    state = state,
+                    actions = actions,
+                    selectedTab = selectedTab,
+                )
+            }
+        },
     ) {
         Column(
             modifier = Modifier
@@ -98,12 +121,22 @@ internal fun SwitchCashierSheet(
             if (isOpening) {
                 OpenShiftForm(state = state, actions = actions)
             } else {
-                CloseShiftForm(state = state, actions = actions)
+                ShiftFormTabs(
+                    selectedTab = selectedTab,
+                    onSelectTab = { tab -> selectedTab = tab },
+                )
+                when (selectedTab) {
+                    ShiftFormTab.OPERATOR -> OperatorForm(state = state, actions = actions)
+                    ShiftFormTab.CLOSE -> CloseShiftForm(state = state, actions = actions)
+                }
             }
             ShiftFeedback(state = state)
         }
     }
 }
+
+private fun activeOperatorName(state: ShiftUiState): String =
+    state.activeStaff?.name ?: state.activeShift?.cashierName.orEmpty()
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -222,6 +255,50 @@ private fun ShiftSheetLayout(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+private fun ShiftFormTabs(
+    selectedTab: ShiftFormTab,
+    onSelectTab: (ShiftFormTab) -> Unit,
+) {
+    val strings = LocalPosStrings.current
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
+        ShiftFormTab.entries.forEach { tab ->
+            val label = when (tab) {
+                ShiftFormTab.OPERATOR -> strings.shiftOperatorTab
+                ShiftFormTab.CLOSE -> strings.shiftCloseTab
+            }
+            FilterChip(
+                selected = tab == selectedTab,
+                onClick = { onSelectTab(tab) },
+                label = {
+                    Text(
+                        text = label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                leadingIcon = if (tab == selectedTab) {
+                    {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(PosSizes.iconSmall),
+                        )
+                    }
+                } else {
+                    null
+                },
+                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun OpenShiftForm(
     state: ShiftUiState,
     actions: ShiftActions,
@@ -243,6 +320,26 @@ private fun OpenShiftForm(
             label = strings.shiftStartingCashLabel,
             supportingText = strings.shiftStartingCashHint,
             imeAction = ImeAction.Done,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OperatorForm(
+    state: ShiftUiState,
+    actions: ShiftActions,
+) {
+    val strings = LocalPosStrings.current
+    PosCard(modifier = Modifier.fillMaxWidth()) {
+        StaffSelector(
+            label = strings.shiftCashierNameLabel,
+            staff = state.staffOptions,
+            selectedStaffId = state.operatorStaffId,
+            activeStaffId = state.activeStaff?.id,
+            onSelect = actions.onSelectStaff,
+            emptyTitle = strings.shiftNoStaffTitle,
+            emptyHint = strings.shiftNoStaffHint,
         )
     }
 }
@@ -309,23 +406,27 @@ private fun CloseShiftForm(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StaffSelector(
-    label: String,
+    label: String?,
     staff: List<Staff>,
     selectedStaffId: Long?,
     onSelect: (Long) -> Unit,
     emptyTitle: String,
     emptyHint: String,
     modifier: Modifier = Modifier,
+    activeStaffId: Long? = null,
 ) {
+    val strings = LocalPosStrings.current
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
-        Text(
-            text = label,
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (label != null) {
+            Text(
+                text = label,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (staff.isEmpty()) {
             Text(
                 text = emptyTitle,
@@ -337,17 +438,46 @@ private fun StaffSelector(
                 style = LocalAppTextStyles.current.supportingLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_settings),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(PosSizes.iconSmall),
+                )
+                Text(
+                    text = strings.shiftManageStaffAction,
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         } else {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
                 verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
             ) {
                 staff.forEach { member ->
+                    val isSelected = selectedStaffId == member.id
+                    val isActive = activeStaffId == member.id
+                    val chipLabel = if (isActive) {
+                        "${member.name} · ${strings.shiftHistoryStatusActive}"
+                    } else {
+                        member.name
+                    }
                     FilterChip(
-                        selected = selectedStaffId == member.id,
+                        selected = isSelected,
                         onClick = { onSelect(member.id) },
-                        label = { Text(member.name, maxLines = 1) },
-                        leadingIcon = if (selectedStaffId == member.id) {
+                        label = {
+                            Text(
+                                text = chipLabel,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        leadingIcon = if (isSelected) {
                             {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_check),
@@ -358,6 +488,7 @@ private fun StaffSelector(
                         } else {
                             null
                         },
+                        modifier = Modifier.heightIn(min = PosSizes.touchTarget),
                     )
                 }
             }
@@ -607,25 +738,63 @@ private fun ShiftFeedback(state: ShiftUiState) {
 }
 
 @Composable
-private fun ShiftFormFooter(
+private fun OpenShiftFooter(
     state: ShiftUiState,
     actions: ShiftActions,
 ) {
     val strings = LocalPosStrings.current
-    if (state.activeShift == null) {
-        PrimaryActionButton(
-            text = strings.shiftOpenSubmit,
-            onClick = actions.onOpenShift,
-            enabled = state.isOpenInputReady,
-            loading = state.isSubmitting,
-        )
-        SecondaryTextAction(
-            text = strings.actionCancel,
-            onClick = actions.onDismissForm,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        return
+    PrimaryActionButton(
+        text = strings.shiftOpenSubmit,
+        onClick = actions.onOpenShift,
+        enabled = state.isOpenInputReady,
+        loading = state.isSubmitting,
+    )
+    SecondaryTextAction(
+        text = strings.actionCancel,
+        onClick = actions.onDismissForm,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun ActiveShiftFooter(
+    state: ShiftUiState,
+    actions: ShiftActions,
+    selectedTab: ShiftFormTab,
+) {
+    val strings = LocalPosStrings.current
+    when (selectedTab) {
+        ShiftFormTab.OPERATOR -> {
+            val gate = rememberSecurityGate()
+            val pinLabel = strings.securityAuditActionLabel(CriticalAction.SWITCH_CASHIER)
+            PrimaryActionButton(
+                text = strings.shiftSwitchOperatorAction,
+                onClick = {
+                    val staffId = state.operatorStaffId ?: return@PrimaryActionButton
+                    gate.request(CriticalAction.SWITCH_CASHIER, pinLabel) {
+                        actions.onSwitchOperator(staffId)
+                    }
+                },
+                enabled = state.isOperatorSwitchReady,
+                loading = state.isSubmitting,
+            )
+            SecondaryTextAction(
+                text = strings.actionCancel,
+                onClick = actions.onDismissForm,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        ShiftFormTab.CLOSE -> CloseShiftFooter(state = state, actions = actions)
     }
+}
+
+@Composable
+private fun CloseShiftFooter(
+    state: ShiftUiState,
+    actions: ShiftActions,
+) {
+    val strings = LocalPosStrings.current
     val gate = rememberSecurityGate()
     val pinLabel = strings.securityAuditActionLabel(CriticalAction.SWITCH_CASHIER)
     val closeOnly = {

@@ -82,7 +82,7 @@ fun ShiftHost(
                     .padding(
                         start = PosSpacing.md,
                         end = PosSpacing.md,
-                        bottom = 80.dp,
+                        bottom = 96.dp,
                     ),
             )
             if (state.mode == ShiftSheetMode.SHIFT_FORM) {

@@ -22,6 +22,7 @@ import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.common.asTextOrNull
@@ -218,6 +219,7 @@ private fun previewCashierState(): CashierUiState {
             expectedEndingCash = null,
             actualEndingCash = null,
         ),
+        activeStaff = Staff(id = 1L, name = "Dini"),
     )
 }
 

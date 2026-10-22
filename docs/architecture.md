@@ -5,7 +5,8 @@ structural decisions the orchestrator froze during Phase 0. Agents build against
 these shapes and do not change them without orchestrator approval.
 
 Current state recorded at commit `5f1bc73`, 19 October 2026. The cashier-shift section was added on
-21 October 2026 and verified on 22 October 2026.
+21 October 2026 and verified on 22 October 2026. The staff-directory section and the staff-linked
+shift changes were added on 22 October 2026.
 
 ## Layout
 
@@ -72,6 +73,11 @@ Android and Room types.
   unique index on `transactions.invoice_no` is retained as a second guard.
 - **D13** — Core library desugaring is enabled so `java.time` works on minSdk 23
   (Android 6). `desugar_jdk_libs` is pinned in the version catalog.
+- **D14** — Cashier identity comes from the `staffs` directory (`Core.model.Staff`,
+  `StaffRepository`), not from free text in the shift flow. `transactions.staff_id` and
+  `transactions.shift_id` are the identity links; `transactions.cashier_name` remains a
+  display snapshot for reprints. `app_settings.active_staff_id` is the current operator and
+  is independent of whether a shift is open. A per-cashier PIN is not part of this contract.
 
 ## Application layer
 
@@ -112,7 +118,10 @@ JSON backup lives in `data/backup/`:
 - `JsonDataBackupService` exports every table and restores them inside one Room
   transaction. Import validates the format version, rejects a newer schema,
   requires every table to be present, and rejects unknown columns before it
-  deletes anything.
+  deletes anything. `staffs` is part of the payload. A backup with
+  `schemaVersion < 8` is accepted without `staffs`, and the restore seeds
+  **Kasir Utama** and points `app_settings.active_staff_id` at it; a backup at
+  schema version 8 or later must contain the table.
 - `BackupFileNames` produces deterministic `umkm-pos-backup-yyyyMMdd-HHmmss.json`
   names.
 
@@ -147,13 +156,15 @@ User-facing text is resolved through one contract:
 ## Settings navigation
 
 `ui/settings/SettingsScreen.kt` is a hub, not a long scrolling page. A private
-`SettingsDestination` enum selects one of six sub-screens:
+`SettingsDestination` enum selects one of the sub-screens:
 
 - `SettingsLanguageScreen` — ordered radio list of the three languages.
 - `SettingsPrinterScreen` — device list, paper width, connect/disconnect, test
   print, and receipt preview dialog.
 - `SettingsQrisScreen` — QRIS image upload, replacement, and removal.
 - `SettingsStoreScreen` — store name, cashier name, tax, and rounding.
+- `StaffRoute` (`ui/staff/`) — the staff directory: add, rename, and activate or deactivate
+  cashiers. This is the only screen that accepts a free-text cashier name.
 - `SettingsBackupScreen` — JSON backup export, import with a confirmation
   dialog, and the shared export result card.
 - `SettingsAboutScreen` — app name and version, plus the privacy policy link.
@@ -164,33 +175,73 @@ row component. On wide windows the screen is master-detail
 a back action. Feedback messages are scoped to the page that produced them and
 are consumed on navigation.
 
+## Staff directory
+
+Cashiers are records, not free text. **Settings → Staf & Kasir** is the only screen that accepts a
+staff name; the shift flow selects from the active entries.
+
+- `staffs` (`StaffEntity`, `data/local/entity/StaffEntity.kt`) holds `id`, `name`, `role`,
+  `is_active`, `created_at`, and `updated_at`. The `name` index is unique and case-insensitive
+  (`COLLATE NOCASE`). `role` is `SecurityRole.CASHIER` for this iteration.
+- `StaffDao` (`data/local/dao/StaffDao.kt`) and `StaffRepositoryImpl`
+  (`data/local/repository/StaffRepositoryImpl.kt`) implement `StaffRepository`
+  (`core/contract/Repositories.kt`): observe all staff or the active one, add, rename,
+  activate/deactivate, and `ensureDefaultStaff`.
+- Schema v8 (`MIGRATION_7_8`) creates `staffs`, adds `app_settings.active_staff_id`, the staff
+  columns on `cashier_shifts`, and `transactions.staff_id`/`shift_id` with indexes, then seeds the
+  default staff and backfills the active operator, the open shift's opener, and historical
+  transaction staff links.
+- Names are trimmed, limited to 60 characters, and unique case-insensitively. Deactivating the last
+  active staff member is rejected, and deactivating the current operator moves
+  `app_settings.active_staff_id` to another active staff member.
+- The active operator is stored in `app_settings.active_staff_id` (`SettingsEntity.activeStaffId`)
+  and exposed through `StaffRepository.observeActiveStaff`. It is separate from the active shift.
+- Seeding keeps the first run usable: a new database inserts **Kasir Utama**; `MIGRATION_7_8`
+  inserts the previous settings cashier name when it is not blank, otherwise **Kasir Utama**.
+  A restored pre-v8 backup seeds **Kasir Utama**.
+- A staff row is an identity and attribution link, not an authentication credential. The owner
+  PIN remains the only gate for cash handover; a per-cashier PIN is deferred.
+
 ## Cashier shifts
 
-Shift handover is a first-class flow: the cashier header shows the active cashier and opens,
-switches, or ends a shift. **More → Shift & Kasir** shows the active shift and links to the
+Shift handover is a first-class flow: the shift bar shows the active staff member and opens,
+switches, or closes a shift. **More → Shift & Kasir** shows the active shift and links to the
 cashier for switching; it also lists the last 30 shifts.
 
 - `ShiftRepository` (`core/contract/Repositories.kt`) is the contract;
   `ShiftRepositoryImpl` (`data/local/repository/ShiftRepositoryImpl.kt`) owns the Room work over
-  `CashierShiftEntity`, `ShiftDao`, `TransactionDao`, `DebtPaymentDao`, and `ReturnDao`.
-- `openShift` succeeds only when no shift is active. `switchShift` closes the current shift and
-  inserts the next one inside one `database.withTransaction`, so a failed handover cannot leave
-  two active shifts or silently drop the close.
+  `CashierShiftEntity`, `ShiftDao`, `StaffDao`, `TransactionDao`, `DebtPaymentDao`, and `ReturnDao`.
+- `openShift(staffId, startingCash)` succeeds only when no shift is active and the selected staff
+  member exists and is active. It writes `cashier_name` and `opened_by_staff_id`, then points
+  `app_settings.active_staff_id` at the opener.
+- `switchShift` closes the current shift and inserts the next one inside one
+  `database.withTransaction`, so a failed handover cannot leave two active shifts or silently drop
+  the close. It writes the closer to `closed_by_staff_id`/`closed_by_name` and the next opener to
+  `opened_by_staff_id`.
+- `switchOperator(staffId)` implements **Ganti operator**: it requires an open shift, validates
+  that the staff member is active, and only changes `app_settings.active_staff_id`. It takes no
+  cash count and leaves `cashier_shifts` untouched.
 - Cash reconciliation lives in `domain/pos/ShiftReconciliation.kt`. It sums over the shift's
   `opened_at`–`closed_at` window: CASH sales as `paid_amount − change_amount`, SPLIT and KASBON
   deposits as `paid_amount`, CASH debt payments, and return refunds.
   `expectedEndingCash = startingCash + cashSales + cashDebtPayments − cashRefunds`. Refunds are
   assumed cash because the return flow has no refund-method field.
 - `CashierShift`, `ShiftCashSummary`, and `ShiftSwitchResult` (`core/model/Sales.kt`) carry the
-  closed and opened records. `shift_id` is deliberately absent from `transactions` in the MVP;
-  attribution uses the single active shift's time window. A `shift_id` belongs to phase 2.
-- `transactions.cashier_name` (schema v7, `MIGRATION_6_7`) snapshots the cashier at checkout through
-  `CheckoutUseCase`; `StoredReceiptLoader` prefers it over the current settings name, so a reprint
-  names the cashier who made the sale.
-- Closing, switching, and ending are `CriticalAction.SWITCH_CASHIER`, mapped to
-  `SecurityRole.OWNER` with `PinPolicy.alwaysPrompts`. Opening is ungated. A non-zero variance
+  closed and opened records, including `openedByStaffId`, `closedByStaffId`, and `closedByName`.
+- `transactions.staff_id` and `transactions.shift_id` (schema v8, `MIGRATION_7_8`) link each sale to
+  the operator and the open shift. `CheckoutUseCase` takes both from the cashier state. Cash
+  reconciliation still sums over the shift's time window, so an operator change inside one shift
+  does not split its cash summary.
+- `transactions.cashier_name` (schema v7, `MIGRATION_6_7`) remains a display snapshot taken at
+  checkout through `CheckoutUseCase`; `StoredReceiptLoader` prefers it over the current settings
+  name, so a reprint keeps the name used at sale time even after a handover or a staff rename.
+- Closing a shift, closing with a handover, and changing operator are `CriticalAction.SWITCH_CASHIER`,
+  mapped to `SecurityRole.OWNER` with `PinPolicy.alwaysPrompts`. Opening is ungated. A non-zero variance
   requires explicit confirmation in the shift flow; the repository stores the counted cash and the
   computed expected cash.
+- **Ganti operator** records no cash count and leaves the shift open; it only changes
+  `app_settings.active_staff_id`. This iteration does not authenticate a staff member: `staffs`
+  provides attribution, not credentials, and a per-cashier PIN is deferred (PRD §15.1 Q15).
 
 ## Barcode scanning
 
