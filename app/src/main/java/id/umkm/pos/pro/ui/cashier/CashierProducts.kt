@@ -45,7 +45,6 @@ import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
-import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
@@ -96,13 +95,9 @@ internal fun CashierCatalogPane(
             title = strings.cashierTitle,
             supportingText = catalogSupportingText(state, strings),
             actions = {
-                HeaderActionButton(
-                    text = if (state.activeShift == null) {
-                        strings.cashierShiftOpenAction
-                    } else {
-                        strings.cashierShiftSwitchAction
-                    },
-                    iconRes = R.drawable.ic_users,
+                CashierIdentityPill(
+                    cashierName = state.activeStaff?.name ?: state.activeShift?.cashierName,
+                    isShiftOpen = state.activeShift != null,
                     onClick = { actions.onOpenShift(state.lineCount, actions.onClearCart) },
                 )
             },
@@ -136,15 +131,10 @@ internal fun CashierCatalogPane(
 }
 
 private fun catalogSupportingText(state: CashierUiState, strings: PosStrings): String? {
-    val activeShift = state.activeShift ?: return strings.cashierShiftNotOpen
-    val cashierName = state.activeStaff?.name ?: activeShift.cashierName
-    val items = (state.catalog as? UiState.Success)?.data
+    if (state.activeShift == null) return strings.cashierShiftNotOpen
+    val items = (state.catalog as? UiState.Success)?.data ?: return null
     return buildString {
-        append(
-            items?.let { catalogItems ->
-                strings.cashierShiftSupporting(cashierName, catalogItems.size)
-            } ?: cashierName,
-        )
+        append(strings.cashierProductCount(items.size))
         state.catalogFilter.category?.let { append(" · $it") }
         if (state.catalogFilter.isAvailableOnly) {
             append(" · ${strings.cashierFilterInStockOnly}")

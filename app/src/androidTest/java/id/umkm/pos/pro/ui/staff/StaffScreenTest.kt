@@ -10,6 +10,7 @@ import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -73,6 +74,27 @@ class StaffScreenTest {
         composeRule.onNodeWithText(IdStrings.staffInactiveSection(1)).assertIsDisplayed()
         composeRule.onNodeWithText("Dini").assertIsDisplayed()
         composeRule.onNodeWithText("Sari").assertIsDisplayed()
+    }
+
+    @Test
+    fun onDutyAndInactiveBadgesShownButNoActiveBadge() {
+        showScreen(
+            StaffUiState(
+                staffList = listOf(
+                    Staff(id = 1L, name = "Dini", isActive = true),
+                    Staff(id = 2L, name = "Budi", isActive = true),
+                    Staff(id = 3L, name = "Sari", isActive = false),
+                ),
+                activeStaffId = 1L,
+                isLoading = false,
+            ),
+        )
+
+        // The on-duty chip is exposed to accessibility as a content description
+        // because StatusChip replaces its semantics.
+        composeRule.onNodeWithContentDescription(IdStrings.staffOnDutyLabel).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.staffActiveLabel).assertDoesNotExist()
+        composeRule.onNodeWithText(IdStrings.staffInactiveLabel).assertIsDisplayed()
     }
 
     @Test

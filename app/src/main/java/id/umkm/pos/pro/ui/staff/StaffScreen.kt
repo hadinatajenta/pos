@@ -33,7 +33,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,6 +41,7 @@ import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -89,9 +89,21 @@ internal fun StaffScreen(
                 .align(Alignment.TopCenter),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                StaffHeader(
-                    actions = actions,
+                ScreenHeader(
+                    title = strings.staffTitle,
+                    supportingText = strings.staffSubtitle,
                     onBack = onBack,
+                    actions = {
+                        IconButton(
+                            onClick = actions.onToggleSearch,
+                            modifier = Modifier.testTag(STAFF_SEARCH_ACTION_TEST_TAG),
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_search),
+                                contentDescription = strings.staffSearchAction,
+                            )
+                        }
+                    },
                 )
                 if (state.isSearchVisible) {
                     StaffSearchField(
@@ -160,58 +172,6 @@ internal fun StaffScreen(
             StaffDeactivateDialog(
                 staff = staff,
                 actions = actions,
-            )
-        }
-    }
-}
-
-@Composable
-private fun StaffHeader(
-    actions: StaffActions,
-    onBack: (() -> Unit)?,
-) {
-    val strings = LocalPosStrings.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = if (onBack != null) PosSpacing.xs else PosSpacing.md,
-                end = PosSpacing.sm,
-                top = PosSpacing.xs,
-                bottom = PosSpacing.xs,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-    ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = strings.actionBack,
-                )
-            }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = strings.staffTitle,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-            )
-            Text(
-                text = strings.staffSubtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-            )
-        }
-        IconButton(
-            onClick = actions.onToggleSearch,
-            modifier = Modifier.testTag(STAFF_SEARCH_ACTION_TEST_TAG),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_search),
-                contentDescription = strings.staffSearchAction,
             )
         }
     }

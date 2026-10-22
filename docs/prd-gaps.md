@@ -7,9 +7,9 @@ running the checks in "Release gate status", not inferred.
 This replaces the previous audit at commit `cc74255` (17 October 2026). Several items that were
 open then have since been closed; they are listed under "Closed since the previous audit".
 
-The cashier-shift entry was updated on 22 October 2026 for the staff directory and staff selector.
-Implementation and verification of that change are finalized by the orchestrator; this audit does
-not claim new test, build, or device results for it.
+The cashier-shift entry was updated on 22 October 2026 for the staff directory, the staff selector,
+and the shift/cashier and staff UI redesign. Verification results for the redesign are recorded in
+the dated note below and in PRD §16.
 
 Legend: **DONE** = usable by an end user today · **PARTIAL** = data/domain layer exists but the UI
 or wiring does not · **MISSING** = nothing in the code.
@@ -169,11 +169,24 @@ tests, but no UI references them. The app records returns without the exchange p
 ### 4. Cashier shifts and staff selector — DONE (handover); per-cashier PIN deferred (PRD §6.1, §6.6, §7.7, §8)
 
 Shift handover was implemented on 2026-10-21 in `feat/switch-cashier`. The staff directory and
-staff selector landed on 2026-10-22 in the same branch. The shift bar names the active staff member
-and offers **Ganti** or **Buka**; **More → Shift & Kasir** shows the active shift and its history,
-and links to the cashier for switching. The history lists the last 30 with cashier, times, starting,
-expected, and actual cash plus variance. A shift is required before checkout, while browsing and
-cart building stay available.
+staff selector landed on 2026-10-22 in the same branch. The cashier identity pill names the active
+staff member and opens the shift sheet (**Buka shift** when no shift is open); **More → Shift & Kasir**
+shows the active shift and its history, and links to the cashier for switching. The history lists the
+last 30 with cashier, times, starting, expected, and actual cash plus variance. A shift is required
+before checkout, while browsing and cart building stay available.
+
+**UI redesign, 2026-10-22.** The shift/cashier and staff UI were redesigned. The cashier header now
+uses a tonal identity pill (monogram + name + chevron) instead of a separate shift bar under the top
+bar; the switch/close sheet uses a full-width segmented control, account rows with initials
+monograms, a tonal cash-summary surface without nested cards, one primary action whose label follows
+a **Lanjut ke kasir lain** handover toggle (default off), safe status-bar insets, and
+thousand-separated money inputs. The staff cards use monogram avatars instead of the shared 3D
+avatar, drop the amber **Aktif** badge, and are border-only. Status remains **DONE**. No schema,
+data, money-calculation, or permission changes were made. Preview:
+`docs/preview/switch-cashier-preview.html`. Verified on 2026-10-22 with 667 unit tests (0 failures),
+190 instrumented tests on `legion_tab(AVD)` and `s24fe(AVD)` (189 passed, 1 expanded-device test
+skipped, 0 failures), `assembleDebug`, and manual phone/tablet QA at 100% and 135% font scale.
+Screenshots are in `docs/preview/screenshots/`.
 
 **Staff directory.** Cashiers are rows in `staffs` (`id`, case-insensitive unique `name`, `role`,
 `is_active`, timestamps) behind `StaffRepository`. **Settings → Staf & Kasir** is the only place
@@ -184,13 +197,14 @@ when that name is blank. The active operator is stored in `app_settings.active_s
 **Shift flows.** Opening a shift needs no PIN and selects an active staff member plus starting cash.
 With an active shift the sheet separates two flows:
 
-- **Ganti operator** changes the active staff member without a cash count. The shift stays open, so
+- **Ganti kasir** changes the active staff member without a cash count. The shift stays open, so
   its opening time and starting cash do not change.
 - **Tutup shift** records the cash count, shows expected versus actual cash, and closes the shift.
-  It may optionally open a new shift for another staff member.
+  A **Lanjut ke kasir lain** toggle (default off) can then open a new shift for another staff member;
+  the primary action label changes from **Tutup shift** to **Tutup & mulai shift**.
 
 Both flows require an empty cart; otherwise **Kosongkan & Ganti** asks for confirmation. Closing,
-switching, and changing operator use the owner-level `CriticalAction.SWITCH_CASHIER` gate. `ShiftRepository` computes
+switching, and changing kasir use the owner-level `CriticalAction.SWITCH_CASHIER` gate. `ShiftRepository` computes
 expected cash from the shift time window
 (`startingCash + cashSales + cashDebtPayments − cashRefunds`), requires confirmation for a non-zero
 variance, keeps close and open atomic, and links transactions to `staff_id` and `shift_id` while

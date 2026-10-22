@@ -70,8 +70,10 @@ private enum class MoreDestination { SETTINGS, CUSTOMERS }
 
 @Composable
 fun MoreRoute(
-    onOpenCashier: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenCashier: () -> Unit = {},
+    openStaffDirectory: Boolean = false,
+    onOpenStaffDirectoryConsumed: () -> Unit = {},
 ) {
     val container = LocalAppContainer.current
     val settings by container.settingsRepository.observeSettings().collectAsState(initial = null)
@@ -101,6 +103,12 @@ fun MoreRoute(
 
     var activeDetail by rememberSaveable { mutableStateOf<MoreDestination?>(null) }
     val onBackToMenu = { activeDetail = null }
+
+    LaunchedEffect(openStaffDirectory) {
+        if (openStaffDirectory) {
+            activeDetail = MoreDestination.SETTINGS
+        }
+    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isTwoPane = maxWidth >= PosBreakpoints.twoPane
@@ -137,6 +145,8 @@ fun MoreRoute(
 
                         MoreDestination.SETTINGS -> SettingsRoute(
                             onBack = null,
+                            openStaffDirectory = openStaffDirectory,
+                            onOpenStaffDirectoryConsumed = onOpenStaffDirectoryConsumed,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -154,6 +164,8 @@ fun MoreRoute(
                 MoreDestination.SETTINGS -> MoreDetailScreen(onBack = onBackToMenu) {
                     SettingsRoute(
                         onBack = onBackToMenu,
+                        openStaffDirectory = openStaffDirectory,
+                        onOpenStaffDirectoryConsumed = onOpenStaffDirectoryConsumed,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

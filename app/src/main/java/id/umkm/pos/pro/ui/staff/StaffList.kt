@@ -1,5 +1,6 @@
 package id.umkm.pos.pro.ui.staff
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -36,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.StatusChip
+import id.umkm.pos.pro.ui.components.PersonAvatar
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSpacing
 
@@ -116,16 +117,18 @@ private fun StaffCard(
 ) {
     val strings = LocalPosStrings.current
     val palette = LocalPosSemanticPalette.current
-    Card(
+    val showInactiveBadge = !isOnDuty && !staff.isActive
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(STAFF_ROW_TEST_TAG_PREFIX + staff.id),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(
+            width = 0.75.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
         Row(
             modifier = Modifier
@@ -134,7 +137,10 @@ private fun StaffCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
         ) {
-            StaffAvatar(
+            PersonAvatar(
+                name = staff.name,
+                size = 48.dp,
+                isMuted = !staff.isActive,
                 modifier = Modifier.testTag(STAFF_AVATAR_TEST_TAG_PREFIX + staff.id),
             )
             Column(
@@ -143,34 +149,30 @@ private fun StaffCard(
             ) {
                 Text(
                     text = staff.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-                    verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
-                ) {
-                    StaffBadge(
-                        label = if (staff.isActive) strings.staffActiveLabel else strings.staffInactiveLabel,
-                        containerColor = if (staff.isActive) {
-                            MaterialTheme.colorScheme.tertiaryContainer
+                if (isOnDuty || showInactiveBadge) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+                    ) {
+                        if (isOnDuty) {
+                            StatusChip(
+                                iconRes = R.drawable.ic_circle_check,
+                                label = strings.staffOnDutyLabel,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
                         } else {
-                            palette.neutralContainer
-                        },
-                        contentColor = if (staff.isActive) {
-                            MaterialTheme.colorScheme.onTertiaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
-                    if (isOnDuty) {
-                        StaffBadge(
-                            label = strings.staffOnDutyLabel,
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
+                            StaffBadge(
+                                label = strings.staffInactiveLabel,
+                                containerColor = palette.neutralContainer,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }

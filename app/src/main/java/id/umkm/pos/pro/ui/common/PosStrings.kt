@@ -202,12 +202,19 @@ interface PosStrings {
     val cashierShiftOpenAction: String
     val cashierShiftSwitchAction: String
     val cashierShiftNotOpen: String
-    val cashierShiftSupporting: (String, Int) -> String
     val cashierShiftRequired: String
     val shiftOpenTitle: String
     val shiftOpenSupporting: String
     val shiftCloseTitle: String
     val shiftCloseSupporting: (String) -> String
+    val shiftOperatorDescription: String
+    val shiftCloseDescription: String
+    val shiftCurrentCashierTitle: String
+    val shiftSelectReplacementTitle: String
+    val shiftNoOtherStaffTitle: String
+    val shiftNoOtherStaffHint: String
+    val shiftHandoverToggleLabel: String
+    val shiftHandoverToggleHint: String
     val shiftCashierNameLabel: String
     val shiftCashierNamePlaceholder: String
     val shiftRecentCashiersLabel: String

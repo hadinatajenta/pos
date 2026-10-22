@@ -214,7 +214,7 @@ class ShiftViewModelTest {
             assertThat(state.mode).isEqualTo(ShiftSheetMode.HIDDEN)
             assertThat(state.activeStaff?.id).isEqualTo(budi.id)
             assertThat(state.activeShift?.cashierName).isEqualTo("Dini")
-            assertThat(state.message?.resolve(IdStrings)).isEqualTo("Operator diganti ke Budi.")
+            assertThat(state.message?.resolve(IdStrings)).isEqualTo("Kasir diganti ke Budi.")
         }
 
     @Test

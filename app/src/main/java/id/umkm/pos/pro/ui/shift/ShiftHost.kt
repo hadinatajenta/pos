@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -31,6 +32,8 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 @Composable
 fun ShiftHost(
     modifier: Modifier = Modifier,
+    onManageStaff: () -> Unit = {},
+    snackbarBottomPadding: Dp = 96.dp,
     content: @Composable () -> Unit,
 ) {
     val container = LocalAppContainer.current
@@ -82,11 +85,18 @@ fun ShiftHost(
                     .padding(
                         start = PosSpacing.md,
                         end = PosSpacing.md,
-                        bottom = 96.dp,
+                        bottom = snackbarBottomPadding,
                     ),
             )
             if (state.mode == ShiftSheetMode.SHIFT_FORM) {
-                SwitchCashierSheet(state = state, actions = actions)
+                SwitchCashierSheet(
+                    state = state,
+                    actions = actions,
+                    onManageStaff = {
+                        viewModel.onDismissForm()
+                        onManageStaff()
+                    },
+                )
             }
             if (state.mode == ShiftSheetMode.HISTORY) {
                 ShiftHistorySheet(state = state, actions = actions)

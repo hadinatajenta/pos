@@ -1,35 +1,46 @@
 package id.umkm.pos.pro.ui.shift
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +49,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -45,6 +58,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import id.umkm.pos.pro.R
@@ -53,12 +67,12 @@ import id.umkm.pos.pro.core.model.ShiftCashSummary
 import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.LocalPosStrings
+import id.umkm.pos.pro.ui.common.ThousandSeparatorVisualTransformation
 import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
-import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.PersonAvatar
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
-import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
@@ -69,11 +83,18 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 const val SHIFT_SHEET_TEST_TAG = "shift-sheet"
 const val SHIFT_CASHIER_NAME_FIELD_TEST_TAG = "shift-cashier-name-field"
 const val SHIFT_ACTUAL_CASH_FIELD_TEST_TAG = "shift-actual-cash-field"
+const val SHIFT_PRIMARY_ACTION_TEST_TAG = "shift-primary-action"
+const val SHIFT_HANDOVER_TOGGLE_TEST_TAG = "shift-handover-toggle"
+const val SHIFT_OPERATOR_TAB_TEST_TAG = "shift-operator-tab"
+const val SHIFT_CLOSE_TAB_TEST_TAG = "shift-close-tab"
+const val SHIFT_STAFF_ROW_TEST_TAG_PREFIX = "shift-staff-row-"
 
-private const val PHONE_SHEET_HEIGHT_FRACTION = 0.92f
 private const val TABLET_SHEET_HEIGHT_FRACTION = 0.86f
 private const val TABLET_SHEET_MAX_WIDTH_DP = 640
 private val TRAILING_VALUE_MAX_WIDTH = 168.dp
+private val CASHIER_AVATAR_SIZE = 40.dp
+private val MONEY_FIELD_TEXT_SIZE = 18.sp
+private val ON_DUTY_CHIP_ICON_SIZE = 14.dp
 
 private enum class ShiftFormTab {
     OPERATOR,
@@ -84,12 +105,17 @@ private enum class ShiftFormTab {
 internal fun SwitchCashierSheet(
     state: ShiftUiState,
     actions: ShiftActions,
+    onManageStaff: () -> Unit = {},
 ) {
     val strings = LocalPosStrings.current
     val isOpening = state.activeShift == null
     var selectedTab by rememberSaveable(state.activeShift?.id) {
         mutableStateOf(ShiftFormTab.OPERATOR)
     }
+    var isHandoverEnabled by rememberSaveable(state.activeShift?.id) {
+        mutableStateOf(false)
+    }
+    val otherStaff = state.staffOptions.filter { it.id != state.activeStaff?.id }
     ShiftSheetContainer(
         title = if (isOpening) strings.shiftOpenTitle else strings.moreShiftTitle,
         supportingText = if (isOpening) {
@@ -99,15 +125,13 @@ internal fun SwitchCashierSheet(
         },
         onDismiss = actions.onDismissForm,
         footer = {
-            if (isOpening) {
-                OpenShiftFooter(state = state, actions = actions)
-            } else {
-                ActiveShiftFooter(
-                    state = state,
-                    actions = actions,
-                    selectedTab = selectedTab,
-                )
-            }
+            ShiftSheetFooter(
+                state = state,
+                actions = actions,
+                isOpening = isOpening,
+                selectedTab = selectedTab,
+                isHandoverEnabled = isHandoverEnabled,
+            )
         },
     ) {
         Column(
@@ -119,15 +143,42 @@ internal fun SwitchCashierSheet(
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
             if (isOpening) {
-                OpenShiftForm(state = state, actions = actions)
-            } else {
-                ShiftFormTabs(
-                    selectedTab = selectedTab,
-                    onSelectTab = { tab -> selectedTab = tab },
+                OpenShiftContent(
+                    state = state,
+                    actions = actions,
+                    onManageStaff = onManageStaff,
                 )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
+                    ShiftModeTabs(
+                        selectedTab = selectedTab,
+                        onSelectTab = { tab -> selectedTab = tab },
+                    )
+                    Text(
+                        text = if (selectedTab == ShiftFormTab.OPERATOR) {
+                            strings.shiftOperatorDescription
+                        } else {
+                            strings.shiftCloseDescription
+                        },
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 when (selectedTab) {
-                    ShiftFormTab.OPERATOR -> OperatorForm(state = state, actions = actions)
-                    ShiftFormTab.CLOSE -> CloseShiftForm(state = state, actions = actions)
+                    ShiftFormTab.OPERATOR -> OperatorContent(
+                        state = state,
+                        actions = actions,
+                        otherStaff = otherStaff,
+                        onManageStaff = onManageStaff,
+                    )
+
+                    ShiftFormTab.CLOSE -> CloseShiftContent(
+                        state = state,
+                        actions = actions,
+                        otherStaff = otherStaff,
+                        isHandoverEnabled = isHandoverEnabled,
+                        onHandoverChange = { enabled -> isHandoverEnabled = enabled },
+                    )
                 }
             }
             ShiftFeedback(state = state)
@@ -138,7 +189,7 @@ internal fun SwitchCashierSheet(
 private fun activeOperatorName(state: ShiftUiState): String =
     state.activeStaff?.name ?: state.activeShift?.cashierName.orEmpty()
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ShiftSheetContainer(
     title: String,
@@ -150,31 +201,37 @@ internal fun ShiftSheetContainer(
     val strings = LocalPosStrings.current
     BoxWithConstraints {
         val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
-        val phoneMaxHeight = maxHeight * PHONE_SHEET_HEIGHT_FRACTION
-        val tabletMaxHeight = maxHeight * TABLET_SHEET_HEIGHT_FRACTION
         if (isExpandedWindow) {
+            val tabletMaxHeight = maxHeight * TABLET_SHEET_HEIGHT_FRACTION
             Dialog(
                 onDismissRequest = onDismiss,
                 properties = DialogProperties(usePlatformDefaultWidth = false),
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    shape = MaterialTheme.shapes.large,
+                Box(
                     modifier = Modifier
-                        .widthIn(max = TABLET_SHEET_MAX_WIDTH_DP.dp)
-                        .fillMaxWidth(0.94f)
-                        .heightIn(max = tabletMaxHeight)
-                        .testTag(SHIFT_SHEET_TEST_TAG),
+                        .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.safeDrawing),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    ShiftSheetLayout(
-                        title = title,
-                        supportingText = supportingText,
-                        onDismiss = onDismiss,
-                        closeDescription = strings.actionClose,
-                        footer = footer,
-                        content = content,
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier
+                            .widthIn(max = TABLET_SHEET_MAX_WIDTH_DP.dp)
+                            .fillMaxWidth(0.94f)
+                            .heightIn(max = tabletMaxHeight)
+                            .testTag(SHIFT_SHEET_TEST_TAG),
+                    ) {
+                        ShiftSheetLayout(
+                            title = title,
+                            supportingText = supportingText,
+                            onDismiss = onDismiss,
+                            closeDescription = strings.actionClose,
+                            footer = footer,
+                            content = content,
+                        )
+                    }
                 }
             }
         } else {
@@ -183,17 +240,23 @@ internal fun ShiftSheetContainer(
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = MaterialTheme.colorScheme.surface,
             ) {
-                ShiftSheetLayout(
-                    title = title,
-                    supportingText = supportingText,
-                    onDismiss = onDismiss,
-                    closeDescription = strings.actionClose,
-                    footer = footer,
-                    content = content,
-                    modifier = Modifier
-                        .heightIn(max = phoneMaxHeight)
-                        .testTag(SHIFT_SHEET_TEST_TAG),
-                )
+                BoxWithConstraints {
+                    val statusBarTop = WindowInsets.statusBars
+                        .asPaddingValues()
+                        .calculateTopPadding()
+                    val maxSheetHeight = maxHeight - statusBarTop - PosSpacing.md
+                    ShiftSheetLayout(
+                        title = title,
+                        supportingText = supportingText,
+                        onDismiss = onDismiss,
+                        closeDescription = strings.actionClose,
+                        footer = footer,
+                        content = content,
+                        modifier = Modifier
+                            .heightIn(max = maxSheetHeight)
+                            .testTag(SHIFT_SHEET_TEST_TAG),
+                    )
+                }
             }
         }
     }
@@ -217,14 +280,23 @@ private fun ShiftSheetLayout(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = PosSpacing.md, end = PosSpacing.xs, top = PosSpacing.xs),
+                .padding(start = PosSpacing.md, end = PosSpacing.xs, top = 0.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PosSectionHeader(
-                title = title,
-                supportingText = supportingText,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = LocalAppTextStyles.current.screenTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (supportingText.isNotBlank()) {
+                    Text(
+                        text = supportingText,
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             IconButton(onClick = onDismiss) {
                 Icon(
                     painter = painterResource(R.drawable.ic_close),
@@ -241,11 +313,10 @@ private fun ShiftSheetLayout(
         }
         if (footer != null) {
             HorizontalDivider()
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
             ) {
                 footer()
             }
@@ -253,26 +324,38 @@ private fun ShiftSheetLayout(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ShiftFormTabs(
+private fun ShiftModeTabs(
     selectedTab: ShiftFormTab,
     onSelectTab: (ShiftFormTab) -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-    ) {
-        ShiftFormTab.entries.forEach { tab ->
+    val tabs = ShiftFormTab.entries
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        tabs.forEachIndexed { index, tab ->
             val label = when (tab) {
                 ShiftFormTab.OPERATOR -> strings.shiftOperatorTab
                 ShiftFormTab.CLOSE -> strings.shiftCloseTab
             }
-            FilterChip(
+            val testTag = when (tab) {
+                ShiftFormTab.OPERATOR -> SHIFT_OPERATOR_TAB_TEST_TAG
+                ShiftFormTab.CLOSE -> SHIFT_CLOSE_TAB_TEST_TAG
+            }
+            SegmentedButton(
                 selected = tab == selectedTab,
                 onClick = { onSelectTab(tab) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = tabs.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                modifier = Modifier
+                    .heightIn(min = PosSizes.touchTarget)
+                    .testTag(testTag),
+                icon = {},
                 label = {
                     Text(
                         text = label,
@@ -280,40 +363,37 @@ private fun ShiftFormTabs(
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
-                leadingIcon = if (tab == selectedTab) {
-                    {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_check),
-                            contentDescription = null,
-                            modifier = Modifier.size(PosSizes.iconSmall),
-                        )
-                    }
-                } else {
-                    null
-                },
-                modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             )
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OpenShiftForm(
+private fun OpenShiftContent(
     state: ShiftUiState,
     actions: ShiftActions,
+    onManageStaff: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        StaffSelector(
-            label = strings.shiftCashierNameLabel,
-            staff = state.staffOptions,
-            selectedStaffId = state.selectedStaffId,
-            onSelect = actions.onSelectStaff,
-            emptyTitle = strings.shiftNoStaffTitle,
-            emptyHint = strings.shiftNoStaffHint,
-            modifier = Modifier.testTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG),
+    if (state.staffOptions.isEmpty()) {
+        StaffEmptyState(
+            title = strings.shiftNoStaffTitle,
+            hint = strings.shiftNoStaffHint,
+            onManageStaff = onManageStaff,
         )
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+            PosSectionHeader(title = strings.shiftCashierNameLabel)
+            CashierPicker(
+                staff = state.staffOptions,
+                selectedStaffId = state.selectedStaffId,
+                onSelect = actions.onSelectStaff,
+                modifier = Modifier.testTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG),
+            )
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+        PosSectionHeader(title = strings.shiftStartingCashLabel)
         MoneyField(
             value = state.startingCashInput,
             onValueChange = actions.onStartingCashChange,
@@ -324,174 +404,372 @@ private fun OpenShiftForm(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun OperatorForm(
+private fun OperatorContent(
     state: ShiftUiState,
     actions: ShiftActions,
+    otherStaff: List<Staff>,
+    onManageStaff: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        StaffSelector(
-            label = strings.shiftCashierNameLabel,
-            staff = state.staffOptions,
-            selectedStaffId = state.operatorStaffId,
-            activeStaffId = state.activeStaff?.id,
-            onSelect = actions.onSelectStaff,
-            emptyTitle = strings.shiftNoStaffTitle,
-            emptyHint = strings.shiftNoStaffHint,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+        PosSectionHeader(title = strings.shiftCurrentCashierTitle)
+        CurrentCashierRow(name = activeOperatorName(state))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+        PosSectionHeader(title = strings.shiftSelectReplacementTitle)
+        if (otherStaff.isEmpty()) {
+            StaffEmptyState(
+                title = strings.shiftNoOtherStaffTitle,
+                hint = strings.shiftNoOtherStaffHint,
+                onManageStaff = onManageStaff,
+            )
+        } else {
+            CashierPicker(
+                staff = otherStaff,
+                selectedStaffId = state.selectedStaffId,
+                onSelect = actions.onSelectStaff,
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CloseShiftForm(
+private fun CloseShiftContent(
     state: ShiftUiState,
     actions: ShiftActions,
+    otherStaff: List<Staff>,
+    isHandoverEnabled: Boolean,
+    onHandoverChange: (Boolean) -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    ShiftSummaryCard(
+    ShiftSummarySection(
         summary = state.summary,
         isLoading = state.isSummaryLoading,
         errorMessage = state.summaryErrorMessage?.asTextOrNull(),
     )
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        MoneyField(
-            value = state.actualEndingCashInput,
-            onValueChange = actions.onActualEndingCashChange,
-            label = strings.shiftActualEndingCashLabel,
-            supportingText = strings.shiftActualEndingCashHint,
-            imeAction = ImeAction.Done,
-            modifier = Modifier.testTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG),
+    MoneyField(
+        value = state.actualEndingCashInput,
+        onValueChange = actions.onActualEndingCashChange,
+        label = strings.shiftActualEndingCashLabel,
+        supportingText = strings.shiftActualEndingCashHint,
+        imeAction = ImeAction.Done,
+        modifier = Modifier.testTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG),
+    )
+    val variance = state.variance
+    if (variance != null) {
+        ShiftVarianceRow(
+            variance = variance,
+            label = strings.shiftVarianceLabel,
+            modifier = Modifier.fillMaxWidth(),
         )
-        val variance = state.variance
-        if (variance != null) {
-            ShiftVarianceRow(
-                variance = variance,
-                label = strings.shiftVarianceLabel,
-                modifier = Modifier.fillMaxWidth(),
+        if (variance != 0L) {
+            VarianceConfirmation(
+                isAcknowledged = state.isVarianceAcknowledged,
+                onAcknowledgedChange = actions.onVarianceAcknowledgedChange,
             )
-            if (variance != 0L) {
-                VarianceConfirmation(
-                    isAcknowledged = state.isVarianceAcknowledged,
-                    onAcknowledgedChange = actions.onVarianceAcknowledgedChange,
-                )
-            }
         }
     }
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        PosSectionHeader(
-            title = strings.shiftNextCashierTitle,
-            supportingText = strings.shiftNextStartingCashHint,
-        )
-        StaffSelector(
-            label = strings.shiftNextCashierNameLabel,
-            staff = state.staffOptions,
-            selectedStaffId = state.selectedNextStaffId,
-            onSelect = actions.onSelectNextStaff,
-            emptyTitle = strings.shiftNoStaffTitle,
-            emptyHint = strings.shiftNoStaffHint,
-        )
-        MoneyField(
-            value = state.nextStartingCashInput,
-            onValueChange = actions.onNextStartingCashChange,
-            label = strings.shiftNextStartingCashLabel,
-            supportingText = strings.shiftNextStartingCashHint,
-            imeAction = ImeAction.Done,
-        )
-    }
+    HandoverSection(
+        state = state,
+        actions = actions,
+        otherStaff = otherStaff,
+        isHandoverEnabled = isHandoverEnabled,
+        onHandoverChange = onHandoverChange,
+    )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StaffSelector(
-    label: String?,
-    staff: List<Staff>,
-    selectedStaffId: Long?,
-    onSelect: (Long) -> Unit,
-    emptyTitle: String,
-    emptyHint: String,
-    modifier: Modifier = Modifier,
-    activeStaffId: Long? = null,
+private fun ShiftSummarySection(
+    summary: ShiftCashSummary?,
+    isLoading: Boolean,
+    errorMessage: String?,
 ) {
     val strings = LocalPosStrings.current
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        if (label != null) {
-            Text(
-                text = label,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (staff.isEmpty()) {
-            Text(
-                text = emptyTitle,
-                style = LocalAppTextStyles.current.body,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = emptyHint,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(
+            modifier = Modifier.padding(PosSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_settings),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(PosSizes.iconSmall),
+                PosSectionHeader(
+                    title = strings.shiftSummaryTitle,
+                    supportingText = summary?.let {
+                        strings.shiftTransactionCountLabel(it.transactionCount)
+                    },
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = strings.shiftManageStaffAction,
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(PosSizes.iconSmall),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
+            when {
+                summary != null -> {
+                    ShiftMoneyRow(
+                        label = strings.shiftStartingCashLabel,
+                        value = Rupiah.format(summary.startingCash),
+                    )
+                    ShiftMoneyRow(
+                        label = strings.shiftCashSalesLabel,
+                        value = Rupiah.format(summary.cashSales),
+                    )
+                    if (summary.cashDebtPayments > 0L) {
+                        ShiftMoneyRow(
+                            label = strings.shiftCashDebtPaymentsLabel,
+                            value = Rupiah.format(summary.cashDebtPayments),
+                        )
+                    }
+                    if (summary.cashRefunds > 0L) {
+                        ShiftMoneyRow(
+                            label = strings.shiftCashRefundsLabel,
+                            value = "-${Rupiah.format(summary.cashRefunds)}",
+                        )
+                    }
+                    HorizontalDivider()
+                    ShiftMoneyRow(
+                        label = strings.shiftExpectedEndingCashLabel,
+                        value = Rupiah.format(summary.expectedEndingCash),
+                        isEmphasized = true,
+                    )
+                }
+
+                errorMessage != null -> Text(
+                    text = errorMessage,
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.error,
+                )
+
+                else -> Text(
+                    text = strings.shiftSummaryLoading,
                     style = LocalAppTextStyles.current.supportingLabel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        } else {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-            ) {
-                staff.forEach { member ->
-                    val isSelected = selectedStaffId == member.id
-                    val isActive = activeStaffId == member.id
-                    val chipLabel = if (isActive) {
-                        "${member.name} · ${strings.shiftHistoryStatusActive}"
-                    } else {
-                        member.name
-                    }
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onSelect(member.id) },
-                        label = {
-                            Text(
-                                text = chipLabel,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        leadingIcon = if (isSelected) {
-                            {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_check),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(PosSizes.iconSmall),
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                        modifier = Modifier.heightIn(min = PosSizes.touchTarget),
-                    )
-                }
+        }
+    }
+}
+
+@Composable
+private fun HandoverSection(
+    state: ShiftUiState,
+    actions: ShiftActions,
+    otherStaff: List<Staff>,
+    isHandoverEnabled: Boolean,
+    onHandoverChange: (Boolean) -> Unit,
+) {
+    val strings = LocalPosStrings.current
+    val hasOtherStaff = otherStaff.isNotEmpty()
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+        PosSectionHeader(title = strings.shiftNextCashierTitle)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = PosSizes.touchTarget)
+                .toggleable(
+                    value = isHandoverEnabled,
+                    enabled = hasOtherStaff,
+                    role = Role.Switch,
+                    onValueChange = onHandoverChange,
+                )
+                .testTag(SHIFT_HANDOVER_TOGGLE_TEST_TAG),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = strings.shiftHandoverToggleLabel,
+                    style = LocalAppTextStyles.current.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = strings.shiftHandoverToggleHint,
+                    style = LocalAppTextStyles.current.supportingLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+            Switch(
+                checked = isHandoverEnabled,
+                onCheckedChange = null,
+                enabled = hasOtherStaff,
+            )
+        }
+        if (!hasOtherStaff) {
+            Text(
+                text = strings.shiftNoOtherStaffHint,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (isHandoverEnabled && hasOtherStaff) {
+            CashierPicker(
+                staff = otherStaff,
+                selectedStaffId = state.selectedNextStaffId,
+                onSelect = actions.onSelectNextStaff,
+            )
+            MoneyField(
+                value = state.nextStartingCashInput,
+                onValueChange = actions.onNextStartingCashChange,
+                label = strings.shiftNextStartingCashLabel,
+                supportingText = strings.shiftNextStartingCashHint,
+                imeAction = ImeAction.Done,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CurrentCashierRow(name: String) {
+    val strings = LocalPosStrings.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = PosSizes.touchTarget)
+            .padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+    ) {
+        PersonAvatar(name = name, size = CASHIER_AVATAR_SIZE)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+        ) {
+            Text(
+                text = name,
+                style = LocalAppTextStyles.current.body,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            OnDutyChip(label = strings.staffOnDutyLabel)
+        }
+    }
+}
+
+@Composable
+private fun OnDutyChip(label: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xxs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_circle_check),
+                contentDescription = null,
+                modifier = Modifier.size(ON_DUTY_CHIP_ICON_SIZE),
+            )
+            Text(
+                text = label,
+                style = LocalAppTextStyles.current.supportingLabel,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CashierPicker(
+    staff: List<Staff>,
+    selectedStaffId: Long?,
+    onSelect: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = MaterialTheme.shapes.medium
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectableGroup(),
+    ) {
+        staff.forEachIndexed { index, member ->
+            if (index > 0) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+            val isSelected = member.id == selectedStaffId
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        } else {
+                            Color.Transparent
+                        },
+                        shape = shape,
+                    )
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onSelect(member.id) },
+                    )
+                    .heightIn(min = PosSizes.touchTarget)
+                    .testTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + member.id)
+                    .padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+            ) {
+                PersonAvatar(name = member.name, size = CASHIER_AVATAR_SIZE)
+                Text(
+                    text = member.name,
+                    style = LocalAppTextStyles.current.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                RadioButton(selected = isSelected, onClick = null)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaffEmptyState(
+    title: String,
+    hint: String,
+    onManageStaff: () -> Unit,
+) {
+    val strings = LocalPosStrings.current
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
+        Text(
+            text = title,
+            style = LocalAppTextStyles.current.body,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = hint,
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(
+            onClick = onManageStaff,
+            modifier = Modifier.heightIn(min = PosSizes.touchTarget),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_users),
+                contentDescription = null,
+                modifier = Modifier.size(PosSizes.iconSmall),
+            )
+            Text(
+                text = strings.shiftManageStaffAction,
+                style = LocalAppTextStyles.current.buttonLabel,
+                modifier = Modifier.padding(start = PosSpacing.xs),
+            )
         }
     }
 }
@@ -512,92 +790,14 @@ private fun MoneyField(
         label = { Text(label) },
         supportingText = { Text(supportingText) },
         prefix = { Text("Rp") },
+        textStyle = LocalAppTextStyles.current.financialValue.copy(fontSize = MONEY_FIELD_TEXT_SIZE),
+        visualTransformation = ThousandSeparatorVisualTransformation,
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Number,
             imeAction = imeAction,
         ),
     )
-}
-
-@Composable
-private fun ShiftSummaryCard(
-    summary: ShiftCashSummary?,
-    isLoading: Boolean,
-    errorMessage: String?,
-) {
-    val strings = LocalPosStrings.current
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PosSectionHeader(
-                title = strings.shiftSummaryTitle,
-                supportingText = summary?.let { strings.shiftTransactionCountLabel(it.transactionCount) },
-                modifier = Modifier.weight(1f),
-            )
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(PosSizes.iconMedium),
-                    strokeWidth = 2.dp,
-                )
-            }
-        }
-        when {
-            summary != null -> {
-                ShiftMoneyRow(
-                    label = strings.shiftStartingCashLabel,
-                    value = Rupiah.format(summary.startingCash),
-                )
-                ShiftMoneyRow(
-                    label = strings.shiftCashSalesLabel,
-                    value = Rupiah.format(summary.cashSales),
-                )
-                ShiftMoneyRow(
-                    label = strings.shiftCashDebtPaymentsLabel,
-                    value = Rupiah.format(summary.cashDebtPayments),
-                )
-                ShiftMoneyRow(
-                    label = strings.shiftCashRefundsLabel,
-                    value = if (summary.cashRefunds > 0L) {
-                        "-${Rupiah.format(summary.cashRefunds)}"
-                    } else {
-                        Rupiah.format(0L)
-                    },
-                )
-                HorizontalDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-                ) {
-                    Text(
-                        text = strings.shiftExpectedEndingCashLabel,
-                        style = LocalAppTextStyles.current.body,
-                        modifier = Modifier.weight(1f),
-                    )
-                    AutoSizeNumberText(
-                        text = Rupiah.format(summary.expectedEndingCash),
-                        style = LocalAppTextStyles.current.financialValue,
-                        modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
-                    )
-                }
-            }
-
-            errorMessage != null -> Text(
-                text = errorMessage,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.error,
-            )
-
-            else -> Text(
-                text = strings.shiftSummaryLoading,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }
 
 @Composable
@@ -697,7 +897,7 @@ internal fun ShiftVarianceRow(
 }
 
 @Composable
-private fun VarianceConfirmation(
+internal fun VarianceConfirmation(
     isAcknowledged: Boolean,
     onAcknowledgedChange: (Boolean) -> Unit,
 ) {
@@ -738,6 +938,27 @@ private fun ShiftFeedback(state: ShiftUiState) {
 }
 
 @Composable
+private fun ShiftSheetFooter(
+    state: ShiftUiState,
+    actions: ShiftActions,
+    isOpening: Boolean,
+    selectedTab: ShiftFormTab,
+    isHandoverEnabled: Boolean,
+) {
+    when {
+        isOpening -> OpenShiftFooter(state = state, actions = actions)
+
+        selectedTab == ShiftFormTab.OPERATOR -> OperatorFooter(state = state, actions = actions)
+
+        else -> CloseShiftFooter(
+            state = state,
+            actions = actions,
+            isHandoverEnabled = isHandoverEnabled,
+        )
+    }
+}
+
+@Composable
 private fun OpenShiftFooter(
     state: ShiftUiState,
     actions: ShiftActions,
@@ -748,79 +969,54 @@ private fun OpenShiftFooter(
         onClick = actions.onOpenShift,
         enabled = state.isOpenInputReady,
         loading = state.isSubmitting,
-    )
-    SecondaryTextAction(
-        text = strings.actionCancel,
-        onClick = actions.onDismissForm,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.testTag(SHIFT_PRIMARY_ACTION_TEST_TAG),
     )
 }
 
 @Composable
-private fun ActiveShiftFooter(
-    state: ShiftUiState,
-    actions: ShiftActions,
-    selectedTab: ShiftFormTab,
-) {
-    val strings = LocalPosStrings.current
-    when (selectedTab) {
-        ShiftFormTab.OPERATOR -> {
-            val gate = rememberSecurityGate()
-            val pinLabel = strings.securityAuditActionLabel(CriticalAction.SWITCH_CASHIER)
-            PrimaryActionButton(
-                text = strings.shiftSwitchOperatorAction,
-                onClick = {
-                    val staffId = state.operatorStaffId ?: return@PrimaryActionButton
-                    gate.request(CriticalAction.SWITCH_CASHIER, pinLabel) {
-                        actions.onSwitchOperator(staffId)
-                    }
-                },
-                enabled = state.isOperatorSwitchReady,
-                loading = state.isSubmitting,
-            )
-            SecondaryTextAction(
-                text = strings.actionCancel,
-                onClick = actions.onDismissForm,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        ShiftFormTab.CLOSE -> CloseShiftFooter(state = state, actions = actions)
-    }
-}
-
-@Composable
-private fun CloseShiftFooter(
+private fun OperatorFooter(
     state: ShiftUiState,
     actions: ShiftActions,
 ) {
     val strings = LocalPosStrings.current
     val gate = rememberSecurityGate()
     val pinLabel = strings.securityAuditActionLabel(CriticalAction.SWITCH_CASHIER)
-    val closeOnly = {
-        gate.request(CriticalAction.SWITCH_CASHIER, pinLabel, actions.onCloseShift)
-    }
-    val closeAndSwitch = {
-        gate.request(CriticalAction.SWITCH_CASHIER, pinLabel, actions.onSwitchShift)
-    }
     PrimaryActionButton(
-        text = strings.shiftCloseAndSwitch,
-        onClick = closeAndSwitch,
-        enabled = state.isSwitchInputReady,
+        text = strings.shiftSwitchOperatorAction,
+        onClick = {
+            val staffId = state.selectedStaffId ?: return@PrimaryActionButton
+            gate.request(CriticalAction.SWITCH_CASHIER, pinLabel) {
+                actions.onSwitchOperator(staffId)
+            }
+        },
+        enabled = state.isOperatorSwitchReady && state.selectedStaffId != null,
         loading = state.isSubmitting,
+        modifier = Modifier.testTag(SHIFT_PRIMARY_ACTION_TEST_TAG),
     )
-    OutlinedButton(
-        onClick = closeOnly,
-        enabled = state.isCloseInputReady,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = PosSizes.touchTarget),
-    ) {
-        Text(text = strings.shiftCloseOnly, style = LocalAppTextStyles.current.buttonLabel)
-    }
-    SecondaryTextAction(
-        text = strings.actionCancel,
-        onClick = actions.onDismissForm,
-        modifier = Modifier.fillMaxWidth(),
+}
+
+@Composable
+private fun CloseShiftFooter(
+    state: ShiftUiState,
+    actions: ShiftActions,
+    isHandoverEnabled: Boolean,
+) {
+    val strings = LocalPosStrings.current
+    val gate = rememberSecurityGate()
+    val pinLabel = strings.securityAuditActionLabel(CriticalAction.SWITCH_CASHIER)
+    PrimaryActionButton(
+        text = if (isHandoverEnabled) strings.shiftCloseAndSwitch else strings.shiftCloseOnly,
+        onClick = {
+            gate.request(CriticalAction.SWITCH_CASHIER, pinLabel) {
+                if (isHandoverEnabled) {
+                    actions.onSwitchShift()
+                } else {
+                    actions.onCloseShift()
+                }
+            }
+        },
+        enabled = if (isHandoverEnabled) state.isSwitchInputReady else state.isCloseInputReady,
+        loading = state.isSubmitting,
+        modifier = Modifier.testTag(SHIFT_PRIMARY_ACTION_TEST_TAG),
     )
 }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -54,8 +55,17 @@ fun SettingsScreen(
     actions: SettingsActions,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    openStaffDirectory: Boolean = false,
+    onOpenStaffDirectoryConsumed: () -> Unit = {},
 ) {
     var activeDestination by rememberSaveable { mutableStateOf<SettingsDestination?>(null) }
+
+    LaunchedEffect(openStaffDirectory) {
+        if (openStaffDirectory) {
+            activeDestination = SettingsDestination.STAFF
+            onOpenStaffDirectoryConsumed()
+        }
+    }
 
     val openDestination: (SettingsDestination) -> Unit = { destination ->
         actions.onMessageConsumed()

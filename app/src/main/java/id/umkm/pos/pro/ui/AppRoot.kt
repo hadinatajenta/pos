@@ -128,6 +128,7 @@ fun AppRoot(modifier: Modifier = Modifier) {
             return@AnimatedContent
         }
         var selectedDestination by rememberSaveable { mutableStateOf(PosDestination.KASIR) }
+        var openStaffDirectory by rememberSaveable { mutableStateOf(false) }
         val connectivityMonitor = rememberAndroidConnectivityMonitor()
         val shareReceipt = rememberReceiptSharer()
         val context = LocalContext.current
@@ -173,7 +174,13 @@ fun AppRoot(modifier: Modifier = Modifier) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
                 val isExpandedWindow = maxWidth >= PosBreakpoints.expandedNavigation
-                ShiftHost {
+                ShiftHost(
+                    onManageStaff = {
+                        openStaffDirectory = true
+                        selectedDestination = PosDestination.LAINNYA
+                    },
+                    snackbarBottomPadding = if (isExpandedWindow) PosSpacing.md else 96.dp,
+                ) {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         containerColor = MaterialTheme.colorScheme.background,
@@ -199,6 +206,8 @@ fun AppRoot(modifier: Modifier = Modifier) {
                                 salesPresenter = salesPresenter,
                                 onShareReceipt = shareReceipt,
                                 onOpenCashier = { selectedDestination = PosDestination.KASIR },
+                                openStaffDirectory = openStaffDirectory,
+                                onOpenStaffDirectoryConsumed = { openStaffDirectory = false },
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .imePadding(),
@@ -408,6 +417,8 @@ private fun DestinationHost(
     salesPresenter: ReportsPresenter,
     onShareReceipt: (String) -> Unit,
     onOpenCashier: () -> Unit,
+    openStaffDirectory: Boolean,
+    onOpenStaffDirectoryConsumed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (destination) {
@@ -422,6 +433,8 @@ private fun DestinationHost(
         PosDestination.LAPORAN -> ReportsRoute(presenter = salesPresenter, modifier = modifier)
         PosDestination.LAINNYA -> MoreRoute(
             onOpenCashier = onOpenCashier,
+            openStaffDirectory = openStaffDirectory,
+            onOpenStaffDirectoryConsumed = onOpenStaffDirectoryConsumed,
             modifier = modifier,
         )
     }

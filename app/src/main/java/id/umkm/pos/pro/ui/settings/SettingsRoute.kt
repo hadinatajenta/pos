@@ -13,6 +13,8 @@ import id.umkm.pos.pro.ui.LocalAppContainer
 fun SettingsRoute(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    openStaffDirectory: Boolean = false,
+    onOpenStaffDirectoryConsumed: () -> Unit = {},
 ) {
     val container = LocalAppContainer.current
     val viewModel: SettingsViewModel = viewModel(
@@ -38,5 +40,7 @@ fun SettingsRoute(
         actions = SettingsActions.from(viewModel),
         modifier = modifier,
         onBack = onBack,
+        openStaffDirectory = openStaffDirectory,
+        onOpenStaffDirectoryConsumed = onOpenStaffDirectoryConsumed,
     )
 }

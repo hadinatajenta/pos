@@ -2,10 +2,11 @@ package id.umkm.pos.pro.ui.shift
 
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.FontScale
 import androidx.compose.ui.test.ForcedSize
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -54,40 +55,58 @@ class SwitchCashierSheetTest {
         transactionCount = 3,
     )
 
-    private val noOpActions = ShiftActions(
-        onSelectStaff = {},
+    private fun testActions(
+        onSelectStaff: (Long) -> Unit = {},
+        onSelectNextStaff: (Long) -> Unit = {},
+        onSwitchOperator: (Long) -> Unit = {},
+        onCloseShift: () -> Unit = {},
+        onSwitchShift: () -> Unit = {},
+    ): ShiftActions = ShiftActions(
+        onSelectStaff = onSelectStaff,
         onStartingCashChange = {},
         onActualEndingCashChange = {},
-        onSelectNextStaff = {},
+        onSelectNextStaff = onSelectNextStaff,
         onNextStartingCashChange = {},
         onVarianceAcknowledgedChange = {},
         onOpenShift = {},
-        onCloseShift = {},
-        onSwitchShift = {},
-        onSwitchOperator = {},
+        onCloseShift = onCloseShift,
+        onSwitchShift = onSwitchShift,
+        onSwitchOperator = onSwitchOperator,
         onDismissForm = {},
         onDismissHistory = {},
         onRetryHistory = {},
         onMessageConsumed = {},
     )
 
+    private val noOpActions = testActions()
+
     private fun showSheet(
         state: ShiftUiState,
         actions: ShiftActions = noOpActions,
+        size: DpSize = DpSize(360.dp, 800.dp),
+        fontScale: Float = 1f,
     ) {
         composeRule.setContent {
             UmkmPosTheme {
-                DeviceConfigurationOverride(
-                    DeviceConfigurationOverride.ForcedSize(DpSize(360.dp, 800.dp)),
-                ) {
-                    SwitchCashierSheet(state = state, actions = actions)
+                DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
+                    DeviceConfigurationOverride(DeviceConfigurationOverride.FontScale(fontScale)) {
+                        SwitchCashierSheet(state = state, actions = actions)
+                    }
                 }
             }
         }
     }
 
+    private fun idleOperatorState(): ShiftUiState = ShiftUiState(
+        mode = ShiftSheetMode.SHIFT_FORM,
+        activeShift = activeShift,
+        summary = summary,
+        staffOptions = listOf(dini, budi),
+        activeStaff = dini,
+    )
+
     @Test
-    fun phoneOpenShiftFormShowsStaffChipsWithoutAFreeTextCashierField() {
+    fun phoneOpenShiftFormShowsStaffPickerWithoutAFreeTextCashierField() {
         showSheet(
             ShiftUiState(
                 mode = ShiftSheetMode.SHIFT_FORM,
@@ -100,8 +119,9 @@ class SwitchCashierSheetTest {
         composeRule.onNodeWithTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Dini").assertIsDisplayed()
         composeRule.onNodeWithText("Budi").assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.shiftStartingCashLabel).assertIsDisplayed()
-        composeRule.onAllNodesWithText(IdStrings.shiftOpenSubmit).onFirst().assertIsDisplayed()
+        composeRule.onAllNodesWithText(IdStrings.shiftStartingCashLabel).onFirst().assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftOpenSubmit))
         composeRule.onAllNodes(hasSetTextAction()).assertCountEquals(1)
     }
 
@@ -117,11 +137,12 @@ class SwitchCashierSheetTest {
         composeRule.onNodeWithText(IdStrings.shiftNoStaffTitle).assertIsDisplayed()
         composeRule.onNodeWithText(IdStrings.shiftNoStaffHint).assertIsDisplayed()
         composeRule.onNodeWithText(IdStrings.shiftManageStaffAction).assertIsDisplayed()
-        composeRule.onAllNodesWithText(IdStrings.shiftOpenSubmit).onFirst().assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftOpenSubmit))
     }
 
     @Test
-    fun phoneOpenShiftFormSelectsAStaffChip() {
+    fun phoneOpenShiftFormSelectsAStaffRow() {
         val selectedStaffIds = mutableListOf<Long>()
         showSheet(
             state = ShiftUiState(
@@ -129,69 +150,114 @@ class SwitchCashierSheetTest {
                 staffOptions = listOf(dini, budi),
                 selectedStaffId = dini.id,
             ),
-            actions = ShiftActions(
-                onSelectStaff = { staffId -> selectedStaffIds += staffId },
-                onStartingCashChange = {},
-                onActualEndingCashChange = {},
-                onSelectNextStaff = {},
-                onNextStartingCashChange = {},
-                onVarianceAcknowledgedChange = {},
-                onOpenShift = {},
-                onCloseShift = {},
-                onSwitchShift = {},
-                onSwitchOperator = {},
-                onDismissForm = {},
-                onDismissHistory = {},
-                onRetryHistory = {},
-                onMessageConsumed = {},
-            ),
+            actions = testActions(onSelectStaff = { staffId -> selectedStaffIds += staffId }),
         )
 
-        composeRule.onNodeWithText("Budi").performClick()
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + budi.id).performClick()
 
         assertThat(selectedStaffIds).containsExactly(budi.id)
     }
 
     @Test
     fun phoneActiveShiftShowsTheOperatorAndCloseTabs() {
-        showSheet(
-            ShiftUiState(
-                mode = ShiftSheetMode.SHIFT_FORM,
-                activeShift = activeShift,
-                summary = summary,
-                staffOptions = listOf(dini, budi),
-                activeStaff = dini,
-            ),
-        )
+        showSheet(idleOperatorState())
 
         composeRule.onNodeWithTag(SHIFT_SHEET_TEST_TAG).assertIsDisplayed()
-        composeRule.onAllNodesWithText(IdStrings.shiftOperatorTab).onFirst().assertIsDisplayed()
-        composeRule.onAllNodesWithText(IdStrings.shiftCloseTab).onFirst().assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_OPERATOR_TAB_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_CLOSE_TAB_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Budi").assertIsDisplayed()
-        composeRule.onAllNodesWithText(IdStrings.shiftSwitchOperatorAction).onFirst().assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftSwitchOperatorAction))
         composeRule.onNodeWithTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG).assertDoesNotExist()
+
+        composeRule.onNodeWithTag(SHIFT_CLOSE_TAB_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG).assertIsDisplayed()
+
+        composeRule.onNodeWithTag(SHIFT_OPERATOR_TAB_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun phoneOperatorTabShowsOnDutyCashierAndOnlyOtherStaff() {
+        val selectedStaffIds = mutableListOf<Long>()
+        showSheet(
+            state = idleOperatorState(),
+            actions = testActions(onSelectStaff = { staffId -> selectedStaffIds += staffId }),
+        )
+
+        composeRule.onNodeWithText(IdStrings.staffOnDutyLabel).assertIsDisplayed()
+        composeRule.onAllNodesWithText("Dini").assertCountEquals(1)
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + budi.id).assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + dini.id).assertDoesNotExist()
+
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + budi.id).performClick()
+
+        assertThat(selectedStaffIds).containsExactly(budi.id)
     }
 
     @Test
     fun phoneCloseTabShowsSummaryVarianceAndCloseActions() {
         showSheet(
-            ShiftUiState(
-                mode = ShiftSheetMode.SHIFT_FORM,
-                activeShift = activeShift,
-                summary = summary,
-                staffOptions = listOf(dini, budi),
-                activeStaff = dini,
-                actualEndingCashInput = "145000",
+            idleOperatorState().copy(actualEndingCashInput = "145000"),
+        )
+
+        composeRule.onNodeWithTag(SHIFT_CLOSE_TAB_TEST_TAG).performClick()
+
+        composeRule.onNodeWithTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.shiftVarianceLabel).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.shiftVarianceAcknowledge).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftCloseOnly))
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + budi.id).assertDoesNotExist()
+        composeRule.onNodeWithText(IdStrings.shiftNextStartingCashLabel).assertDoesNotExist()
+
+        composeRule.onNodeWithTag(SHIFT_HANDOVER_TOGGLE_TEST_TAG).performScrollTo().performClick()
+
+        composeRule.onNodeWithText(IdStrings.shiftNextCashierTitle).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + budi.id)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftCloseAndSwitch))
+    }
+
+    @Test
+    fun phoneCloseTabHidesZeroDebtAndRefundRows() {
+        showSheet(
+            idleOperatorState().copy(
+                summary = summary.copy(cashDebtPayments = 0L, cashRefunds = 0L),
             ),
         )
 
-        composeRule.onNode(hasText(IdStrings.shiftCloseTab) and hasClickAction()).performClick()
+        composeRule.onNodeWithTag(SHIFT_CLOSE_TAB_TEST_TAG).performClick()
 
-        composeRule.onNodeWithTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.shiftVarianceLabel).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.shiftVarianceAcknowledge).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.shiftCloseAndSwitch).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.shiftCloseOnly).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.shiftNextCashierTitle).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.shiftCashSalesLabel).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.shiftCashDebtPaymentsLabel).assertDoesNotExist()
+        composeRule.onNodeWithText(IdStrings.shiftCashRefundsLabel).assertDoesNotExist()
+    }
+
+    @Test
+    fun phoneCloseTabStaysUsableAtOneHundredAndThirtyFivePercentFontScale() {
+        showSheet(
+            state = idleOperatorState().copy(actualEndingCashInput = "150000"),
+            fontScale = 1.35f,
+        )
+
+        composeRule.onNodeWithTag(SHIFT_CLOSE_TAB_TEST_TAG).performClick()
+
+        composeRule.onNodeWithTag(SHIFT_ACTUAL_CASH_FIELD_TEST_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun tabletShowsTheShiftSheet() {
+        showSheet(
+            state = idleOperatorState(),
+            size = DpSize(1000.dp, 800.dp),
+        )
+
+        composeRule.onNodeWithTag(SHIFT_SHEET_TEST_TAG).assertIsDisplayed()
     }
 }
