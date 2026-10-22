@@ -18,6 +18,7 @@ import id.umkm.pos.pro.data.local.dao.SecurityAuditDao
 import id.umkm.pos.pro.data.local.dao.SecurityDao
 import id.umkm.pos.pro.data.local.dao.SettingsDao
 import id.umkm.pos.pro.data.local.dao.ShiftDao
+import id.umkm.pos.pro.data.local.dao.StaffDao
 import id.umkm.pos.pro.data.local.dao.TransactionDao
 import id.umkm.pos.pro.data.local.entity.CashierShiftEntity
 import id.umkm.pos.pro.data.local.entity.CustomerEntity
@@ -30,6 +31,7 @@ import id.umkm.pos.pro.data.local.entity.ReturnLineEntity
 import id.umkm.pos.pro.data.local.entity.SecurityAuditEntity
 import id.umkm.pos.pro.data.local.entity.SecurityStoreEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
+import id.umkm.pos.pro.data.local.entity.StaffEntity
 import id.umkm.pos.pro.data.local.entity.TransactionEntity
 import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
 
@@ -45,11 +47,12 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         SecurityStoreEntity::class,
         SecurityAuditEntity::class,
         SettingsEntity::class,
+        StaffEntity::class,
         ReturnEntity::class,
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -64,6 +67,8 @@ abstract class UmkmDatabase : RoomDatabase() {
     abstract fun debtPaymentDao(): DebtPaymentDao
 
     abstract fun shiftDao(): ShiftDao
+
+    abstract fun staffDao(): StaffDao
 
     abstract fun securityDao(): SecurityDao
 
@@ -137,6 +142,55 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `staffs` " +
+                        "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL COLLATE NOCASE, " +
+                        "`role` TEXT NOT NULL, `is_active` INTEGER NOT NULL, " +
+                        "`created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_staffs_name` ON `staffs` (`name`)",
+                )
+                db.execSQL("ALTER TABLE app_settings ADD COLUMN active_staff_id INTEGER")
+                db.execSQL("ALTER TABLE cashier_shifts ADD COLUMN opened_by_staff_id INTEGER")
+                db.execSQL("ALTER TABLE cashier_shifts ADD COLUMN closed_by_staff_id INTEGER")
+                db.execSQL("ALTER TABLE cashier_shifts ADD COLUMN closed_by_name TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN shift_id INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN staff_id INTEGER")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_shift_id` " +
+                        "ON `transactions` (`shift_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_staff_id` " +
+                        "ON `transactions` (`staff_id`)",
+                )
+                val now = System.currentTimeMillis()
+                db.execSQL(
+                    "INSERT INTO staffs (name, role, is_active, created_at, updated_at) " +
+                        "SELECT COALESCE(NULLIF(TRIM(cashier_name), ''), 'Kasir Utama'), " +
+                        "'CASHIER', 1, $now, $now FROM app_settings WHERE id = 1",
+                )
+                db.execSQL(
+                    "UPDATE app_settings SET active_staff_id = " +
+                        "(SELECT id FROM staffs ORDER BY id LIMIT 1) WHERE id = 1",
+                )
+                db.execSQL(
+                    "UPDATE cashier_shifts SET opened_by_staff_id = " +
+                        "(SELECT id FROM staffs ORDER BY id LIMIT 1) " +
+                        "WHERE closed_at IS NULL AND opened_by_staff_id IS NULL",
+                )
+                db.execSQL(
+                    "UPDATE transactions SET staff_id = " +
+                        "(SELECT id FROM staffs s WHERE s.name = transactions.cashier_name COLLATE NOCASE) " +
+                        "WHERE staff_id IS NULL AND cashier_name IS NOT NULL",
+                )
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -147,6 +201,7 @@ abstract class UmkmDatabase : RoomDatabase() {
                     MIGRATION_4_5,
                     MIGRATION_5_6,
                     MIGRATION_6_7,
+                    MIGRATION_7_8,
                 )
                 .addCallback(SingletonRowsCallback)
                 .build()
@@ -165,6 +220,15 @@ abstract class UmkmDatabase : RoomDatabase() {
                         "failed_attempts, lockout_until, session_role, session_unlocked_until, " +
                         "pin_updated_at) " +
                         "VALUES (1, NULL, NULL, 0, NULL, 0, NULL, NULL, NULL, NULL)",
+                )
+                val now = System.currentTimeMillis()
+                db.execSQL(
+                    "INSERT INTO staffs (name, role, is_active, created_at, updated_at) " +
+                        "VALUES ('Kasir Utama', 'CASHIER', 1, $now, $now)",
+                )
+                db.execSQL(
+                    "UPDATE app_settings SET active_staff_id = " +
+                        "(SELECT id FROM staffs ORDER BY id LIMIT 1) WHERE id = 1",
                 )
             }
         }

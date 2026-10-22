@@ -19,6 +19,7 @@ import id.umkm.pos.pro.data.local.dao.SecurityAuditDao
 import id.umkm.pos.pro.data.local.dao.SecurityDao
 import id.umkm.pos.pro.data.local.dao.SettingsDao
 import id.umkm.pos.pro.data.local.dao.ShiftDao
+import id.umkm.pos.pro.data.local.dao.StaffDao
 import id.umkm.pos.pro.data.local.dao.TransactionDao
 import id.umkm.pos.pro.data.local.entity.ProductEntity
 import id.umkm.pos.pro.data.local.entity.ProductUnitEntity
@@ -77,6 +78,8 @@ private class FakeUmkmDatabase : UmkmDatabase() {
     override fun debtPaymentDao(): DebtPaymentDao = error("fake database must not expose daos")
 
     override fun shiftDao(): ShiftDao = error("fake database must not expose daos")
+
+    override fun staffDao(): StaffDao = error("fake database must not expose daos")
 
     override fun securityDao(): SecurityDao = error("fake database must not expose daos")
 

@@ -7,6 +7,7 @@ import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.domain.security.PinPolicy
 import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.UiText
@@ -121,6 +122,7 @@ data class CashierUiState(
     val shouldSuppressMessageSnackbar: Boolean = false,
     val qrisPayload: String? = null,
     val activeShift: CashierShift? = null,
+    val activeStaff: Staff? = null,
 ) {
     val lineCount: Int get() = cartLines.size
 

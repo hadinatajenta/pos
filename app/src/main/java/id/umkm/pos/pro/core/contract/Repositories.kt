@@ -16,6 +16,7 @@ import id.umkm.pos.pro.core.model.SecurityCredentials
 import id.umkm.pos.pro.core.model.SecurityRole
 import id.umkm.pos.pro.core.model.SecurityState
 import id.umkm.pos.pro.core.model.ShiftCashSummary
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.core.model.ShiftSwitchResult
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
@@ -62,16 +63,36 @@ interface ShiftRepository {
 
     suspend fun getShiftSummary(shiftId: Long): AppResult<ShiftCashSummary>
 
-    suspend fun openShift(cashierName: String, startingCash: Long): AppResult<CashierShift>
+    suspend fun openShift(staffId: Long, startingCash: Long): AppResult<CashierShift>
 
     suspend fun closeShift(shiftId: Long, actualEndingCash: Long): AppResult<CashierShift>
 
     suspend fun switchShift(
         closeShiftId: Long,
         actualEndingCash: Long,
-        nextCashierName: String,
+        nextStaffId: Long,
         nextStartingCash: Long,
     ): AppResult<ShiftSwitchResult>
+
+    suspend fun switchOperator(staffId: Long): AppResult<Staff>
+}
+
+interface StaffRepository {
+    fun observeStaff(): Flow<List<Staff>>
+
+    fun observeActiveStaff(): Flow<Staff?>
+
+    suspend fun getStaff(staffId: Long): Staff?
+
+    suspend fun getActiveStaff(): Staff?
+
+    suspend fun addStaff(name: String): AppResult<Staff>
+
+    suspend fun renameStaff(staffId: Long, name: String): AppResult<Staff>
+
+    suspend fun setStaffActive(staffId: Long, isActive: Boolean): AppResult<Staff>
+
+    suspend fun ensureDefaultStaff(): Staff
 }
 
 interface SecurityRepository {

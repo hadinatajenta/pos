@@ -137,12 +137,13 @@ internal fun CashierCatalogPane(
 
 private fun catalogSupportingText(state: CashierUiState, strings: PosStrings): String? {
     val activeShift = state.activeShift ?: return strings.cashierShiftNotOpen
+    val cashierName = state.activeStaff?.name ?: activeShift.cashierName
     val items = (state.catalog as? UiState.Success)?.data
     return buildString {
         append(
             items?.let { catalogItems ->
-                strings.cashierShiftSupporting(activeShift.cashierName, catalogItems.size)
-            } ?: activeShift.cashierName,
+                strings.cashierShiftSupporting(cashierName, catalogItems.size)
+            } ?: cashierName,
         )
         state.catalogFilter.category?.let { append(" · $it") }
         if (state.catalogFilter.isAvailableOnly) {

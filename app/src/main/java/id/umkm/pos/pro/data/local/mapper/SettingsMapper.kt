@@ -17,6 +17,7 @@ object SettingsMapper {
         languageCode = settings.languageCode,
         qrisImagePath = settings.qrisImagePath,
         qrisPayload = settings.qrisPayload,
+        activeStaffId = settings.activeStaffId,
     )
 
     fun toModel(entity: SettingsEntity): AppSettings = AppSettings(
@@ -31,6 +32,7 @@ object SettingsMapper {
         languageCode = entity.languageCode,
         qrisImagePath = entity.qrisImagePath,
         qrisPayload = entity.qrisPayload,
+        activeStaffId = entity.activeStaffId,
     )
 
     fun defaultModel(): AppSettings = AppSettings(
@@ -45,6 +47,7 @@ object SettingsMapper {
         languageCode = "id",
         qrisImagePath = null,
         qrisPayload = null,
+        activeStaffId = null,
     )
 }
 

@@ -2,6 +2,7 @@ package id.umkm.pos.pro.data.local.converter
 
 import androidx.room.TypeConverter
 import id.umkm.pos.pro.core.model.PaymentMethod
+import id.umkm.pos.pro.core.model.SecurityRole
 import id.umkm.pos.pro.core.model.TransactionStatus
 
 class RoomConverters {
@@ -17,4 +18,10 @@ class RoomConverters {
 
     @TypeConverter
     fun stringToTransactionStatus(value: String): TransactionStatus = TransactionStatus.valueOf(value)
+
+    @TypeConverter
+    fun securityRoleToString(role: SecurityRole): String = role.name
+
+    @TypeConverter
+    fun stringToSecurityRole(value: String): SecurityRole = SecurityRole.valueOf(value)
 }

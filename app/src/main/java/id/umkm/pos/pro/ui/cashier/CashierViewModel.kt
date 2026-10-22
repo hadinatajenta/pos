@@ -14,6 +14,7 @@ import id.umkm.pos.pro.core.contract.ReceiptRenderer
 import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
+import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.AppLanguage
 import id.umkm.pos.pro.core.model.CartLine
@@ -74,6 +75,7 @@ class CashierViewModel(
     private val receiptRenderer: ReceiptRenderer,
     private val scannerInput: ScannerInput,
     private val shiftRepository: ShiftRepository? = null,
+    private val staffRepository: StaffRepository? = null,
     private val clock: Clock = SystemClock,
 ) : ViewModel() {
 
@@ -102,6 +104,7 @@ class CashierViewModel(
         observeCustomers()
         observeScanEvents()
         observeActiveShift()
+        observeActiveStaff()
     }
 
     fun onSearchQueryChange(query: String) {
@@ -297,6 +300,10 @@ class CashierViewModel(
             setMessage(UiText.from { strings -> strings.cashierShiftRequired })
             return
         }
+        if (staffRepository != null && _state.value.activeStaff == null) {
+            setMessage(UiText.from { strings -> strings.cashierShiftRequired })
+            return
+        }
         _state.update {
             it.copy(
                 isPaymentSheetVisible = true,
@@ -404,6 +411,10 @@ class CashierViewModel(
             _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierShiftRequired }) }
             return
         }
+        if (staffRepository != null && _state.value.activeStaff == null) {
+            _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierShiftRequired }) }
+            return
+        }
 
         val draft = _state.value.paymentDraft
         val paidAmount = when (val resolution = resolvePaidAmount(draft, pricedCart.grandTotal)) {
@@ -438,7 +449,11 @@ class CashierViewModel(
             taxRatePercent = pricingContext.taxRatePercent,
             roundingIncrement = pricingContext.roundingIncrement,
             notes = null,
-            cashierName = _state.value.activeShift?.cashierName ?: fallbackCashierName,
+            cashierName = _state.value.activeStaff?.name
+                ?: _state.value.activeShift?.cashierName
+                ?: fallbackCashierName,
+            shiftId = _state.value.activeShift?.id,
+            staffId = _state.value.activeStaff?.id,
         )
 
         viewModelScope.launch {
@@ -546,6 +561,15 @@ class CashierViewModel(
         viewModelScope.launch {
             repository.observeActiveShift().collect { shift ->
                 _state.update { current -> current.copy(activeShift = shift) }
+            }
+        }
+    }
+
+    private fun observeActiveStaff() {
+        val repository = staffRepository ?: return
+        viewModelScope.launch {
+            repository.observeActiveStaff().collect { staff ->
+                _state.update { current -> current.copy(activeStaff = staff) }
             }
         }
     }
@@ -833,7 +857,9 @@ class CashierViewModel(
             storeName = storeName,
             invoiceNo = result.invoiceNo,
             createdAtLabel = formatDateTime(clock.nowMillis(), currentStrings),
-            cashierName = _state.value.activeShift?.cashierName ?: fallbackCashierName,
+            cashierName = _state.value.activeStaff?.name
+                ?: _state.value.activeShift?.cashierName
+                ?: fallbackCashierName,
             customerName = state.selectedCustomerName,
             paymentMethodLabel = paymentMethodLabel(result.allocation.paymentMethod, currentStrings),
             items = pricedCart.lines.map { pricedLine ->

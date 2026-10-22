@@ -18,6 +18,7 @@ data class SettingsEntity(
     @ColumnInfo(name = "language_code") val languageCode: String = "id",
     @ColumnInfo(name = "qris_image_path") val qrisImagePath: String?,
     @ColumnInfo(name = "qris_payload") val qrisPayload: String?,
+    @ColumnInfo(name = "active_staff_id") val activeStaffId: Long? = null,
 ) {
     companion object {
         const val SINGLETON_ID: Int = 1

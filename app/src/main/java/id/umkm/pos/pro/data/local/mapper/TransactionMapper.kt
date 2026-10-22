@@ -29,6 +29,8 @@ object TransactionMapper {
         status = transaction.status,
         notes = transaction.notes,
         cashierName = transaction.cashierName,
+        shiftId = transaction.shiftId,
+        staffId = transaction.staffId,
     )
 
     fun toModel(entity: TransactionEntity): Transaction = Transaction(
@@ -53,6 +55,8 @@ object TransactionMapper {
         status = entity.status,
         notes = entity.notes,
         cashierName = entity.cashierName,
+        shiftId = entity.shiftId,
+        staffId = entity.staffId,
     )
 
     fun toEntity(item: TransactionItem): TransactionItemEntity = TransactionItemEntity(

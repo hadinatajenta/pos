@@ -30,6 +30,8 @@ data class Transaction(
     val status: TransactionStatus,
     val notes: String?,
     val cashierName: String? = null,
+    val shiftId: Long? = null,
+    val staffId: Long? = null,
 )
 
 data class TransactionItem(
@@ -65,6 +67,9 @@ data class CashierShift(
     val startingCash: Long,
     val expectedEndingCash: Long?,
     val actualEndingCash: Long?,
+    val openedByStaffId: Long? = null,
+    val closedByStaffId: Long? = null,
+    val closedByName: String? = null,
 )
 
 data class ShiftCashSummary(

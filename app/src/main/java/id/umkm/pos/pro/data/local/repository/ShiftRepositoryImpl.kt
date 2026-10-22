@@ -8,13 +8,16 @@ import id.umkm.pos.pro.core.contract.ShiftRepository
 import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.ShiftCashSummary
 import id.umkm.pos.pro.core.model.ShiftSwitchResult
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import id.umkm.pos.pro.data.local.dao.DebtPaymentDao
 import id.umkm.pos.pro.data.local.dao.ReturnDao
 import id.umkm.pos.pro.data.local.dao.ShiftDao
+import id.umkm.pos.pro.data.local.dao.StaffDao
 import id.umkm.pos.pro.data.local.dao.TransactionDao
 import id.umkm.pos.pro.data.local.entity.CashierShiftEntity
 import id.umkm.pos.pro.data.local.mapper.ShiftMapper
+import id.umkm.pos.pro.data.local.mapper.StaffMapper
 import id.umkm.pos.pro.domain.pos.ShiftReconciliation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.map
 class ShiftRepositoryImpl(
     private val database: UmkmDatabase,
     private val shiftDao: ShiftDao,
+    private val staffDao: StaffDao,
     private val transactionDao: TransactionDao,
     private val debtPaymentDao: DebtPaymentDao,
     private val returnDao: ReturnDao,
@@ -48,8 +52,7 @@ class ShiftRepositoryImpl(
         return AppResult.Success(loadSummary(shift, shift.closedAt ?: clock.nowMillis()))
     }
 
-    override suspend fun openShift(cashierName: String, startingCash: Long): AppResult<CashierShift> {
-        validateName(cashierName)?.let { return AppResult.Failure(it) }
+    override suspend fun openShift(staffId: Long, startingCash: Long): AppResult<CashierShift> {
         if (startingCash < 0L) {
             return AppResult.Failure(AppError.Validation("starting cash must not be negative"))
         }
@@ -60,16 +63,27 @@ class ShiftRepositoryImpl(
                         AppError.Validation("another shift is already open"),
                     )
                 }
+                val staff = staffDao.getStaff(staffId)
+                    ?: return@withTransaction AppResult.Failure(
+                        AppError.NotFound("staff $staffId was not found"),
+                    )
+                if (!staff.isActive) {
+                    return@withTransaction AppResult.Failure(
+                        AppError.Validation("staff $staffId is inactive"),
+                    )
+                }
                 val now = clock.nowMillis()
                 val entity = CashierShiftEntity(
-                    cashierName = cashierName.trim(),
+                    cashierName = staff.name,
                     openedAt = now,
                     closedAt = null,
                     startingCash = startingCash,
                     expectedEndingCash = null,
                     actualEndingCash = null,
+                    openedByStaffId = staff.id,
                 )
                 val id = shiftDao.insertShift(entity)
+                staffDao.setActiveStaffId(staff.id)
                 AppResult.Success(ShiftMapper.toModel(entity.copy(id = id)))
             }
         }
@@ -95,6 +109,7 @@ class ShiftRepositoryImpl(
                 }
                 val now = clock.nowMillis()
                 val summary = loadSummary(shift, now)
+                val closer = currentStaff()
                 val updated = shiftDao.closeShift(
                     shiftId = shiftId,
                     closedAt = now,
@@ -106,12 +121,15 @@ class ShiftRepositoryImpl(
                         AppError.Validation("shift $shiftId is already closed"),
                     )
                 }
+                staffDao.setActiveStaffId(null)
                 AppResult.Success(
                     ShiftMapper.toModel(
                         shift.copy(
                             closedAt = now,
                             expectedEndingCash = summary.expectedEndingCash,
                             actualEndingCash = actualEndingCash,
+                            closedByStaffId = closer?.id,
+                            closedByName = closer?.name ?: shift.cashierName,
                         ),
                     ),
                 )
@@ -122,13 +140,12 @@ class ShiftRepositoryImpl(
     override suspend fun switchShift(
         closeShiftId: Long,
         actualEndingCash: Long,
-        nextCashierName: String,
+        nextStaffId: Long,
         nextStartingCash: Long,
     ): AppResult<ShiftSwitchResult> {
         if (actualEndingCash < 0L) {
             return AppResult.Failure(AppError.Validation("actual ending cash must not be negative"))
         }
-        validateName(nextCashierName)?.let { return AppResult.Failure(it) }
         if (nextStartingCash < 0L) {
             return AppResult.Failure(AppError.Validation("starting cash must not be negative"))
         }
@@ -143,8 +160,18 @@ class ShiftRepositoryImpl(
                         AppError.Validation("shift $closeShiftId is already closed"),
                     )
                 }
+                val nextStaff = staffDao.getStaff(nextStaffId)
+                    ?: return@withTransaction AppResult.Failure(
+                        AppError.NotFound("staff $nextStaffId was not found"),
+                    )
+                if (!nextStaff.isActive) {
+                    return@withTransaction AppResult.Failure(
+                        AppError.Validation("staff $nextStaffId is inactive"),
+                    )
+                }
                 val now = clock.nowMillis()
                 val summary = loadSummary(current, now)
+                val closer = currentStaff()
                 val updated = shiftDao.closeShift(
                     shiftId = closeShiftId,
                     closedAt = now,
@@ -162,14 +189,16 @@ class ShiftRepositoryImpl(
                     )
                 }
                 val nextEntity = CashierShiftEntity(
-                    cashierName = nextCashierName.trim(),
+                    cashierName = nextStaff.name,
                     openedAt = now,
                     closedAt = null,
                     startingCash = nextStartingCash,
                     expectedEndingCash = null,
                     actualEndingCash = null,
+                    openedByStaffId = nextStaff.id,
                 )
                 val nextId = shiftDao.insertShift(nextEntity)
+                staffDao.setActiveStaffId(nextStaff.id)
                 AppResult.Success(
                     ShiftSwitchResult(
                         closedShift = ShiftMapper.toModel(
@@ -177,6 +206,8 @@ class ShiftRepositoryImpl(
                                 closedAt = now,
                                 expectedEndingCash = summary.expectedEndingCash,
                                 actualEndingCash = actualEndingCash,
+                                closedByStaffId = closer?.id,
+                                closedByName = closer?.name ?: current.cashierName,
                             ),
                         ),
                         openedShift = ShiftMapper.toModel(nextEntity.copy(id = nextId)),
@@ -185,6 +216,32 @@ class ShiftRepositoryImpl(
             }
         }
     }
+
+    override suspend fun switchOperator(staffId: Long): AppResult<Staff> = guarded {
+        database.withTransaction {
+            if (shiftDao.getActiveShift() == null) {
+                return@withTransaction AppResult.Failure(
+                    AppError.Validation("no shift is open"),
+                )
+            }
+            val staff = staffDao.getStaff(staffId)
+                ?: return@withTransaction AppResult.Failure(
+                    AppError.NotFound("staff $staffId was not found"),
+                )
+            if (!staff.isActive) {
+                return@withTransaction AppResult.Failure(
+                    AppError.Validation("staff $staffId is inactive"),
+                )
+            }
+            staffDao.setActiveStaffId(staff.id)
+            AppResult.Success(StaffMapper.toModel(staff))
+        }
+    }
+
+    private suspend fun currentStaff(): Staff? =
+        staffDao.getActiveStaffId()?.let { staffId ->
+            staffDao.getStaff(staffId)?.let(StaffMapper::toModel)
+        }
 
     private suspend fun loadSummary(shift: CashierShiftEntity, endMillis: Long): ShiftCashSummary {
         val safeEnd = maxOf(shift.openedAt, endMillis)
@@ -197,14 +254,6 @@ class ShiftRepositoryImpl(
         )
     }
 
-    private fun validateName(cashierName: String): AppError? = when {
-        cashierName.isBlank() -> AppError.Validation("cashier name is required")
-        cashierName.trim().length > MAX_NAME_LENGTH ->
-            AppError.Validation("cashier name is too long")
-
-        else -> null
-    }
-
     private suspend fun <T> guarded(block: suspend () -> AppResult<T>): AppResult<T> =
         try {
             block()
@@ -215,7 +264,6 @@ class ShiftRepositoryImpl(
         }
 
     private companion object {
-        const val MAX_NAME_LENGTH = 60
         const val MAX_RECENT_NAMES = 10
         const val MAX_HISTORY = 100
     }

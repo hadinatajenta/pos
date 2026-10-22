@@ -57,6 +57,7 @@ fun CashierRoute(
                     receiptRenderer = container.receiptRenderer,
                     scannerInput = container.scannerInput,
                     shiftRepository = container.shiftRepository,
+                    staffRepository = container.staffRepository,
                 )
             }
         }

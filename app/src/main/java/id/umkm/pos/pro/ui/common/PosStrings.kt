@@ -211,6 +211,14 @@ interface PosStrings {
     val shiftCashierNameLabel: String
     val shiftCashierNamePlaceholder: String
     val shiftRecentCashiersLabel: String
+    val shiftNoStaffTitle: String
+    val shiftNoStaffHint: String
+    val shiftManageStaffAction: String
+    val shiftOperatorTab: String
+    val shiftCloseTab: String
+    val shiftSwitchOperatorAction: String
+    val shiftOperatorSwitched: (String) -> String
+    val shiftValidationStaff: String
     val shiftStartingCashLabel: String
     val shiftStartingCashHint: String
     val shiftNextCashierTitle: String

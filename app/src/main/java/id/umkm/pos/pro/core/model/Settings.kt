@@ -12,5 +12,6 @@ data class AppSettings(
     val languageCode: String = "id",
     val qrisImagePath: String?,
     val qrisPayload: String? = null,
+    val activeStaffId: Long? = null,
 )
 

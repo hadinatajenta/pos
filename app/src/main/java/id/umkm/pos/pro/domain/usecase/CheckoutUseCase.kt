@@ -36,6 +36,8 @@ data class CheckoutRequest(
     val roundingIncrement: Long,
     val notes: String?,
     val cashierName: String? = null,
+    val shiftId: Long? = null,
+    val staffId: Long? = null,
 )
 
 data class CheckoutResult(
@@ -118,6 +120,8 @@ class CheckoutUseCase(
             status = allocation.status,
             notes = request.notes,
             cashierName = request.cashierName?.trim()?.ifEmpty { null },
+            shiftId = request.shiftId,
+            staffId = request.staffId,
         )
 
         val items = ArrayList<TransactionItem>(pricedCart.lines.size)

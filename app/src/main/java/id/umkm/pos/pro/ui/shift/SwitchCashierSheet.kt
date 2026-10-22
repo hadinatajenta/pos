@@ -45,6 +45,7 @@ import androidx.compose.ui.window.DialogProperties
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.core.model.ShiftCashSummary
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.asTextOrNull
@@ -227,25 +228,15 @@ private fun OpenShiftForm(
 ) {
     val strings = LocalPosStrings.current
     PosCard(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = state.cashierNameInput,
-            onValueChange = actions.onCashierNameChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG),
-            label = { Text(strings.shiftCashierNameLabel) },
-            placeholder = { Text(strings.shiftCashierNamePlaceholder) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        StaffSelector(
+            label = strings.shiftCashierNameLabel,
+            staff = state.staffOptions,
+            selectedStaffId = state.selectedStaffId,
+            onSelect = actions.onSelectStaff,
+            emptyTitle = strings.shiftNoStaffTitle,
+            emptyHint = strings.shiftNoStaffHint,
+            modifier = Modifier.testTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG),
         )
-        if (state.recentCashierNames.isNotEmpty()) {
-            RecentCashierChips(
-                names = state.recentCashierNames,
-                selectedName = state.cashierNameInput,
-                onSelect = actions.onCashierNameChange,
-                label = strings.shiftRecentCashiersLabel,
-            )
-        }
         MoneyField(
             value = state.startingCashInput,
             onValueChange = actions.onStartingCashChange,
@@ -297,23 +288,14 @@ private fun CloseShiftForm(
             title = strings.shiftNextCashierTitle,
             supportingText = strings.shiftNextStartingCashHint,
         )
-        OutlinedTextField(
-            value = state.nextCashierNameInput,
-            onValueChange = actions.onNextCashierNameChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(strings.shiftNextCashierNameLabel) },
-            placeholder = { Text(strings.shiftNextCashierNamePlaceholder) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        StaffSelector(
+            label = strings.shiftNextCashierNameLabel,
+            staff = state.staffOptions,
+            selectedStaffId = state.selectedNextStaffId,
+            onSelect = actions.onSelectNextStaff,
+            emptyTitle = strings.shiftNoStaffTitle,
+            emptyHint = strings.shiftNoStaffHint,
         )
-        if (state.recentCashierNames.isNotEmpty()) {
-            RecentCashierChips(
-                names = state.recentCashierNames,
-                selectedName = state.nextCashierNameInput,
-                onSelect = actions.onNextCashierNameChange,
-                label = strings.shiftRecentCashiersLabel,
-            )
-        }
         MoneyField(
             value = state.nextStartingCashInput,
             onValueChange = actions.onNextStartingCashChange,
@@ -326,28 +308,58 @@ private fun CloseShiftForm(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RecentCashierChips(
-    names: List<String>,
-    selectedName: String,
-    onSelect: (String) -> Unit,
+private fun StaffSelector(
     label: String,
+    staff: List<Staff>,
+    selectedStaffId: Long?,
+    onSelect: (Long) -> Unit,
+    emptyTitle: String,
+    emptyHint: String,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
         Text(
             text = label,
             style = LocalAppTextStyles.current.supportingLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        ) {
-            names.forEach { name ->
-                FilterChip(
-                    selected = selectedName.trim() == name,
-                    onClick = { onSelect(name) },
-                    label = { Text(name, maxLines = 1) },
-                )
+        if (staff.isEmpty()) {
+            Text(
+                text = emptyTitle,
+                style = LocalAppTextStyles.current.body,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = emptyHint,
+                style = LocalAppTextStyles.current.supportingLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            ) {
+                staff.forEach { member ->
+                    FilterChip(
+                        selected = selectedStaffId == member.id,
+                        onClick = { onSelect(member.id) },
+                        label = { Text(member.name, maxLines = 1) },
+                        leadingIcon = if (selectedStaffId == member.id) {
+                            {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_check),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(PosSizes.iconSmall),
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
         }
     }

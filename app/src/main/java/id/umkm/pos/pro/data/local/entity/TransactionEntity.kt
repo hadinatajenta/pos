@@ -23,6 +23,8 @@ import id.umkm.pos.pro.core.model.TransactionStatus
         Index(value = ["created_at"]),
         Index(value = ["customer_id"]),
         Index(value = ["cashier_id"]),
+        Index(value = ["shift_id"]),
+        Index(value = ["staff_id"]),
         Index(value = ["payment_method"]),
     ],
 )
@@ -48,4 +50,6 @@ data class TransactionEntity(
     @ColumnInfo(name = "status") val status: TransactionStatus,
     @ColumnInfo(name = "notes") val notes: String?,
     @ColumnInfo(name = "cashier_name") val cashierName: String? = null,
+    @ColumnInfo(name = "shift_id") val shiftId: Long? = null,
+    @ColumnInfo(name = "staff_id") val staffId: Long? = null,
 )

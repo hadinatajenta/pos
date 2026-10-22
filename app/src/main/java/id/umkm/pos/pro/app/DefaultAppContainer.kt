@@ -24,6 +24,7 @@ import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SecurityRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
+import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.data.image.ProductImageStore
 import id.umkm.pos.pro.data.backup.JsonDataBackupService
@@ -37,6 +38,7 @@ import id.umkm.pos.pro.data.local.repository.ReturnRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.SecurityRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.SettingsRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ShiftRepositoryImpl
+import id.umkm.pos.pro.data.local.repository.StaffRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.TransactionRepositoryImpl
 import id.umkm.pos.pro.data.qris.AndroidQrisService
 import id.umkm.pos.pro.data.seed.DefaultDemoDataSeeder
@@ -89,9 +91,16 @@ class DefaultAppContainer(
         database.productDao(),
     )
 
+    override val staffRepository: StaffRepository = StaffRepositoryImpl(
+        database = database,
+        staffDao = database.staffDao(),
+        clock = clock,
+    )
+
     override val shiftRepository: ShiftRepository = ShiftRepositoryImpl(
         database = database,
         shiftDao = database.shiftDao(),
+        staffDao = database.staffDao(),
         transactionDao = database.transactionDao(),
         debtPaymentDao = database.debtPaymentDao(),
         returnDao = database.returnDao(),

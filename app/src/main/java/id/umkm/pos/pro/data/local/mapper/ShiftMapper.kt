@@ -13,6 +13,9 @@ object ShiftMapper {
         startingCash = shift.startingCash,
         expectedEndingCash = shift.expectedEndingCash,
         actualEndingCash = shift.actualEndingCash,
+        openedByStaffId = shift.openedByStaffId,
+        closedByStaffId = shift.closedByStaffId,
+        closedByName = shift.closedByName,
     )
 
     fun toModel(entity: CashierShiftEntity): CashierShift = CashierShift(
@@ -23,5 +26,8 @@ object ShiftMapper {
         startingCash = entity.startingCash,
         expectedEndingCash = entity.expectedEndingCash,
         actualEndingCash = entity.actualEndingCash,
+        openedByStaffId = entity.openedByStaffId,
+        closedByStaffId = entity.closedByStaffId,
+        closedByName = entity.closedByName,
     )
 }

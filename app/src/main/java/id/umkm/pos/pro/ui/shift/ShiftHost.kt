@@ -39,7 +39,7 @@ fun ShiftHost(
             initializer {
                 ShiftViewModel(
                     shiftRepository = container.shiftRepository,
-                    settingsRepository = container.settingsRepository,
+                    staffRepository = container.staffRepository,
                 )
             }
         }

@@ -103,6 +103,7 @@ class JsonDataBackupService(
                     }
                     rows.size
                 }
+                ensureStaffAfterRestore(writableDatabase, payload)
                 resetSecurityAfterRestore(writableDatabase)
             }
             AppResult.Success(
@@ -117,6 +118,25 @@ class JsonDataBackupService(
         } catch (error: Exception) {
             AppResult.Failure(AppError.Storage(error.message ?: "failed to restore backup data"))
         }
+    }
+
+    private fun ensureStaffAfterRestore(
+        database: SupportSQLiteDatabase,
+        payload: BackupPayload,
+    ) {
+        if (!payload.tables[BackupTables.STAFF_TABLE].isNullOrEmpty()) return
+        val now = clock.nowMillis()
+        database.execSQL(
+            "INSERT INTO `${BackupTables.STAFF_TABLE}` " +
+                "(`name`, `role`, `is_active`, `created_at`, `updated_at`) " +
+                "VALUES ('Kasir Utama', 'CASHIER', 1, ?, ?)",
+            arrayOf(now, now),
+        )
+        database.execSQL(
+            "UPDATE `app_settings` SET `active_staff_id` = " +
+                "(SELECT `id` FROM `${BackupTables.STAFF_TABLE}` ORDER BY `id` LIMIT 1) " +
+                "WHERE `id` = 1",
+        )
     }
 
     private fun resetSecurityAfterRestore(database: SupportSQLiteDatabase) {

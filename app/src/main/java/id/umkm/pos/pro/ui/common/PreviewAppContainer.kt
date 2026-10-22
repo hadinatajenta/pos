@@ -26,6 +26,7 @@ import id.umkm.pos.pro.core.contract.ScannerInput
 import id.umkm.pos.pro.core.contract.SecurityRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
+import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.domain.security.SecurityService
 import id.umkm.pos.pro.monetization.admob.NoAdsController
@@ -54,6 +55,7 @@ internal object PreviewAppContainer : AppContainer {
     override val transactionRepository: TransactionRepository get() = previewUnavailable("transactionRepository")
     override val returnRepository: ReturnRepository get() = previewUnavailable("returnRepository")
     override val shiftRepository: ShiftRepository get() = previewUnavailable("shiftRepository")
+    override val staffRepository: StaffRepository get() = previewUnavailable("staffRepository")
     override val securityRepository: SecurityRepository get() = previewUnavailable("securityRepository")
     override val pinHasher: PinHasher get() = previewUnavailable("pinHasher")
     override val securityService: SecurityService get() = previewUnavailable("securityService")

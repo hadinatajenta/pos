@@ -4,32 +4,33 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
-import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
+import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.model.CashierShift
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.ui.common.UiText
 import id.umkm.pos.pro.ui.common.toUiText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ShiftViewModel(
     private val shiftRepository: ShiftRepository,
-    private val settingsRepository: SettingsRepository,
+    private val staffRepository: StaffRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ShiftUiState())
     val state: StateFlow<ShiftUiState> = _state.asStateFlow()
 
-    private var defaultCashierName: String = ""
     private var loadedSummaryShiftId: Long? = null
 
     init {
         observeActiveShift()
-        observeSettings()
+        observeStaff()
     }
 
     fun onOpenShiftForm() {
@@ -51,25 +52,39 @@ class ShiftViewModel(
             if (activeShift != null && !_state.value.isSummaryLoading) {
                 loadSummary(activeShift.id)
             }
-            val recentCashierNames = try {
-                shiftRepository.getRecentCashierNames(RECENT_CASHIER_LIMIT)
+            staffRepository.ensureDefaultStaff()
+            val staffOptions = try {
+                staffRepository.observeStaff().first()
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
                 emptyList()
             }
+            val activeStaff = try {
+                staffRepository.getActiveStaff()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                null
+            }
+            val activeStaffOptions = staffOptions.filter(Staff::isActive)
             _state.update { current ->
                 current.copy(
                     mode = ShiftSheetMode.SHIFT_FORM,
-                    cashierNameInput = if (activeShift == null) defaultCashierName else "",
+                    staffOptions = activeStaffOptions,
+                    activeStaff = activeStaff,
+                    selectedStaffId = if (activeShift == null) {
+                        activeStaff?.id ?: activeStaffOptions.firstOrNull()?.id
+                    } else {
+                        null
+                    },
+                    selectedNextStaffId = null,
                     startingCashInput = "",
                     actualEndingCashInput = "",
-                    nextCashierNameInput = "",
                     nextStartingCashInput = "",
                     isVarianceAcknowledged = false,
                     validationMessage = null,
                     submitErrorMessage = null,
-                    recentCashierNames = recentCashierNames,
                 )
             }
         }
@@ -86,8 +101,8 @@ class ShiftViewModel(
         }
     }
 
-    fun onCashierNameChange(value: String) {
-        _state.update { it.copy(cashierNameInput = value.take(MAX_CASHIER_NAME_LENGTH), validationMessage = null) }
+    fun onSelectStaff(staffId: Long) {
+        _state.update { it.copy(selectedStaffId = staffId, validationMessage = null) }
     }
 
     fun onStartingCashChange(value: String) {
@@ -113,13 +128,8 @@ class ShiftViewModel(
         }
     }
 
-    fun onNextCashierNameChange(value: String) {
-        _state.update {
-            it.copy(
-                nextCashierNameInput = value.take(MAX_CASHIER_NAME_LENGTH),
-                validationMessage = null,
-            )
-        }
+    fun onSelectNextStaff(staffId: Long) {
+        _state.update { it.copy(selectedNextStaffId = staffId, validationMessage = null) }
     }
 
     fun onNextStartingCashChange(value: String) {
@@ -139,8 +149,8 @@ class ShiftViewModel(
             onOpenShiftForm()
             return
         }
-        val cashierName = current.cashierNameInput.trim()
-        if (cashierName.isEmpty()) {
+        val staffId = current.selectedStaffId
+        if (staffId == null) {
             setValidation { strings -> strings.shiftValidationCashierName }
             return
         }
@@ -151,7 +161,7 @@ class ShiftViewModel(
         }
         viewModelScope.launch {
             _state.update { it.copy(isSubmitting = true, validationMessage = null, submitErrorMessage = null) }
-            when (val result = shiftRepository.openShift(cashierName, startingCash)) {
+            when (val result = shiftRepository.openShift(staffId, startingCash)) {
                 is AppResult.Success -> {
                     loadedSummaryShiftId = null
                     _state.update {
@@ -160,7 +170,8 @@ class ShiftViewModel(
                             activeShift = result.value,
                             summary = null,
                             isSubmitting = false,
-                            cashierNameInput = "",
+                            selectedStaffId = null,
+                            selectedNextStaffId = null,
                             startingCashInput = "",
                             message = UiText.from { strings -> strings.shiftOpenSuccess(result.value.cashierName) },
                         )
@@ -191,7 +202,7 @@ class ShiftViewModel(
                             summary = null,
                             isSubmitting = false,
                             actualEndingCashInput = "",
-                            nextCashierNameInput = "",
+                            selectedNextStaffId = null,
                             nextStartingCashInput = "",
                             isVarianceAcknowledged = false,
                             message = UiText.from { strings ->
@@ -213,8 +224,8 @@ class ShiftViewModel(
         val activeShift = current.activeShift ?: return
         if (current.isSubmitting) return
         val actualEndingCash = resolveActualEndingCash(current) ?: return
-        val nextCashierName = current.nextCashierNameInput.trim()
-        if (nextCashierName.isEmpty()) {
+        val nextStaffId = current.selectedNextStaffId
+        if (nextStaffId == null) {
             setValidation { strings -> strings.shiftValidationNextCashier }
             return
         }
@@ -228,7 +239,7 @@ class ShiftViewModel(
             val result = shiftRepository.switchShift(
                 closeShiftId = activeShift.id,
                 actualEndingCash = actualEndingCash,
-                nextCashierName = nextCashierName,
+                nextStaffId = nextStaffId,
                 nextStartingCash = nextStartingCash,
             )
             when (result) {
@@ -241,7 +252,7 @@ class ShiftViewModel(
                             summary = null,
                             isSubmitting = false,
                             actualEndingCashInput = "",
-                            nextCashierNameInput = "",
+                            selectedNextStaffId = null,
                             nextStartingCashInput = "",
                             isVarianceAcknowledged = false,
                             message = UiText.from { strings ->
@@ -252,6 +263,31 @@ class ShiftViewModel(
                             },
                         )
                     }
+                }
+
+                is AppResult.Failure -> _state.update {
+                    it.copy(isSubmitting = false, submitErrorMessage = result.error.toUiText())
+                }
+            }
+        }
+    }
+
+    fun onSwitchOperator(staffId: Long) {
+        if (_state.value.isSubmitting) return
+        viewModelScope.launch {
+            _state.update { it.copy(isSubmitting = true, validationMessage = null, submitErrorMessage = null) }
+            when (val result = shiftRepository.switchOperator(staffId)) {
+                is AppResult.Success -> _state.update {
+                    it.copy(
+                        mode = ShiftSheetMode.HIDDEN,
+                        activeStaff = result.value,
+                        selectedStaffId = null,
+                        selectedNextStaffId = null,
+                        isSubmitting = false,
+                        message = UiText.from { strings ->
+                            strings.shiftOperatorSwitched(result.value.name)
+                        },
+                    )
                 }
 
                 is AppResult.Failure -> _state.update {
@@ -284,19 +320,37 @@ class ShiftViewModel(
         }
     }
 
-    private fun observeSettings() {
+    private fun observeStaff() {
         viewModelScope.launch {
-            settingsRepository.observeSettings().collect { settings ->
-                defaultCashierName = settings.cashierName?.trim().orEmpty()
+            staffRepository.observeActiveStaff().collect { staff ->
                 _state.update { current ->
-                    if (current.mode == ShiftSheetMode.SHIFT_FORM &&
-                        current.activeShift == null &&
-                        current.cashierNameInput.isBlank()
-                    ) {
-                        current.copy(cashierNameInput = defaultCashierName)
-                    } else {
-                        current
-                    }
+                    current.copy(
+                        activeStaff = staff,
+                        selectedStaffId = current.selectedStaffId ?: if (current.activeShift == null) {
+                            staff?.id
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            staffRepository.observeStaff().collect { staff ->
+                val activeOptions = staff.filter(Staff::isActive)
+                _state.update { current ->
+                    current.copy(
+                        staffOptions = activeOptions,
+                        selectedStaffId = current.selectedStaffId
+                            ?.takeIf { selectedId -> activeOptions.any { it.id == selectedId } }
+                            ?: if (current.activeShift == null) {
+                                current.activeStaff?.id ?: activeOptions.firstOrNull()?.id
+                            } else {
+                                null
+                            },
+                        selectedNextStaffId = current.selectedNextStaffId
+                            ?.takeIf { selectedId -> activeOptions.any { it.id == selectedId } },
+                    )
                 }
             }
         }

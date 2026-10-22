@@ -23,10 +23,17 @@ object BackupJsonCodec {
             null
         }
 
-    fun validate(payload: BackupPayload, currentSchemaVersion: Int): BackupValidationResult = when {
-        payload.formatVersion != BackupTables.FORMAT_VERSION -> BackupValidationResult.UNSUPPORTED_FORMAT
-        payload.schemaVersion > currentSchemaVersion -> BackupValidationResult.NEWER_SCHEMA
-        !payload.tables.keys.containsAll(BackupTables.insertOrder) -> BackupValidationResult.INCOMPLETE
-        else -> BackupValidationResult.VALID
+    fun validate(payload: BackupPayload, currentSchemaVersion: Int): BackupValidationResult {
+        val requiredTables = if (payload.schemaVersion < 8) {
+            BackupTables.insertOrder - BackupTables.STAFF_TABLE
+        } else {
+            BackupTables.insertOrder
+        }
+        return when {
+            payload.formatVersion != BackupTables.FORMAT_VERSION -> BackupValidationResult.UNSUPPORTED_FORMAT
+            payload.schemaVersion > currentSchemaVersion -> BackupValidationResult.NEWER_SCHEMA
+            !payload.tables.keys.containsAll(requiredTables) -> BackupValidationResult.INCOMPLETE
+            else -> BackupValidationResult.VALID
+        }
     }
 }

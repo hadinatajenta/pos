@@ -8,10 +8,13 @@ object BackupTables {
 
     const val SECURITY_AUDIT_TABLE: String = "security_audit_log"
 
+    const val STAFF_TABLE: String = "staffs"
+
     val insertOrder: List<String> = listOf(
         "products",
         "product_variants_units",
         "customers",
+        STAFF_TABLE,
         "transactions",
         "transaction_items",
         "debt_payments",

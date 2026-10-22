@@ -9,6 +9,7 @@ interface AppContainer {
     val transactionRepository: TransactionRepository
     val returnRepository: ReturnRepository
     val shiftRepository: ShiftRepository
+    val staffRepository: StaffRepository
     val securityRepository: SecurityRepository
     val pinHasher: PinHasher
     val securityService: SecurityService

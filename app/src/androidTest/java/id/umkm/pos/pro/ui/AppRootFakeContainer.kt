@@ -30,6 +30,7 @@ import id.umkm.pos.pro.core.contract.ScanEvent
 import id.umkm.pos.pro.core.contract.SecurityRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.ShiftRepository
+import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
@@ -48,6 +49,7 @@ import id.umkm.pos.pro.core.model.SecurityRole
 import id.umkm.pos.pro.core.model.SecurityState
 import id.umkm.pos.pro.core.model.ShiftCashSummary
 import id.umkm.pos.pro.core.model.ShiftSwitchResult
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
 import id.umkm.pos.pro.domain.accounting.DefaultAccountingService
@@ -57,8 +59,10 @@ import id.umkm.pos.pro.hardware.receipt.AndroidReceiptRenderer
 import id.umkm.pos.pro.monetization.admob.NoAdsController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 internal object AppRootFakeContainer : AppContainer {
 
@@ -148,20 +152,79 @@ internal object AppRootFakeContainer : AppContainer {
         override suspend fun returnsInRange(range: ReportRange): List<ReturnRecord> = emptyList()
     }
 
+    private val defaultStaff = Staff(id = 1L, name = "Kasir Uji")
+    private val staffList = MutableStateFlow(listOf(defaultStaff))
+    private val activeStaffId = MutableStateFlow<Long?>(defaultStaff.id)
+
     private val defaultActiveShift = CashierShift(
         id = 1L,
-        cashierName = "Kasir Uji",
+        cashierName = defaultStaff.name,
         openedAt = 0L,
         closedAt = null,
         startingCash = 0L,
         expectedEndingCash = null,
         actualEndingCash = null,
+        openedByStaffId = defaultStaff.id,
     )
 
     private val activeShift = MutableStateFlow<CashierShift?>(defaultActiveShift)
 
     fun resetActiveShift() {
+        staffList.value = listOf(defaultStaff)
+        activeStaffId.value = defaultStaff.id
         activeShift.value = defaultActiveShift
+    }
+
+    override val staffRepository: StaffRepository = object : StaffRepository {
+        override fun observeStaff(): Flow<List<Staff>> = staffList
+
+        override fun observeActiveStaff(): Flow<Staff?> =
+            combine(staffList, activeStaffId) { staff, activeId ->
+                staff.firstOrNull { it.id == activeId }
+            }
+
+        override suspend fun getStaff(staffId: Long): Staff? =
+            staffList.value.firstOrNull { it.id == staffId }
+
+        override suspend fun getActiveStaff(): Staff? =
+            staffList.value.firstOrNull { it.id == activeStaffId.value }
+
+        override suspend fun addStaff(name: String): AppResult<Staff> {
+            val staff = Staff(
+                id = (staffList.value.maxOfOrNull { it.id } ?: 0L) + 1L,
+                name = name,
+            )
+            staffList.value = staffList.value + staff
+            if (activeStaffId.value == null) activeStaffId.value = staff.id
+            return AppResult.Success(staff)
+        }
+
+        override suspend fun renameStaff(staffId: Long, name: String): AppResult<Staff> {
+            val existing = staffList.value.firstOrNull { it.id == staffId }
+                ?: return AppResult.Failure(AppError.NotFound("staff $staffId was not found"))
+            val updated = existing.copy(name = name)
+            staffList.value = staffList.value.map { if (it.id == staffId) updated else it }
+            return AppResult.Success(updated)
+        }
+
+        override suspend fun setStaffActive(
+            staffId: Long,
+            isActive: Boolean,
+        ): AppResult<Staff> {
+            val existing = staffList.value.firstOrNull { it.id == staffId }
+                ?: return AppResult.Failure(AppError.NotFound("staff $staffId was not found"))
+            val updated = existing.copy(isActive = isActive)
+            staffList.value = staffList.value.map { if (it.id == staffId) updated else it }
+            if (!isActive && activeStaffId.value == staffId) {
+                activeStaffId.value = staffList.value.firstOrNull { it.isActive && it.id != staffId }?.id
+            }
+            return AppResult.Success(updated)
+        }
+
+        override suspend fun ensureDefaultStaff(): Staff {
+            if (activeStaffId.value == null) activeStaffId.value = defaultStaff.id
+            return defaultStaff
+        }
     }
 
     override val shiftRepository: ShiftRepository = object : ShiftRepository {
@@ -190,19 +253,23 @@ internal object AppRootFakeContainer : AppContainer {
         }
 
         override suspend fun openShift(
-            cashierName: String,
+            staffId: Long,
             startingCash: Long,
         ): AppResult<CashierShift> {
+            val staff = staffList.value.firstOrNull { it.id == staffId }
+                ?: return AppResult.Failure(AppError.NotFound("staff $staffId was not found"))
             val shift = CashierShift(
                 id = (activeShift.value?.id ?: 0L) + 1L,
-                cashierName = cashierName,
+                cashierName = staff.name,
                 openedAt = 0L,
                 closedAt = null,
                 startingCash = startingCash,
                 expectedEndingCash = null,
                 actualEndingCash = null,
+                openedByStaffId = staff.id,
             )
             activeShift.value = shift
+            activeStaffId.value = staff.id
             return AppResult.Success(shift)
         }
 
@@ -212,31 +279,58 @@ internal object AppRootFakeContainer : AppContainer {
         ): AppResult<CashierShift> {
             val shift = activeShift.value
                 ?: return AppResult.Failure(AppError.NotFound("shift $shiftId was not found"))
-            val closed = shift.copy(closedAt = 0L, actualEndingCash = actualEndingCash)
+            val closer = staffList.value.firstOrNull { it.id == activeStaffId.value }
+            val closed = shift.copy(
+                closedAt = 0L,
+                actualEndingCash = actualEndingCash,
+                closedByStaffId = closer?.id,
+                closedByName = closer?.name ?: shift.cashierName,
+            )
             activeShift.value = null
+            activeStaffId.value = null
             return AppResult.Success(closed)
         }
 
         override suspend fun switchShift(
             closeShiftId: Long,
             actualEndingCash: Long,
-            nextCashierName: String,
+            nextStaffId: Long,
             nextStartingCash: Long,
         ): AppResult<ShiftSwitchResult> {
             val current = activeShift.value
                 ?: return AppResult.Failure(AppError.NotFound("shift $closeShiftId was not found"))
-            val closed = current.copy(closedAt = 0L, actualEndingCash = actualEndingCash)
+            val nextStaff = staffList.value.firstOrNull { it.id == nextStaffId }
+                ?: return AppResult.Failure(AppError.NotFound("staff $nextStaffId was not found"))
+            val closer = staffList.value.firstOrNull { it.id == activeStaffId.value }
+            val closed = current.copy(
+                closedAt = 0L,
+                actualEndingCash = actualEndingCash,
+                closedByStaffId = closer?.id,
+                closedByName = closer?.name ?: current.cashierName,
+            )
             val opened = CashierShift(
                 id = current.id + 1L,
-                cashierName = nextCashierName,
+                cashierName = nextStaff.name,
                 openedAt = 0L,
                 closedAt = null,
                 startingCash = nextStartingCash,
                 expectedEndingCash = null,
                 actualEndingCash = null,
+                openedByStaffId = nextStaff.id,
             )
             activeShift.value = opened
+            activeStaffId.value = nextStaff.id
             return AppResult.Success(ShiftSwitchResult(closedShift = closed, openedShift = opened))
+        }
+
+        override suspend fun switchOperator(staffId: Long): AppResult<Staff> {
+            val staff = staffList.value.firstOrNull { it.id == staffId }
+                ?: return AppResult.Failure(AppError.NotFound("staff $staffId was not found"))
+            if (activeShift.value == null) {
+                return AppResult.Failure(AppError.Validation("no shift is open"))
+            }
+            activeStaffId.value = staff.id
+            return AppResult.Success(staff)
         }
     }
 

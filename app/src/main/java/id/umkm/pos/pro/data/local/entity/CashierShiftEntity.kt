@@ -20,4 +20,7 @@ data class CashierShiftEntity(
     @ColumnInfo(name = "starting_cash") val startingCash: Long,
     @ColumnInfo(name = "expected_ending_cash") val expectedEndingCash: Long?,
     @ColumnInfo(name = "actual_ending_cash") val actualEndingCash: Long?,
+    @ColumnInfo(name = "opened_by_staff_id") val openedByStaffId: Long? = null,
+    @ColumnInfo(name = "closed_by_staff_id") val closedByStaffId: Long? = null,
+    @ColumnInfo(name = "closed_by_name") val closedByName: String? = null,
 )
