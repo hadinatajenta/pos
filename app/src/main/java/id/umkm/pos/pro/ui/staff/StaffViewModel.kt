@@ -27,6 +27,23 @@ class StaffViewModel(
         observeActiveStaff()
     }
 
+    fun onToggleSearch() {
+        _state.update { current ->
+            current.copy(
+                isSearchVisible = !current.isSearchVisible,
+                searchQuery = if (current.isSearchVisible) "" else current.searchQuery,
+            )
+        }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _state.update { it.copy(searchQuery = query) }
+    }
+
+    fun onClearSearch() {
+        _state.update { it.copy(searchQuery = "") }
+    }
+
     fun onOpenAddEditor() {
         if (_state.value.isSubmitting) return
         _state.update {

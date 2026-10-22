@@ -276,7 +276,14 @@ object ZhStrings : PosStrings {
     override val settingsStaffTitle = "员工与收银员"
     override val settingsMenuStaffDescription = "管理收银员与启用状态"
     override val staffTitle = "员工"
-    override val staffSubtitle = "管理员工与启用状态"
+    override val staffSubtitle = "管理团队及其访问权限"
+    override val staffSearchAction = "搜索员工"
+    override val staffSearchPlaceholder = "搜索员工姓名"
+    override val staffSearchEmptyTitle = "未找到员工"
+    override val staffSearchEmptyHint = "尝试其他姓名或清除搜索。"
+    override val staffMoreOptions = "更多选项"
+    override val staffActiveSection = { count: Int -> "启用 — $count 名员工" }
+    override val staffInactiveSection = { count: Int -> "停用 — $count 名员工" }
     override val staffAddAction = "添加员工"
     override val staffEditAction = "编辑员工"
     override val staffNameLabel = "员工姓名"

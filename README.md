@@ -24,8 +24,9 @@ Cashier
 - Offline by default: no account, no sign-in, and no network access (the app does not request the
   `INTERNET` permission)
 
-**Staff & shifts.** Cashiers live in a staff directory under **Settings → Staf & Kasir**, where the
-owner can add, rename, and activate or deactivate them; free-text names are accepted only there. A
+**Staff & shifts.** Cashiers live in a staff directory under **Settings → Staf & Kasir**, with
+search, active/inactive sections, 3D avatars, soft status badges, and add/rename/activate actions;
+free-text names are accepted only there. The staff avatar uses the 3D asset at `docs/3D.png`. A
 shift is required before checkout, while browsing the catalogue and building a cart still work
 without one. Opening a shift needs no PIN and selects an active staff member plus starting cash.
 With an active shift, **Ganti operator** changes the active staff member without a cash count and
@@ -152,19 +153,21 @@ Verified on 22 October 2026:
 | Check | Result |
 | --- | --- |
 | `testDebugUnitTest` | 654 tests, 0 failures |
-| `connectedDebugAndroidTest` | 88 tests on `s24fe(AVD)` (87 passed, 1 expanded-device test skipped, 0 failed) |
+| `connectedDebugAndroidTest` | 90 tests on `s24fe(AVD)` (89 passed, 1 expanded-device test skipped, 0 failed) |
 | `assembleDebug` | Builds |
 | `assembleRelease` | Builds with R8 and resource shrinking; launcher assets survive shrinking |
 | `lintDebug` | 14 pre-existing errors and 57 warnings; see [docs/prd-gaps.md](docs/prd-gaps.md) |
 
-The staff directory and shift selector were exercised on the `s24fe` emulator: add staff, on-duty
-status, staff selection, the two-tab **Ganti operator** / **Tutup shift** flow, and operator
-switching. The earlier phone QA covered opening a shift, a cash sale, expected-cash update, owner-PIN
-gate, non-empty-cart guard, non-zero variance confirmation, More card/history, and the close form
-at 135% font. The Lenovo TB321FU tablet was disconnected for these runs. The launcher icon was
-checked on both devices in the previous pass. Legacy square and round icons were validated
-statically but not exercised on API 23–25. Bluetooth printer and HID scanner paths have not been
-exercised on physical hardware.
+The staff directory and shift selector were exercised on the `s24fe` emulator: add staff, search,
+the 3D avatar, on-duty status, the overflow menu, the add FAB, staff selection, the two-tab
+**Ganti operator** / **Tutup shift** flow, and operator switching. The staff screen was also checked
+at a simulated tablet window (`wm size 1920x2560`, density 240): cards stayed inside the 720 dp
+content container and the FAB stayed at the container's bottom-right. The earlier phone QA covered
+opening a shift, a cash sale, expected-cash update, owner-PIN gate, non-empty-cart guard, non-zero
+variance confirmation, More card/history, and the close form at 135% font. The physical Lenovo
+TB321FU tablet was disconnected for these runs. The launcher icon was checked on both devices in
+the previous pass. Legacy square and round icons were validated statically but not exercised on API
+23–25. Bluetooth printer and HID scanner paths have not been exercised on physical hardware.
 
 ## Demo data
 

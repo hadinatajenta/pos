@@ -276,6 +276,13 @@ interface PosStrings {
     val settingsMenuStaffDescription: String
     val staffTitle: String
     val staffSubtitle: String
+    val staffSearchAction: String
+    val staffSearchPlaceholder: String
+    val staffSearchEmptyTitle: String
+    val staffSearchEmptyHint: String
+    val staffMoreOptions: String
+    val staffActiveSection: (Int) -> String
+    val staffInactiveSection: (Int) -> String
     val staffAddAction: String
     val staffEditAction: String
     val staffNameLabel: String

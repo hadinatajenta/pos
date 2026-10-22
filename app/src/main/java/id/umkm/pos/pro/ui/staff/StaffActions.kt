@@ -13,6 +13,9 @@ class StaffActions(
     val onDismissDeactivate: () -> Unit,
     val onActivateStaff: (Staff) -> Unit,
     val onMessageConsumed: () -> Unit,
+    val onToggleSearch: () -> Unit = {},
+    val onSearchQueryChange: (String) -> Unit = {},
+    val onClearSearch: () -> Unit = {},
 ) {
     companion object {
         fun from(viewModel: StaffViewModel): StaffActions = StaffActions(
@@ -26,6 +29,9 @@ class StaffActions(
             onDismissDeactivate = viewModel::onDismissDeactivate,
             onActivateStaff = viewModel::onActivateStaff,
             onMessageConsumed = viewModel::onMessageConsumed,
+            onToggleSearch = viewModel::onToggleSearch,
+            onSearchQueryChange = viewModel::onSearchQueryChange,
+            onClearSearch = viewModel::onClearSearch,
         )
     }
 }

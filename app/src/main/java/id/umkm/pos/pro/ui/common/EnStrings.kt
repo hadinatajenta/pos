@@ -276,7 +276,14 @@ object EnStrings : PosStrings {
     override val settingsStaffTitle = "Staff & Cashiers"
     override val settingsMenuStaffDescription = "Manage cashier staff and active status"
     override val staffTitle = "Staff"
-    override val staffSubtitle = "Manage staff and active status"
+    override val staffSubtitle = "Manage your team and their access"
+    override val staffSearchAction = "Search staff"
+    override val staffSearchPlaceholder = "Search staff name"
+    override val staffSearchEmptyTitle = "No staff found"
+    override val staffSearchEmptyHint = "Try another name or clear the search."
+    override val staffMoreOptions = "More options"
+    override val staffActiveSection = { count: Int -> "Active — $count staff" }
+    override val staffInactiveSection = { count: Int -> "Inactive — $count staff" }
     override val staffAddAction = "Add staff"
     override val staffEditAction = "Edit staff"
     override val staffNameLabel = "Staff name"

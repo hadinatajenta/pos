@@ -201,10 +201,11 @@ refund method. Schema version 8 and `MIGRATION_7_8` add `staffs`,
 older backups without it are accepted and seed a default staff.
 
 **Verification.** Verified on 2026-10-22:
-`testDebugUnitTest` 654 tests / 0 failures; `connectedDebugAndroidTest` 88 tests on `s24fe(AVD)`
-(87 passed, 1 expanded-device test skipped, 0 failed); `assembleDebug` and `assembleRelease`
-succeed. Manual emulator QA covered staff add and on-duty status, the two-tab operator/close flow,
-operator switching, the staff selector, and the close form. The earlier phone QA covered opening a
+`testDebugUnitTest` 654 tests / 0 failures; `connectedDebugAndroidTest` 90 tests on `s24fe(AVD)`
+(89 passed, 1 expanded-device test skipped, 0 failed); `assembleDebug` and `assembleRelease`
+succeed. Manual emulator QA covered staff add, search, on-duty status, the 3D staff avatar,
+overflow menu, FAB, the two-tab operator/close flow, operator switching, the staff selector, and
+the close form. Active and on-duty badges passed WCAG contrast checks (8.15:1 and 10.86:1). The earlier phone QA covered opening a
 shift, a cash sale updating expected cash to Rp 204.000, the owner-PIN gate, the non-empty-cart
 guard, a non-zero variance (Kurang Rp 5.000) requiring the checkbox, the More card/history, and the
 close form at 135% font. The TB321FU tablet was disconnected for these runs. Lint reported 14

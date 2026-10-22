@@ -69,10 +69,72 @@ class StaffScreenTest {
 
         composeRule.onNodeWithTag(STAFF_ROW_TEST_TAG_PREFIX + 1L).assertIsDisplayed()
         composeRule.onNodeWithTag(STAFF_ROW_TEST_TAG_PREFIX + 2L).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.staffActiveCount(1)).assertIsDisplayed()
-        composeRule.onNodeWithText(IdStrings.staffInactiveCount(1)).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.staffActiveSection(1)).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.staffInactiveSection(1)).assertIsDisplayed()
         composeRule.onNodeWithText("Dini").assertIsDisplayed()
         composeRule.onNodeWithText("Sari").assertIsDisplayed()
+    }
+
+    @Test
+    fun searchFiltersStaffAndCanBeCleared() {
+        var state by mutableStateOf(
+            StaffUiState(
+                staffList = listOf(
+                    Staff(id = 1L, name = "Dini", isActive = true),
+                    Staff(id = 2L, name = "Sari", isActive = true),
+                ),
+                activeStaffId = 1L,
+                isLoading = false,
+            ),
+        )
+        val actions = StaffActions(
+            onOpenAddEditor = {},
+            onOpenRenameEditor = {},
+            onNameChange = {},
+            onSaveEditor = {},
+            onDismissEditor = {},
+            onRequestDeactivate = {},
+            onConfirmDeactivate = {},
+            onDismissDeactivate = {},
+            onActivateStaff = {},
+            onMessageConsumed = {},
+            onToggleSearch = { state = state.copy(isSearchVisible = !state.isSearchVisible) },
+            onSearchQueryChange = { query -> state = state.copy(searchQuery = query) },
+            onClearSearch = { state = state.copy(searchQuery = "") },
+        )
+
+        composeRule.setContent {
+            UmkmPosTheme {
+                DeviceConfigurationOverride(
+                    DeviceConfigurationOverride.ForcedSize(DpSize(360.dp, 800.dp)),
+                ) {
+                    StaffScreen(state = state, actions = actions)
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(STAFF_SEARCH_ACTION_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(STAFF_SEARCH_FIELD_TEST_TAG)
+            .assertIsDisplayed()
+            .performTextInput("Sa")
+
+        composeRule.onNodeWithText("Sari").assertIsDisplayed()
+        composeRule.onNodeWithText("Dini").assertDoesNotExist()
+    }
+
+    @Test
+    fun moreButtonOpensTheStaffMenu() {
+        showScreen(
+            StaffUiState(
+                staffList = listOf(Staff(id = 1L, name = "Dini", isActive = true)),
+                activeStaffId = 1L,
+                isLoading = false,
+            ),
+        )
+
+        composeRule.onNodeWithTag(STAFF_MORE_ACTION_TEST_TAG_PREFIX + 1L).performClick()
+        composeRule.onNodeWithText(IdStrings.actionEdit).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.staffDeactivateAction).assertIsDisplayed()
     }
 
     @Test

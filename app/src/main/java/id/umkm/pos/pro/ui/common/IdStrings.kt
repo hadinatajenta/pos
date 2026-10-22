@@ -276,7 +276,14 @@ object IdStrings : PosStrings {
     override val settingsStaffTitle = "Staf & Kasir"
     override val settingsMenuStaffDescription = "Kelola staf kasir dan status aktif"
     override val staffTitle = "Staf"
-    override val staffSubtitle = "Kelola staf dan status aktif"
+    override val staffSubtitle = "Kelola tim dan akses mereka"
+    override val staffSearchAction = "Cari staf"
+    override val staffSearchPlaceholder = "Cari nama staf"
+    override val staffSearchEmptyTitle = "Staf tidak ditemukan"
+    override val staffSearchEmptyHint = "Coba nama lain atau hapus pencarian."
+    override val staffMoreOptions = "Opsi lainnya"
+    override val staffActiveSection = { count: Int -> "Aktif — $count Staf" }
+    override val staffInactiveSection = { count: Int -> "Nonaktif — $count Staf" }
     override val staffAddAction = "Tambah staf"
     override val staffEditAction = "Ubah staf"
     override val staffNameLabel = "Nama staf"
