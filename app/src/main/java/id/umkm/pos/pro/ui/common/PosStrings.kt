@@ -327,7 +327,13 @@ interface PosStrings {
     val productsNewProduct: String
     val productsEditProduct: String
     val productsDeleteConfirmTitle: String
+    val productsDeleteConfirmTitleNamed: (String) -> String
     val productsDeleteConfirmMsg: String
+    val productsDiscardTitle: String
+    val productsDiscardMessage: String
+    val productsDiscardConfirm: String
+    val productsDiscardKeepEditing: String
+    val productsInactiveBadge: String
     val productsName: String
     val productsSku: String
     val productsBarcode: String
@@ -346,6 +352,7 @@ interface PosStrings {
     val productsPhotoWillBeRemoved: String
     val productsPricingAndUnits: String
     val productsOtherOptions: String
+    val productsUnitPricingToggle: String
     val productsUnitName: String
     val productsUnitNameHint: String
     val productsConversionFactor: String
@@ -361,7 +368,31 @@ interface PosStrings {
     val productsSort: String
     val productsSortNewest: String
     val productsSortNameAsc: String
+    val productsSortPriceDesc: String
     val productsSortLowestStock: String
+    val productsTotalStockValue: String
+    val productsLowShort: String
+    val productsOutShort: String
+    val productsPreview: String
+    val productsBack: String
+    val productsNewCategory: String
+    val productsNewCategoryHint: String
+    val productsProductIcon: String
+    val productsUploadPhoto: String
+    val productsMarginInfo: (String, Int) -> String
+    val productsLossInfo: (String) -> String
+    val productsStockStepDecrease: String
+    val productsStockStepIncrease: String
+    val productsThresholdStepDecrease: String
+    val productsThresholdStepIncrease: String
+    val productsDeleteArmed: String
+    val productsDuplicate: String
+    val productsArchive: String
+    val productsUnarchive: String
+    val productsArchivedLabel: String
+    val productsArchivedMessage: String
+    val productsUnarchivedMessage: String
+    val productsDuplicateNameWarning: String
     val productsFilterAll: (Int) -> String
     val productsFilterLowStock: (Int) -> String
     val productsFilterOutOfStock: (Int) -> String
@@ -392,11 +423,16 @@ interface PosStrings {
     val productsSaveNew: String
     val productsImageFailed: String
     val productsSaveFailed: String
+    val productsDuplicateSku: String
+    val productsDuplicateBarcode: String
     val productsSaved: String
+    val productsSavedNew: String
+    val productsSavedChanges: String
     val productsDeleted: String
     val productsNotFoundMessage: String
     val productsValidationSummary: (Int) -> String
     val productsValidationName: String
+    val productsValidationNameTooLong: String
     val productsValidationBaseUnit: String
     val productsValidationBasePrice: String
     val productsValidationBaseHpp: String
@@ -703,13 +739,18 @@ interface PosStrings {
     val settingsStoreSaved: String
 
     // More Screen Hub
-    val moreHubTitle: String
+    val moreHeaderSupporting: String
+    val moreSectionManage: String
+    val moreSectionTools: String
+    val moreDebugHint: String
     val moreHubSettings: String
     val moreHubCustomers: String
-    val moreHubLanguage: String
-    val moreHubPrinter: String
+    val moreSettingsDescription: String
+    val moreCustomersDescription: String
+    val moreCustomersEmptyDescription: String
     val moreKasbonCount: (Int) -> String
-    val moreCustomerCount: (Int) -> String
+    val moreStoreLoading: String
+    val moreStoreUnnamed: String
     val moreDefaultStoreName: String
     val moreDefaultCashierName: String
     val moreTaxSummary: (Int) -> String
@@ -717,6 +758,8 @@ interface PosStrings {
     val moreShiftActiveSubtitle: (String) -> String
     val moreShiftEmptySubtitle: String
     val moreShiftExpectedCash: String
+    val moreCashLoadFailed: String
+    val moreSelectPrompt: String
 
     // Demo Data
     val demoDataTitle: String

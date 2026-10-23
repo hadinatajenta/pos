@@ -111,7 +111,7 @@ class ProductsImageLifecycleTest {
         assertThat(products.currentProducts().single().imagePath).isEqualTo(images.storedPathFor("picked-1"))
         assertThat(images.deletedImagePaths).containsExactly(STORED_IMAGE_PATH)
         assertThat(viewModel.state.value.form).isNull()
-        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Produk disimpan")
+        assertThat(viewModel.state.value.message?.resolve(IdStrings)).isEqualTo("Perubahan disimpan")
     }
 
     @Test

@@ -7,19 +7,24 @@ fun productFormErrorSummary(errors: Map<ProductFormField, UiText>): UiText =
 
 fun validateProductForm(form: ProductFormState): Map<ProductFormField, UiText> {
     val errors = mutableMapOf<ProductFormField, UiText>()
-    if (form.name.isBlank()) {
-        errors[ProductFormField.NAME] = UiText.from { strings -> strings.productsValidationName }
+    val normalizedName = form.name.trim()
+    when {
+        normalizedName.isEmpty() ->
+            errors[ProductFormField.NAME] = UiText.from { strings -> strings.productsValidationName }
+
+        normalizedName.length > PRODUCT_NAME_MAX_LENGTH ->
+            errors[ProductFormField.NAME] = UiText.from { strings -> strings.productsValidationNameTooLong }
     }
     if (form.baseUnit.isBlank()) {
         errors[ProductFormField.BASE_UNIT] = UiText.from { strings -> strings.productsValidationBaseUnit }
     }
-    validateAmount(
+    validatePositiveAmount(
         form.basePrice,
         ProductFormField.BASE_PRICE,
         UiText.from { strings -> strings.productsValidationBasePrice },
         errors,
     )
-    validateAmount(
+    validateOptionalAmount(
         form.baseHpp,
         ProductFormField.BASE_HPP,
         UiText.from { strings -> strings.productsValidationBaseHpp },
@@ -53,7 +58,7 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, UiText> {
             UiText.from { strings -> strings.productsValidationConversionFactor },
             errors,
         )
-        validateAmount(
+        validatePositiveAmount(
             form.variantPrice,
             ProductFormField.VARIANT_PRICE,
             UiText.from { strings -> strings.productsValidationUnitPrice },
@@ -69,7 +74,7 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, UiText> {
             UiText.from { strings -> strings.productsValidationWholesaleMinQty },
             errors,
         )
-        validateAmount(
+        validatePositiveAmount(
             form.wholesalePrice,
             ProductFormField.WHOLESALE_PRICE,
             UiText.from { strings -> strings.productsValidationWholesalePrice },
@@ -79,13 +84,27 @@ fun validateProductForm(form: ProductFormState): Map<ProductFormField, UiText> {
     return errors
 }
 
-private fun validateAmount(
+private fun validatePositiveAmount(
     value: String,
     field: ProductFormField,
     message: UiText,
     errors: MutableMap<ProductFormField, UiText>,
 ) {
     val parsed = value.trim().toLongOrNull()
+    if (parsed == null || parsed <= 0L) {
+        errors[field] = message
+    }
+}
+
+private fun validateOptionalAmount(
+    value: String,
+    field: ProductFormField,
+    message: UiText,
+    errors: MutableMap<ProductFormField, UiText>,
+) {
+    val trimmed = value.trim()
+    if (trimmed.isEmpty()) return
+    val parsed = trimmed.toLongOrNull()
     if (parsed == null || parsed < 0L) {
         errors[field] = message
     }

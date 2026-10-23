@@ -15,7 +15,10 @@ import id.umkm.pos.pro.ui.common.resolveStockStatus
 import id.umkm.pos.pro.ui.common.sanitizeQuantityInput
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.common.toAppError
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +45,8 @@ class ProductsViewModel(
     private val stockFilter = MutableStateFlow(ProductStockFilter.ALL)
     private val sortOrder = MutableStateFlow(ProductSortOrder.NEWEST)
     private val reloadTrigger = MutableStateFlow(0)
+    private var duplicateNameCheckJob: Job? = null
+    private var formOpenCounter = 0L
 
     init {
         observeProducts()
@@ -73,7 +78,7 @@ class ProductsViewModel(
     }
 
     fun onOpenCreateForm() {
-        _state.update { it.copy(form = ProductFormState()) }
+        _state.update { it.copy(form = ProductFormState(formInstanceId = nextFormInstanceId())) }
     }
 
     fun onOpenEditForm(productId: Long) {
@@ -86,15 +91,36 @@ class ProductsViewModel(
                 return@launch
             }
             val unit = productRepository.getUnits(productId).firstOrNull()
-            _state.update { it.copy(form = product.toForm(unit)) }
+            _state.update {
+                it.copy(form = product.toForm(unit).copy(formInstanceId = nextFormInstanceId()))
+            }
+            scheduleDuplicateNameCheck()
         }
     }
 
     fun onDismissForm() {
         val unsavedImagePath = _state.value.form?.unsavedImagePath
-        _state.update { it.copy(form = null) }
+        _state.update { it.copy(form = null, isDiscardConfirmationVisible = false) }
         if (unsavedImagePath == null) return
         viewModelScope.launch { productImageRepository.deleteImage(unsavedImagePath) }
+    }
+
+    fun onRequestDismissForm() {
+        val form = _state.value.form ?: return
+        if (_state.value.isSaving) return
+        if (!form.isDirty) {
+            onDismissForm()
+            return
+        }
+        _state.update { it.copy(isDiscardConfirmationVisible = true) }
+    }
+
+    fun onConfirmDiscardForm() {
+        onDismissForm()
+    }
+
+    fun onCancelDiscardForm() {
+        _state.update { it.copy(isDiscardConfirmationVisible = false) }
     }
 
     fun onFormFieldChange(field: ProductFormField, value: String) {
@@ -102,12 +128,21 @@ class ProductsViewModel(
             val form = current.form ?: return@update current
             current.copy(form = form.withField(field, value))
         }
+        if (field == ProductFormField.NAME) scheduleDuplicateNameCheck()
+    }
+
+    fun onFormIconChange(icon: String?) {
+        val normalizedIcon = icon?.takeIf { value -> value.isNotBlank() }
+        _state.update { current ->
+            val form = current.form ?: return@update current
+            current.copy(form = form.copy(icon = normalizedIcon, isDirty = true))
+        }
     }
 
     fun onFormActiveChange(isActive: Boolean) {
         _state.update { current ->
             val form = current.form ?: return@update current
-            current.copy(form = form.copy(isActive = isActive))
+            current.copy(form = form.copy(isActive = isActive, isDirty = true))
         }
     }
 
@@ -153,6 +188,7 @@ class ProductsViewModel(
                 form = currentForm.copy(
                     imagePath = null,
                     isImageRemoved = currentForm.persistedImagePath != null,
+                    isDirty = true,
                 ),
             )
         }
@@ -174,6 +210,7 @@ class ProductsViewModel(
                     imagePath = importedImagePath,
                     isImageRemoved = false,
                     isImageImporting = false,
+                    isDirty = true,
                 ),
             )
         }
@@ -195,54 +232,197 @@ class ProductsViewModel(
             }
             return
         }
+        _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
-            _state.update { it.copy(isSaving = true) }
-            val productId = saveProduct(form)
-            if (productId == null) {
+            try {
+                val duplicateErrors = findDuplicateFieldErrors(form)
+                if (duplicateErrors.isNotEmpty()) {
+                    _state.update { current ->
+                        val currentForm = current.form ?: return@update current
+                        current.copy(
+                            isSaving = false,
+                            form = currentForm.copy(
+                                errors = currentForm.errors + duplicateErrors,
+                                validationFailures = currentForm.validationFailures + 1,
+                            ),
+                        )
+                    }
+                    return@launch
+                }
+                saveProduct(form)
+                productImageRepository.deleteImage(form.storedImagePathToDiscard)
+                _state.update {
+                    it.copy(
+                        isSaving = false,
+                        form = null,
+                        isDiscardConfirmationVisible = false,
+                        message = UiText.from { strings ->
+                            if (form.isEditing) {
+                                strings.productsSavedChanges
+                            } else {
+                                strings.productsSavedNew
+                            }
+                        },
+                    )
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
                 _state.update {
                     it.copy(
                         isSaving = false,
                         message = UiText.from { strings -> strings.productsSaveFailed },
                     )
                 }
+            }
+        }
+    }
+
+    fun onDuplicateProduct(productId: Long) {
+        if (_state.value.form != null) return
+        viewModelScope.launch {
+            val product = productRepository.getProductById(productId)
+            if (product == null) {
+                _state.update {
+                    it.copy(message = UiText.from { strings -> strings.productsNotFoundMessage })
+                }
                 return@launch
             }
-            saveVariantUnit(form = form, productId = productId)
-            productImageRepository.deleteImage(form.storedImagePathToDiscard)
+            val unit = productRepository.getUnits(productId).firstOrNull()
+            val duplicatedForm = product.toForm(unit).copy(
+                formInstanceId = nextFormInstanceId(),
+                productId = null,
+                name = nextCopyName(product.name),
+                sku = "",
+                barcode = "",
+                stockQuantity = "0",
+                imagePath = null,
+                persistedImagePath = null,
+                isImageRemoved = false,
+                isDirty = true,
+            )
+            _state.update { it.copy(form = duplicatedForm) }
+            scheduleDuplicateNameCheck()
+        }
+    }
+
+    fun onToggleProductArchive(productId: Long) {
+        viewModelScope.launch {
+            val product = productRepository.getProductById(productId) ?: return@launch
+            val updatedProduct = product.copy(isActive = !product.isActive)
+            productRepository.upsertProduct(updatedProduct)
             _state.update {
                 it.copy(
-                    isSaving = false,
-                    form = null,
-                    message = UiText.from { strings -> strings.productsSaved },
+                    message = UiText.from { strings ->
+                        if (updatedProduct.isActive) {
+                            strings.productsUnarchivedMessage
+                        } else {
+                            strings.productsArchivedMessage
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    fun onDeleteProduct(productId: Long) {
+        viewModelScope.launch {
+            deleteProductAndAssets(productId)
+            _state.update { current ->
+                current.copy(
+                    form = if (current.form?.productId == productId) null else current.form,
+                    isDiscardConfirmationVisible = false,
+                    message = UiText.from { strings -> strings.productsDeleted },
                 )
             }
         }
     }
 
     fun onRequestDelete(productId: Long) {
-        _state.update { it.copy(pendingDeleteProductId = productId) }
+        val productName = _state.value.catalog.successDataOrNull()
+            ?.items
+            ?.firstOrNull { item -> item.product.id == productId }
+            ?.product
+            ?.name
+        _state.update {
+            it.copy(
+                pendingDeleteProductId = productId,
+                pendingDeleteProductName = productName,
+            )
+        }
     }
 
     fun onCancelDelete() {
-        _state.update { it.copy(pendingDeleteProductId = null) }
+        _state.update {
+            it.copy(
+                pendingDeleteProductId = null,
+                pendingDeleteProductName = null,
+            )
+        }
     }
 
     fun onConfirmDelete() {
         val productId = _state.value.pendingDeleteProductId ?: return
         viewModelScope.launch {
-            val productImagePath = productRepository.getProductById(productId)?.imagePath
-            val openFormImagePath = _state.value.form?.takeIf { form -> form.productId == productId }
-                ?.unsavedImagePath
-            productRepository.deleteProduct(productId)
-            productImageRepository.deleteImage(productImagePath)
-            productImageRepository.deleteImage(openFormImagePath)
+            deleteProductAndAssets(productId)
             _state.update { current ->
                 current.copy(
                     pendingDeleteProductId = null,
+                    pendingDeleteProductName = null,
                     form = if (current.form?.productId == productId) null else current.form,
                     message = UiText.from { strings -> strings.productsDeleted },
                 )
             }
+        }
+    }
+
+    private suspend fun deleteProductAndAssets(productId: Long) {
+        val productImagePath = productRepository.getProductById(productId)?.imagePath
+        val openFormImagePath = _state.value.form?.takeIf { form -> form.productId == productId }
+            ?.unsavedImagePath
+        productRepository.deleteProduct(productId)
+        productImageRepository.deleteImage(productImagePath)
+        productImageRepository.deleteImage(openFormImagePath)
+    }
+
+    private fun scheduleDuplicateNameCheck() {
+        duplicateNameCheckJob?.cancel()
+        val form = _state.value.form ?: return
+        val name = form.name.trim()
+        if (name.isEmpty()) {
+            _state.update { current ->
+                val currentForm = current.form ?: return@update current
+                current.copy(form = currentForm.copy(duplicateNameWarning = false))
+            }
+            return
+        }
+        duplicateNameCheckJob = viewModelScope.launch {
+            delay(DUPLICATE_NAME_CHECK_DELAY_MILLIS)
+            val match = productRepository.findProductByName(name, form.productId ?: 0L)
+            _state.update { current ->
+                val currentForm = current.form ?: return@update current
+                if (currentForm.name.trim() != name || currentForm.productId != form.productId) {
+                    return@update current
+                }
+                current.copy(form = currentForm.copy(duplicateNameWarning = match != null))
+            }
+        }
+    }
+
+    private fun nextFormInstanceId(): Long {
+        formOpenCounter += 1
+        return formOpenCounter
+    }
+
+    private suspend fun nextCopyName(originalName: String): String {
+        var index = 2
+        while (true) {
+            val suffix = " $index"
+            val candidate = originalName
+                .trim()
+                .take(PRODUCT_NAME_MAX_LENGTH - suffix.length) + suffix
+            if (productRepository.findProductByName(candidate, 0L) == null) return candidate
+            index++
         }
     }
 
@@ -254,11 +434,13 @@ class ProductsViewModel(
         viewModelScope.launch {
             combine(
                 loadedProductsFlow(),
+                searchQuery,
                 categoryFilter,
                 stockFilter,
                 sortOrder,
-            ) { productsState, category, stock, order ->
+            ) { productsState, query, category, stock, order ->
                 productsState.toCatalogState(
+                    searchQuery = query,
                     categoryFilter = category,
                     stockFilter = stock,
                     sortOrder = order,
@@ -271,16 +453,30 @@ class ProductsViewModel(
     }
 
     private fun loadedProductsFlow(): Flow<UiState<List<Product>>> =
-        combine(searchQuery, reloadTrigger) { query, _ -> query }
-            .flatMapLatest { query ->
-                productRepository.observeProducts(query.ifBlank { null })
+        reloadTrigger
+            .flatMapLatest {
+                productRepository.observeProducts(null)
                     .map<List<Product>, UiState<List<Product>>> { products ->
                         if (products.isEmpty()) UiState.Empty else UiState.Success(products)
                     }
                     .catch { error -> emit(UiState.Error(error.toAppError())) }
             }
 
-    private suspend fun saveProduct(form: ProductFormState): Long? {
+    private suspend fun findDuplicateFieldErrors(form: ProductFormState): Map<ProductFormField, UiText> {
+        val excludedProductId = form.productId ?: 0L
+        val errors = mutableMapOf<ProductFormField, UiText>()
+        val sku = form.sku.trim()
+        if (sku.isNotEmpty() && productRepository.findProductBySku(sku, excludedProductId) != null) {
+            errors[ProductFormField.SKU] = UiText.from { strings -> strings.productsDuplicateSku }
+        }
+        val barcode = form.barcode.trim()
+        if (barcode.isNotEmpty() && productRepository.findProductByBarcode(barcode, excludedProductId) != null) {
+            errors[ProductFormField.BARCODE] = UiText.from { strings -> strings.productsDuplicateBarcode }
+        }
+        return errors
+    }
+
+    private suspend fun saveProduct(form: ProductFormState): Long {
         val existing = form.productId?.let { productId -> productRepository.getProductById(productId) }
         val product = Product(
             id = form.productId ?: 0L,
@@ -289,37 +485,39 @@ class ProductsViewModel(
             name = form.name.trim(),
             category = form.category.trim().ifBlank { null },
             baseUnit = form.baseUnit.trim(),
-            baseHpp = form.baseHpp.trim().toLong(),
+            baseHpp = form.baseHpp.trim().toLongOrNull() ?: 0L,
             basePrice = form.basePrice.trim().toLong(),
             stockBaseQty = form.stockQuantity.trim().toDouble(),
             minStockAlert = form.minStockAlert.trim().toDoubleOrNull() ?: 0.0,
             isActive = form.isActive,
             imagePath = form.imagePath,
+            icon = form.icon,
         )
-        return productRepository.upsertProduct(product)
+        return productRepository.saveProductWithUnit(product, buildVariantUnit(form))
     }
 
-    private suspend fun saveVariantUnit(form: ProductFormState, productId: Long) {
-        if (!form.isAdvancedExpanded || form.variantName.isBlank()) return
+    private suspend fun buildVariantUnit(form: ProductFormState): ProductUnit? {
+        if (!form.isAdvancedExpanded || form.variantName.isBlank()) return null
         val variantName = form.variantName.trim()
-        val existingUnit = productRepository.getUnits(productId)
-            .firstOrNull { unit -> unit.variantName.equals(variantName, ignoreCase = true) }
-        productRepository.upsertUnit(
-            ProductUnit(
-                id = existingUnit?.id ?: 0L,
-                productId = productId,
-                variantName = variantName,
-                conversionFactor = form.conversionFactor.trim().toDouble(),
-                customBarcode = existingUnit?.customBarcode,
-                unitPrice = form.variantPrice.trim().toLong(),
-                wholesaleMinQty = form.wholesaleMinQty.trim().toIntOrNull(),
-                wholesalePrice = form.wholesalePrice.trim().toLongOrNull(),
-            ),
+        val existingUnit = form.productId?.let { productId ->
+            productRepository.getUnits(productId)
+                .firstOrNull { unit -> unit.variantName.equals(variantName, ignoreCase = true) }
+        }
+        return ProductUnit(
+            id = existingUnit?.id ?: 0L,
+            productId = form.productId ?: 0L,
+            variantName = variantName,
+            conversionFactor = form.conversionFactor.trim().toDouble(),
+            customBarcode = existingUnit?.customBarcode,
+            unitPrice = form.variantPrice.trim().toLong(),
+            wholesaleMinQty = form.wholesaleMinQty.trim().toIntOrNull(),
+            wholesalePrice = form.wholesalePrice.trim().toLongOrNull(),
         )
     }
 }
 
 private fun UiState<List<Product>>.toCatalogState(
+    searchQuery: String,
     categoryFilter: String?,
     stockFilter: ProductStockFilter,
     sortOrder: ProductSortOrder,
@@ -335,6 +533,7 @@ private fun UiState<List<Product>>.toCatalogState(
             categoryFilter = categoryFilter,
             sortOrder = sortOrder,
             stockFilter = stockFilter,
+            searchQuery = searchQuery,
         ),
     )
 }
@@ -358,6 +557,7 @@ private fun Product.toForm(unit: ProductUnit?): ProductFormState = ProductFormSt
     wholesaleMinQty = unit?.wholesaleMinQty?.toString().orEmpty(),
     wholesalePrice = unit?.wholesalePrice?.toString().orEmpty(),
     imagePath = imagePath,
+    icon = icon,
     persistedPricing = ProductPricingSnapshot(
         baseHpp = baseHpp,
         basePrice = basePrice,
@@ -384,7 +584,9 @@ private fun ProductFormState.withField(field: ProductFormField, value: String): 
         ProductFormField.WHOLESALE_MIN_QTY -> copy(wholesaleMinQty = value.digitsOnly())
         ProductFormField.WHOLESALE_PRICE -> copy(wholesalePrice = value.digitsOnly())
     }
-    return updated.copy(errors = updated.errors - field)
+    return updated.copy(errors = updated.errors - field, isDirty = true)
 }
 
 private fun String.digitsOnly(): String = filter { character -> character.isDigit() }
+
+private const val DUPLICATE_NAME_CHECK_DELAY_MILLIS = 250L

@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import androidx.annotation.DrawableRes
@@ -17,12 +18,14 @@ import androidx.compose.ui.res.painterResource
 fun IconBadge(
     @DrawableRes iconRes: Int,
     modifier: Modifier = Modifier,
+    containerColor: Color = LocalPosSemanticPalette.current.neutralContainer,
+    contentColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     Box(
         modifier = modifier
             .size(36.dp)
             .background(
-                color = LocalPosSemanticPalette.current.neutralContainer,
+                color = containerColor,
                 shape = MaterialTheme.shapes.small,
             ),
         contentAlignment = Alignment.Center,
@@ -31,7 +34,7 @@ fun IconBadge(
             painter = painterResource(iconRes),
             contentDescription = null,
             modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary,
+            tint = contentColor,
         )
     }
 }

@@ -22,6 +22,11 @@ class ProductFormValidationTest {
     }
 
     @Test
+    fun defaultsTheLowStockThresholdToSix() {
+        assertThat(ProductFormState().minStockAlert).isEqualTo("6")
+    }
+
+    @Test
     fun acceptsAnEmptyLowStockThreshold() {
         val errors = validateProductForm(validForm().copy(minStockAlert = "  "))
 
@@ -29,39 +34,118 @@ class ProductFormValidationTest {
     }
 
     @Test
-    fun defaultsTheLowStockThresholdToFive() {
-        assertThat(ProductFormState().minStockAlert).isEqualTo("5")
+    fun acceptsAZeroLowStockThreshold() {
+        val errors = validateProductForm(validForm().copy(minStockAlert = "0"))
+
+        assertThat(errors).doesNotContainKey(ProductFormField.MIN_STOCK_ALERT)
     }
 
     @Test
     fun rejectsANegativeLowStockThreshold() {
         val errors = validateProductForm(validForm().copy(minStockAlert = "-1"))
 
-        assertThat(errors).containsKey(ProductFormField.MIN_STOCK_ALERT)
+        assertThat(errors[ProductFormField.MIN_STOCK_ALERT]?.resolve(IdStrings))
+            .isEqualTo("Masukkan jumlah peringatan yang valid.")
     }
 
     @Test
     fun rejectsAMissingName() {
         val errors = validateProductForm(validForm().copy(name = " "))
 
-        assertThat(errors).containsKey(ProductFormField.NAME)
-        assertThat(errors[ProductFormField.NAME]?.resolve(IdStrings)).isEqualTo("Masukkan nama produk.")
+        assertThat(errors[ProductFormField.NAME]?.resolve(IdStrings))
+            .isEqualTo("Masukkan nama produk.")
     }
 
     @Test
-    fun rejectsNegativeAmounts() {
+    fun acceptsANameAtTheMaximumLength() {
+        val errors = validateProductForm(validForm().copy(name = "a".repeat(PRODUCT_NAME_MAX_LENGTH)))
+
+        assertThat(errors).doesNotContainKey(ProductFormField.NAME)
+    }
+
+    @Test
+    fun rejectsANameLongerThanTheMaximumLength() {
+        val errors = validateProductForm(validForm().copy(name = "a".repeat(PRODUCT_NAME_MAX_LENGTH + 1)))
+
+        assertThat(errors[ProductFormField.NAME]?.resolve(IdStrings))
+            .isEqualTo("Nama produk maksimal 40 karakter.")
+    }
+
+    @Test
+    fun rejectsAZeroSellingPrice() {
+        val errors = validateProductForm(validForm().copy(basePrice = "0"))
+
+        assertThat(errors[ProductFormField.BASE_PRICE]?.resolve(IdStrings))
+            .isEqualTo("Harga jual harus lebih dari nol.")
+    }
+
+    @Test
+    fun rejectsANegativeSellingPrice() {
         val errors = validateProductForm(validForm().copy(basePrice = "-1"))
 
-        assertThat(errors).containsKey(ProductFormField.BASE_PRICE)
         assertThat(errors[ProductFormField.BASE_PRICE]?.resolve(IdStrings))
-            .isEqualTo("Masukkan harga jual yang valid.")
+            .isEqualTo("Harga jual harus lebih dari nol.")
+    }
+
+    @Test
+    fun rejectsAnUnparsableSellingPrice() {
+        val errors = validateProductForm(validForm().copy(basePrice = "abc"))
+
+        assertThat(errors[ProductFormField.BASE_PRICE]?.resolve(IdStrings))
+            .isEqualTo("Harga jual harus lebih dari nol.")
+    }
+
+    @Test
+    fun acceptsABlankCost() {
+        val errors = validateProductForm(validForm().copy(baseHpp = " "))
+
+        assertThat(errors).doesNotContainKey(ProductFormField.BASE_HPP)
+    }
+
+    @Test
+    fun acceptsAZeroCost() {
+        val errors = validateProductForm(validForm().copy(baseHpp = "0"))
+
+        assertThat(errors).doesNotContainKey(ProductFormField.BASE_HPP)
+    }
+
+    @Test
+    fun rejectsANegativeCost() {
+        val errors = validateProductForm(validForm().copy(baseHpp = "-1"))
+
+        assertThat(errors[ProductFormField.BASE_HPP]?.resolve(IdStrings))
+            .isEqualTo("Masukkan harga modal yang valid.")
+    }
+
+    @Test
+    fun rejectsAnUnparsableCost() {
+        val errors = validateProductForm(validForm().copy(baseHpp = "abc"))
+
+        assertThat(errors[ProductFormField.BASE_HPP]?.resolve(IdStrings))
+            .isEqualTo("Masukkan harga modal yang valid.")
+    }
+
+    @Test
+    fun acceptsZeroStock() {
+        val errors = validateProductForm(validForm().copy(stockQuantity = "0"))
+
+        assertThat(errors).doesNotContainKey(ProductFormField.STOCK_QUANTITY)
+    }
+
+    @Test
+    fun rejectsNegativeStock() {
+        val errors = validateProductForm(validForm().copy(stockQuantity = "-1"))
+
+        assertThat(errors[ProductFormField.STOCK_QUANTITY]?.resolve(IdStrings))
+            .isEqualTo("Masukkan jumlah stok yang valid.")
     }
 
     @Test
     fun rejectsUnparsableQuantities() {
         val errors = validateProductForm(validForm().copy(stockQuantity = "abc"))
 
-        assertThat(errors).containsKey(ProductFormField.STOCK_QUANTITY)
+        assertThat(errors[ProductFormField.STOCK_QUANTITY]?.resolve(IdStrings))
+            .isEqualTo("Masukkan jumlah stok yang valid.")
     }
 
     @Test

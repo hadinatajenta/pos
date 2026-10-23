@@ -67,7 +67,7 @@ fun ProductThumbnail(
 
             else -> {
                 Icon(
-                    painter = painterResource(iconResForCategory(category)),
+                    painter = painterResource(productCategoryIconRes(category)),
                     contentDescription = null,
                     modifier = Modifier.size(size / 2),
                     tint = contentColor,
@@ -120,7 +120,7 @@ private fun rememberProductInitials(productName: String?): String? {
     }
 }
 
-private fun iconResForCategory(category: String?): Int {
+internal fun productCategoryIconRes(category: String?): Int {
     val normalized = category?.trim()?.lowercase().orEmpty()
     return when {
         normalized.contains("kopi") -> R.drawable.ic_coffee

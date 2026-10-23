@@ -78,7 +78,10 @@ private fun previewProductsActions(): ProductsActions = ProductsActions(
 private fun ProductsCompactPreview() {
     UmkmPosTheme {
         PreviewAppContainerProvider {
-            ProductsScreen(state = previewProductsState(), actions = previewProductsActions())
+            ProductsScreen(
+                state = previewProductsState(),
+                actions = previewProductsActions(),
+            )
         }
     }
 }
@@ -88,7 +91,36 @@ private fun ProductsCompactPreview() {
 private fun ProductsFilteredPreview() {
     UmkmPosTheme {
         PreviewAppContainerProvider {
-            ProductsScreen(state = previewProductsState(categoryFilter = "Minuman"), actions = previewProductsActions())
+            ProductsScreen(
+                state = previewProductsState(categoryFilter = "Minuman"),
+                actions = previewProductsActions(),
+            )
+        }
+    }
+}
+
+@Preview(name = "Products empty", widthDp = 360, heightDp = 800, showBackground = true)
+@Composable
+private fun ProductsEmptyPreview() {
+    UmkmPosTheme {
+        PreviewAppContainerProvider {
+            ProductsScreen(
+                state = ProductsUiState(catalog = UiState.Empty),
+                actions = previewProductsActions(),
+            )
+        }
+    }
+}
+
+@Preview(name = "Products search empty", widthDp = 360, heightDp = 800, showBackground = true)
+@Composable
+private fun ProductsSearchEmptyPreview() {
+    UmkmPosTheme {
+        PreviewAppContainerProvider {
+            ProductsScreen(
+                state = ProductsUiState(searchQuery = "teh", catalog = UiState.Empty),
+                actions = previewProductsActions(),
+            )
         }
     }
 }
@@ -111,7 +143,10 @@ private fun ProductsFormPreview() {
 private fun ProductsMediumTabletPreview() {
     UmkmPosTheme {
         PreviewAppContainerProvider {
-            ProductsScreen(state = previewProductsState(), actions = previewProductsActions())
+            ProductsScreen(
+                state = previewProductsState(),
+                actions = previewProductsActions(),
+            )
         }
     }
 }

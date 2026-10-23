@@ -1,25 +1,23 @@
 package id.umkm.pos.pro.ui.cashier
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -35,14 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.core.contract.UiState
-import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
 import id.umkm.pos.pro.ui.common.LoadingState
@@ -50,16 +47,15 @@ import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
 import id.umkm.pos.pro.ui.common.PosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
-import id.umkm.pos.pro.ui.common.StockStatus
 import id.umkm.pos.pro.ui.common.UiStateContent
 import id.umkm.pos.pro.ui.common.formatQuantity
-import id.umkm.pos.pro.ui.components.PosCard
 import id.umkm.pos.pro.ui.components.PosSearchField
-import id.umkm.pos.pro.ui.components.ProductThumbnail
-import id.umkm.pos.pro.ui.components.StockStatusBadge
+import id.umkm.pos.pro.ui.products.ProductCard
+import id.umkm.pos.pro.ui.products.ProductPalette
+import id.umkm.pos.pro.ui.products.ProductRadii
+import id.umkm.pos.pro.ui.products.buildProductCardView
 import id.umkm.pos.pro.ui.scanner.BarcodeScanDialog
-import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.PosColors
+import id.umkm.pos.pro.ui.theme.PosFontFamily
 import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
@@ -69,19 +65,21 @@ import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.lazy.items as lazyColumnItems
-import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 
-private const val MAX_PRODUCT_COLUMNS = 4
-private val CATALOG_THUMBNAIL_SIZE = 52.dp
-private val CATALOG_TILE_THUMBNAIL_SIZE = 48.dp
-private val CATALOG_CONTROL_TOUCH_SIZE = 40.dp
-private val CATALOG_CONTROL_SIZE = 32.dp
-private val CATALOG_CONTROL_ICON_SIZE = 16.dp
-private val CATALOG_QUANTITY_MIN_WIDTH = 26.dp
+private val CASHIER_LIST_HORIZONTAL_PADDING = 20.dp
+private val CASHIER_LIST_TOP_PADDING = 8.dp
+private val CASHIER_LIST_BOTTOM_PADDING = 24.dp
+private val CASHIER_LIST_GAP = 10.dp
+private val CASHIER_ACTION_WIDTH = 104.dp
+private val CASHIER_ADD_BUTTON_SIZE = 46.dp
+private val CASHIER_ADD_ICON_SIZE = 20.dp
+private val CASHIER_STEPPER_HEIGHT = 40.dp
+private val CASHIER_STEPPER_BUTTON_WIDTH = 34.dp
+private val CASHIER_STEPPER_VISUAL_SIZE = 30.dp
+private val CASHIER_STEPPER_ICON_SIZE = 16.dp
+private val CASHIER_STEPPER_CORNER = RoundedCornerShape(16.dp)
+private val CASHIER_STEPPER_BUTTON_CORNER = RoundedCornerShape(10.dp)
 private val CATALOG_FILTER_BUTTON_SIZE = 56.dp
-private const val CATALOG_UNSELECTED_BORDER_WIDTH = 0.5f
-private const val CATALOG_SELECTED_BORDER_WIDTH = 1f
-private const val CATALOG_CONTROL_BORDER_WIDTH = 1f
 
 @Composable
 internal fun CashierCatalogPane(
@@ -364,31 +362,18 @@ private fun CashierProductList(
     actions: CashierActions,
     modifier: Modifier,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val columnCount = (maxWidth / PosSizes.productTileMinWidth).toInt().coerceIn(1, MAX_PRODUCT_COLUMNS)
-        val contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.sm)
-        if (columnCount <= 1) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = contentPadding,
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            ) {
-                lazyColumnItems(items = items, key = { item -> item.product.id }) { item ->
-                    CashierProductRow(item = item, actions = actions)
-                }
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columnCount),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = contentPadding,
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            ) {
-                lazyGridItems(items = items, key = { item -> item.product.id }) { item ->
-                    CashierProductTile(item = item, actions = actions)
-                }
-            }
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = CASHIER_LIST_HORIZONTAL_PADDING,
+            end = CASHIER_LIST_HORIZONTAL_PADDING,
+            top = CASHIER_LIST_TOP_PADDING,
+            bottom = CASHIER_LIST_BOTTOM_PADDING,
+        ),
+        verticalArrangement = Arrangement.spacedBy(CASHIER_LIST_GAP),
+    ) {
+        lazyColumnItems(items = items, key = { item -> item.product.id }) { item ->
+            CashierProductRow(item = item, actions = actions)
         }
     }
 }
@@ -398,255 +383,125 @@ private fun CashierProductRow(
     item: CashierProductItem,
     actions: CashierActions,
 ) {
-    val isDepleted = (item.stockStatus == StockStatus.OUT_OF_STOCK || item.stockStatus == StockStatus.OVERSOLD) &&
-        item.quantityInCart <= 0.0
     val strings = LocalPosStrings.current
-    PosCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (isDepleted) Modifier.graphicsLayer(alpha = 0.65f) else Modifier)
-            .clickable(
-                onClickLabel = strings.cashierAddProduct(item.product.name),
-                onClick = { actions.onAddProduct(item.product.id) },
-            ),
-        contentPadding = PosSpacing.sm,
-        border = catalogItemBorder(isSelected = item.quantityInCart > 0.0),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-        ) {
-            ProductThumbnail(
-                category = item.product.category,
-                size = CATALOG_THUMBNAIL_SIZE,
-                imagePath = item.product.imagePath,
-                productName = item.product.name,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+    ProductCard(
+        card = buildProductCardView(item.product),
+        modifier = Modifier.fillMaxWidth(),
+        isSelected = item.quantityInCart > 0.0,
+        onClickLabel = strings.cashierAddProduct(item.product.name),
+        metaLabel = strings.productsStockSummary(formatQuantity(item.product.stockBaseQty)),
+        onClick = { actions.onAddProduct(item.product.id) },
+        trailingContent = {
+            Box(
+                modifier = Modifier.width(CASHIER_ACTION_WIDTH),
+                contentAlignment = Alignment.CenterEnd,
             ) {
-                Text(
-                    text = item.product.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = Rupiah.format(item.product.basePrice),
-                    style = LocalAppTextStyles.current.catalogItemPrice,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                CashierStockBadge(status = item.stockStatus)
+                CashierQuantityControl(item = item, actions = actions)
             }
-            CatalogQuantityControl(item = item, actions = actions, isMuted = isDepleted)
-        }
-    }
+        },
+    )
 }
 
 @Composable
-private fun CashierProductTile(
+private fun CashierQuantityControl(
     item: CashierProductItem,
     actions: CashierActions,
-) {
-    val product = item.product
-    val isDepleted = (item.stockStatus == StockStatus.OUT_OF_STOCK || item.stockStatus == StockStatus.OVERSOLD) &&
-        item.quantityInCart <= 0.0
-    val strings = LocalPosStrings.current
-    PosCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (isDepleted) Modifier.graphicsLayer(alpha = 0.65f) else Modifier)
-            .clickable(
-                onClickLabel = strings.cashierAddProduct(product.name),
-                onClick = { actions.onAddProduct(product.id) },
-            ),
-        contentPadding = PosSpacing.sm,
-        border = catalogItemBorder(isSelected = item.quantityInCart > 0.0),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-        ) {
-            ProductThumbnail(
-                category = product.category,
-                size = CATALOG_TILE_THUMBNAIL_SIZE,
-                imagePath = product.imagePath,
-                productName = product.name,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = product.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = Rupiah.format(product.basePrice),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            if (item.quantityInCart <= 0.0) {
-                CatalogCircleButton(
-                    iconRes = R.drawable.ic_plus,
-                    contentDescription = strings.cashierAddProduct(product.name),
-                    onClick = { actions.onAddProduct(product.id) },
-                    isMuted = isDepleted,
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = product.category ?: strings.commonNoCategory,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (item.quantityInCart > 0.0) {
-                    CatalogQuantityControl(item = item, actions = actions)
-                } else {
-                    ProductStockPill(status = item.stockStatus, stockBaseQty = product.stockBaseQty)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProductStockPill(
-    status: StockStatus,
-    stockBaseQty: Double,
-) {
-    if (status != StockStatus.IN_STOCK) {
-        StockStatusBadge(status = status)
-        return
-    }
-    val strings = LocalPosStrings.current
-    Box(
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = MaterialTheme.shapes.small,
-            )
-            .padding(horizontal = PosSpacing.xs, vertical = 2.dp),
-    ) {
-        Text(
-            text = strings.cashierStockRemaining(formatQuantity(stockBaseQty)),
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun CashierStockBadge(status: StockStatus) {
-    if (status == StockStatus.IN_STOCK) return
-    StockStatusBadge(status = status)
-}
-
-@Composable
-private fun catalogItemBorder(isSelected: Boolean): BorderStroke = BorderStroke(
-    width = if (isSelected) CATALOG_SELECTED_BORDER_WIDTH.dp else CATALOG_UNSELECTED_BORDER_WIDTH.dp,
-    color = if (isSelected) PosColors.ForestGreen else MaterialTheme.colorScheme.outlineVariant,
-)
-
-@Composable
-private fun CatalogQuantityControl(
-    item: CashierProductItem,
-    actions: CashierActions,
-    isMuted: Boolean = false,
 ) {
     val strings = LocalPosStrings.current
     if (item.quantityInCart <= 0.0) {
-        CatalogCircleButton(
-            iconRes = R.drawable.ic_plus,
+        CashierAddButton(
             contentDescription = strings.cashierAddProduct(item.product.name),
             onClick = { actions.onAddProduct(item.product.id) },
-            isPrimary = false,
-            isMuted = isMuted,
         )
         return
     }
     Row(
+        modifier = Modifier
+            .width(CASHIER_ACTION_WIDTH)
+            .height(CASHIER_STEPPER_HEIGHT)
+            .clip(CASHIER_STEPPER_CORNER)
+            .background(ProductPalette.Brand),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
-        CatalogCircleButton(
+        CashierStepperButton(
             iconRes = R.drawable.ic_minus,
             contentDescription = strings.cashierDecreaseProduct(item.product.name),
             onClick = { actions.onDecreaseProductQuantity(item.product.id) },
-            isPrimary = false,
         )
         Text(
             text = formatQuantity(item.quantityInCart),
-            style = LocalAppTextStyles.current.catalogItemPrice,
+            modifier = Modifier.weight(1f),
+            color = Color.White,
             textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(min = CATALOG_QUANTITY_MIN_WIDTH),
+            maxLines = 1,
+            style = TextStyle(
+                fontFamily = PosFontFamily,
+                fontSize = 13.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFeatureSettings = "tnum",
+            ),
         )
-        CatalogCircleButton(
+        CashierStepperButton(
             iconRes = R.drawable.ic_plus,
             contentDescription = strings.cashierAddProduct(item.product.name),
             onClick = { actions.onAddProduct(item.product.id) },
-            isPrimary = true,
         )
     }
 }
 
 @Composable
-private fun CatalogCircleButton(
+private fun CashierAddButton(
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = ProductPalette.SafeContainer,
+        contentColor = ProductPalette.SafeText,
+        shape = ProductRadii.input,
+        modifier = Modifier.size(CASHIER_ADD_BUTTON_SIZE),
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(R.drawable.ic_plus),
+                contentDescription = contentDescription,
+                tint = ProductPalette.SafeText,
+                modifier = Modifier.size(CASHIER_ADD_ICON_SIZE),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CashierStepperButton(
     @DrawableRes iconRes: Int,
     contentDescription: String,
     onClick: () -> Unit,
-    isPrimary: Boolean = false,
-    isMuted: Boolean = false,
 ) {
-    val containerColor = when {
-        isPrimary -> MaterialTheme.colorScheme.primary
-        isMuted -> MaterialTheme.colorScheme.surfaceContainer
-        else -> MaterialTheme.colorScheme.primaryContainer
-    }
-    val contentColor = when {
-        isPrimary -> MaterialTheme.colorScheme.onPrimary
-        isMuted -> MaterialTheme.colorScheme.onSurfaceVariant
-        else -> MaterialTheme.colorScheme.primary
-    }
     Box(
         modifier = Modifier
-            .size(CATALOG_CONTROL_TOUCH_SIZE)
-            .clip(CircleShape)
-            .clickable(role = Role.Button, onClickLabel = contentDescription, onClick = onClick),
+            .width(CASHIER_STEPPER_BUTTON_WIDTH)
+            .fillMaxHeight()
+            .clickable(
+                role = Role.Button,
+                onClickLabel = contentDescription,
+                onClick = onClick,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .size(CATALOG_CONTROL_SIZE)
-                .clip(CircleShape)
-                .background(containerColor, CircleShape),
+                .size(CASHIER_STEPPER_VISUAL_SIZE)
+                .clip(CASHIER_STEPPER_BUTTON_CORNER)
+                .background(Color.White.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                tint = contentColor,
-                modifier = Modifier.size(CATALOG_CONTROL_ICON_SIZE),
+                tint = Color.White,
+                modifier = Modifier.size(CASHIER_STEPPER_ICON_SIZE),
             )
         }
     }

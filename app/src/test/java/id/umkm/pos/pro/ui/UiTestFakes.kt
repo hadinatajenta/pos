@@ -85,6 +85,11 @@ class FakeCatalogRepository : ProductRepository {
     override suspend fun findProductByBarcode(barcode: String): Product? =
         products.value.firstOrNull { it.barcode == barcode }
 
+    override suspend fun findProductByName(name: String, excludeId: Long): Product? =
+        products.value.firstOrNull { product ->
+            product.name.trim() == name.trim() && product.id != excludeId
+        }
+
     override suspend fun upsertProduct(product: Product): Long {
         val productId = if (product.id == 0L) nextGeneratedId++ else product.id
         products.value = products.value.filterNot { it.id == productId } + product.copy(id = productId)
@@ -344,6 +349,7 @@ fun uiSampleProduct(
     minStockAlert: Double = 5.0,
     isActive: Boolean = true,
     barcode: String? = null,
+    icon: String? = null,
 ): Product = Product(
     id = id,
     sku = "SKU-$id",
@@ -356,6 +362,7 @@ fun uiSampleProduct(
     stockBaseQty = stockBaseQty,
     minStockAlert = minStockAlert,
     isActive = isActive,
+    icon = icon,
 )
 
 fun uiSampleCustomer(id: Long, name: String, totalDebt: Long): Customer = Customer(

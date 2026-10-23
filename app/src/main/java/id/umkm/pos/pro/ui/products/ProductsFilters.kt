@@ -1,154 +1,162 @@
 package id.umkm.pos.pro.ui.products
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
-import id.umkm.pos.pro.ui.components.PosSearchField
-import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.PosSizes
-import id.umkm.pos.pro.ui.theme.PosSpacing
+import id.umkm.pos.pro.ui.theme.PosFontFamily
 
-private val SORT_BUTTON_MIN_HEIGHT = 56.dp
-
+private val FILTER_CHIP_SHAPE = CircleShape
+private val FILTER_ROW_HORIZONTAL_PADDING = 20.dp
+private val FILTER_ROW_VERTICAL_PADDING = 6.dp
+private val FILTER_CHIP_GAP = 8.dp
 @Composable
-internal fun ProductsSearchAndSortBar(
+internal fun ProductsQuickFilterBar(
     state: ProductsUiState,
+    catalog: ProductsCatalog,
     actions: ProductsActions,
-    isCompact: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     val strings = LocalPosStrings.current
-    Row(
-        modifier = Modifier
+    LazyRow(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = if (isCompact) PosSpacing.md else PosSpacing.lg,
-                vertical = PosSpacing.xs,
-            ),
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            .background(ProductPalette.Background),
+        contentPadding = PaddingValues(
+            start = FILTER_ROW_HORIZONTAL_PADDING,
+            end = FILTER_ROW_HORIZONTAL_PADDING,
+            top = FILTER_ROW_VERTICAL_PADDING,
+            bottom = FILTER_ROW_VERTICAL_PADDING,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(FILTER_CHIP_GAP),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PosSearchField(
-            value = state.searchQuery,
-            onValueChange = actions.onSearchQueryChange,
-            placeholder = strings.productsSearchPlaceholder,
-            modifier = Modifier.weight(1f),
-        )
-        SortDropdownButton(
-            sortOrder = state.sortOrder,
-            onSortOrderChange = actions.onSortOrderChange,
-        )
+        item(key = "filter-all") {
+            ProductsFilterChip(
+                label = strings.productsFilterAll(catalog.summary.totalProducts),
+                isSelected = state.stockFilter == ProductStockFilter.ALL && state.categoryFilter == null,
+                onClick = {
+                    actions.onStockFilterChange(ProductStockFilter.ALL)
+                    actions.onCategoryFilterChange(null)
+                },
+            )
+        }
+        item(key = "filter-low-stock") {
+            ProductsFilterChip(
+                label = strings.productsFilterLowStock(catalog.summary.lowCount),
+                isSelected = state.stockFilter == ProductStockFilter.LOW_STOCK,
+                onClick = {
+                    val nextFilter = if (state.stockFilter == ProductStockFilter.LOW_STOCK) {
+                        ProductStockFilter.ALL
+                    } else {
+                        ProductStockFilter.LOW_STOCK
+                    }
+                    actions.onStockFilterChange(nextFilter)
+                },
+            )
+        }
+        item(key = "filter-out-of-stock") {
+            ProductsFilterChip(
+                label = strings.productsFilterOutOfStock(catalog.summary.outCount),
+                isSelected = state.stockFilter == ProductStockFilter.OUT_OF_STOCK,
+                onClick = {
+                    val nextFilter = if (state.stockFilter == ProductStockFilter.OUT_OF_STOCK) {
+                        ProductStockFilter.ALL
+                    } else {
+                        ProductStockFilter.OUT_OF_STOCK
+                    }
+                    actions.onStockFilterChange(nextFilter)
+                },
+            )
+        }
+        items(
+            items = catalog.categorySummaries,
+            key = { summary -> "category-${summary.name.lowercase()}" },
+        ) { summary ->
+            val isSelected = state.categoryFilter.equals(summary.name, ignoreCase = true)
+            ProductsFilterChip(
+                label = "${summary.name} (${summary.count})",
+                isSelected = isSelected,
+                onClick = {
+                    val nextCategory = if (isSelected) null else summary.name
+                    actions.onCategoryFilterChange(nextCategory)
+                },
+            )
+        }
     }
 }
 
 @Composable
-private fun SortDropdownButton(
-    sortOrder: ProductSortOrder,
-    onSortOrderChange: (ProductSortOrder) -> Unit,
+private fun ProductsFilterChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
-    val strings = LocalPosStrings.current
-    Box {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = MaterialTheme.shapes.large,
-            modifier = Modifier
-                .heightIn(min = SORT_BUTTON_MIN_HEIGHT)
-                .clickable(onClickLabel = strings.productsSort, onClick = { isExpanded = true }),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_list_filter),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(PosSizes.iconSmall),
-                )
-                Spacer(modifier = Modifier.width(PosSpacing.xs))
-                Text(
-                    text = sortOrder.label(strings),
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.width(PosSpacing.xxs))
-                Icon(
-                    painter = painterResource(R.drawable.ic_chevron_down),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(PosSizes.iconSmall),
-                )
-            }
-        }
-        DropdownMenu(
-            expanded = isExpanded,
-            onDismissRequest = { isExpanded = false },
-        ) {
-            ProductSortOrder.entries.forEach { order ->
-                DropdownMenuItem(
-                    text = { Text(order.label(strings)) },
-                    trailingIcon = { SelectedOptionIcon(isSelected = order == sortOrder) },
-                    onClick = {
-                        isExpanded = false
-                        onSortOrderChange(order)
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SelectedOptionIcon(isSelected: Boolean) {
-    if (!isSelected) return
-    Icon(
-        painter = painterResource(R.drawable.ic_check),
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.size(PosSizes.iconSmall),
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        modifier = Modifier.widthIn(max = 240.dp),
+        label = {
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    fontFamily = PosFontFamily,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    fontFeatureSettings = "tnum",
+                ),
+            )
+        },
+        shape = FILTER_CHIP_SHAPE,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) Color.Transparent else ProductPalette.Line,
+        ),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = Color.White,
+            labelColor = ProductPalette.Muted,
+            selectedContainerColor = ProductPalette.Brand,
+            selectedLabelColor = Color.White,
+        ),
     )
 }
 
 @Composable
-internal fun ProductsFilterEmptyState(actions: ProductsActions) {
+internal fun ProductsFilterEmptyState(
+    actions: ProductsActions,
+    isSearching: Boolean,
+) {
     val strings = LocalPosStrings.current
     EmptyState(
-        iconRes = R.drawable.ic_funnel,
-        title = strings.productsFilterEmptyTitle,
-        supportingText = strings.productsFilterEmptyHint,
+        iconRes = R.drawable.ic_search_x,
+        title = if (isSearching) strings.productsNotFoundTitle else strings.productsFilterEmptyTitle,
+        supportingText = if (isSearching) strings.productsNotFoundHint else strings.productsFilterEmptyHint,
         actionLabel = strings.productsFilterShowAll,
         onAction = {
+            actions.onSearchQueryChange("")
             actions.onStockFilterChange(ProductStockFilter.ALL)
             actions.onCategoryFilterChange(null)
         },
