@@ -19,10 +19,21 @@ class DemoCatalogTest {
     }
 
     @Test
-    fun productsAreMarkedBySkuPrefixAndCategory() {
+    fun productsAreMarkedBySkuPrefix() {
         DemoCatalog.products.forEach { spec ->
             assertThat(DemoMarkers.isDemoSku(spec.sku)).isTrue()
-            assertThat(DemoMarkers.isDemoCategory(DemoMarkers.categoryFor(spec.category))).isTrue()
+        }
+    }
+
+    @Test
+    fun catalogDataDoesNotExposeTheDemoWord() {
+        DemoCatalog.products.forEach { spec ->
+            assertThat(spec.name.lowercase()).doesNotContain("demo")
+            assertThat(spec.category.lowercase()).doesNotContain("demo")
+            assertThat(spec.sku.lowercase()).doesNotContain("demo")
+        }
+        DemoCatalog.customers.forEach { customer ->
+            assertThat(customer.name.lowercase()).doesNotContain("demo")
         }
     }
 

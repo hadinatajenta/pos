@@ -7,32 +7,29 @@ class DemoMarkersTest {
 
     @Test
     fun identifiesDemoSkuByPrefix() {
-        assertThat(DemoMarkers.isDemoSku("DEMO-001")).isTrue()
+        assertThat(DemoMarkers.isDemoSku("SMP-001")).isTrue()
         assertThat(DemoMarkers.isDemoSku("SKU-001")).isFalse()
         assertThat(DemoMarkers.isDemoSku("demo-001")).isFalse()
     }
 
     @Test
-    fun skuLikePatternTargetsTheDemoPrefix() {
-        assertThat(DemoMarkers.skuLikePattern()).isEqualTo("DEMO-%")
+    fun skuLikePatternTargetsTheSamplePrefix() {
+        assertThat(DemoMarkers.skuLikePattern()).isEqualTo("SMP-%")
     }
 
     @Test
-    fun categoryForAddsMarkerPrefix() {
-        val category = DemoMarkers.categoryFor("Minuman")
-
-        assertThat(category).isEqualTo("Demo - Minuman")
-        assertThat(DemoMarkers.isDemoCategory(category)).isTrue()
+    fun legacySkuPatternStillTargetsOldDemoProducts() {
+        assertThat(DemoMarkers.legacySkuLikePattern()).isEqualTo("DEMO-%")
     }
 
     @Test
-    fun demoCategoryRejectsNullAndPlainCategories() {
-        assertThat(DemoMarkers.isDemoCategory(null)).isFalse()
-        assertThat(DemoMarkers.isDemoCategory("Minuman")).isFalse()
+    fun categoryForKeepsThePlainCategory() {
+        assertThat(DemoMarkers.categoryFor("Minuman")).isEqualTo("Minuman")
     }
 
     @Test
-    fun demoNoteMatchesOnlyTheMarkerNote() {
+    fun demoNoteMatchesTheCurrentAndLegacyMarkers() {
+        assertThat(DemoMarkers.isDemoNote("SMP")).isTrue()
         assertThat(DemoMarkers.isDemoNote("DEMO")).isTrue()
         assertThat(DemoMarkers.isDemoNote("demo")).isFalse()
         assertThat(DemoMarkers.isDemoNote(null)).isFalse()

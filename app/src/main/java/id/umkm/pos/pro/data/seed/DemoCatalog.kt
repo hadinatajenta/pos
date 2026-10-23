@@ -31,7 +31,7 @@ object DemoCatalog {
 
     val products: List<DemoProductSpec> = listOf(
         DemoProductSpec(
-            sku = "DEMO-001",
+            sku = "SMP-001",
             barcode = "8990000000001",
             name = "Kopi Susu",
             category = "Minuman",
@@ -42,7 +42,7 @@ object DemoCatalog {
             desiredRemainingStock = 24.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-002",
+            sku = "SMP-002",
             barcode = "8990000000002",
             name = "Es Teh Manis",
             category = "Minuman",
@@ -53,7 +53,7 @@ object DemoCatalog {
             desiredRemainingStock = 30.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-003",
+            sku = "SMP-003",
             barcode = "8990000000003",
             name = "Teh Botol",
             category = "Minuman",
@@ -73,7 +73,7 @@ object DemoCatalog {
             ),
         ),
         DemoProductSpec(
-            sku = "DEMO-004",
+            sku = "SMP-004",
             barcode = "8990000000004",
             name = "Air Mineral",
             category = "Minuman",
@@ -84,7 +84,7 @@ object DemoCatalog {
             desiredRemainingStock = 6.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-005",
+            sku = "SMP-005",
             barcode = "8990000000005",
             name = "Roti Cokelat",
             category = "Makanan",
@@ -95,7 +95,7 @@ object DemoCatalog {
             desiredRemainingStock = 18.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-006",
+            sku = "SMP-006",
             barcode = "8990000000006",
             name = "Indomie Goreng",
             category = "Makanan",
@@ -115,7 +115,7 @@ object DemoCatalog {
             ),
         ),
         DemoProductSpec(
-            sku = "DEMO-007",
+            sku = "SMP-007",
             barcode = null,
             name = "Mie Ayam",
             category = "Makanan",
@@ -126,7 +126,7 @@ object DemoCatalog {
             desiredRemainingStock = 12.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-008",
+            sku = "SMP-008",
             barcode = null,
             name = "Nasi Goreng",
             category = "Makanan",
@@ -137,7 +137,7 @@ object DemoCatalog {
             desiredRemainingStock = 15.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-009",
+            sku = "SMP-009",
             barcode = "8990000000009",
             name = "Keripik Singkong",
             category = "Snack",
@@ -148,7 +148,7 @@ object DemoCatalog {
             desiredRemainingStock = 5.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-010",
+            sku = "SMP-010",
             barcode = "8990000000010",
             name = "Gula Pasir",
             category = "Sembako",
@@ -168,7 +168,7 @@ object DemoCatalog {
             ),
         ),
         DemoProductSpec(
-            sku = "DEMO-011",
+            sku = "SMP-011",
             barcode = "8990000000011",
             name = "Minyak Goreng",
             category = "Sembako",
@@ -179,7 +179,7 @@ object DemoCatalog {
             desiredRemainingStock = 0.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-012",
+            sku = "SMP-012",
             barcode = "8990000000012",
             name = "Telur 1kg",
             category = "Sembako",
@@ -190,7 +190,7 @@ object DemoCatalog {
             desiredRemainingStock = 16.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-013",
+            sku = "SMP-013",
             barcode = "8990000000013",
             name = "Beras 5kg",
             category = "Sembako",
@@ -201,7 +201,7 @@ object DemoCatalog {
             desiredRemainingStock = -1.0,
         ),
         DemoProductSpec(
-            sku = "DEMO-014",
+            sku = "SMP-014",
             barcode = "8990000000014",
             name = "Sabun Mandi",
             category = "Kebersihan",

@@ -93,9 +93,12 @@ class DefaultDemoDataSeeder(
     }
 
     private suspend fun clearMarkedRecords(): DemoClearSummary {
-        val transactions = database.transactionDao().deleteTransactionsByNote(DemoMarkers.NOTE)
-        val customers = database.customerDao().deleteCustomersByNote(DemoMarkers.NOTE)
-        val products = database.productDao().deleteProductsBySkuPattern(DemoMarkers.skuLikePattern())
+        val transactions = database.transactionDao().deleteTransactionsByNote(DemoMarkers.NOTE) +
+            database.transactionDao().deleteTransactionsByNote(DemoMarkers.LEGACY_NOTE)
+        val customers = database.customerDao().deleteCustomersByNote(DemoMarkers.NOTE) +
+            database.customerDao().deleteCustomersByNote(DemoMarkers.LEGACY_NOTE)
+        val products = database.productDao().deleteProductsBySkuPattern(DemoMarkers.skuLikePattern()) +
+            database.productDao().deleteProductsBySkuPattern(DemoMarkers.legacySkuLikePattern())
         return DemoClearSummary(
             products = products,
             customers = customers,
