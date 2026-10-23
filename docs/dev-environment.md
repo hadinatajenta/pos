@@ -77,3 +77,23 @@ and restore any device setting you changed (font scale, display size) before fin
 Screenshot review uses an emulator or a physical device. Window size is driven
 with `adb shell wm size` and `adb shell wm density`, or `scrcpy` for a device.
 The required viewport matrix is defined in `docs/prd.md` section 12.
+
+## CodeGraph index
+
+CodeGraph indexes the Kotlin sources so an agent can answer a code question in one
+call instead of reading files one by one. The index lives in `.codegraph/`, is local
+to each machine, and is not committed.
+
+- Check freshness: `codegraph status`
+- Rebuild after large file moves: `codegraph index`
+- One symbol: `codegraph node <symbol>`
+- A flow or unknown location: `codegraph explore "<symbols or question>"`
+
+Agent rules require CodeGraph before `read`, `grep`, or `glob` on sources under
+`app/`, with `maxFiles: 3` per explore call. See `AGENTS.MD`, "Code intelligence".
+
+2026-10-23 — PRD reference: none (developer tooling). The CodeGraph block moved from
+the end of the global agent instructions to the top and became a mandatory gate,
+because the old position lost to the "inspect the existing repository" instruction.
+The project workflow step that said to inspect code directly now points at CodeGraph.
+No product behavior, requirement, schema, or PRD statement changed.

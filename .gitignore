@@ -16,3 +16,4 @@
 *.keystore
 *.commandcode
 docs/*
+/anti-slop

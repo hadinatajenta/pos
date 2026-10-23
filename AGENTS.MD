@@ -8,6 +8,16 @@
 - Preserve working behavior unless the task explicitly asks to change it.
 - Ask for clarification only when a decision materially affects money calculations, data integrity, security, architecture, or user flow. Otherwise choose the smallest reasonable implementation and document the assumption.
 
+## Code intelligence — mandatory
+
+`.codegraph/` exists in this repository, so CodeGraph replaces pre-emptive file reading for all code questions.
+
+- Call `codegraph_explore` or `codegraph_node` before `read`, `grep`, or `glob` on any Kotlin, XML, or Gradle source under `app/`.
+- Known symbol or file → `codegraph_node`. Flow or unknown location → `codegraph_explore` with `maxFiles: 3`.
+- Source returned by CodeGraph is already read. Do not re-open it, and do not re-verify it with `grep`.
+- Read a file directly only when CodeGraph returns no match, flags the file as changed or omitted, or the target is not code (docs, config, resources).
+- Shell fallback: `codegraph explore "<symbols or question>"`, `codegraph node <symbol>`, `codegraph callers|callees|impact <symbol>`.
+
 ## Documentation of changes — mandatory
 
 Every change must be documented in the same task that makes it. An undocumented change is an incomplete change.
@@ -93,7 +103,7 @@ Do not upgrade Kotlin, Gradle, Android Gradle Plugin, SDK levels, or major depen
 
 ## Required workflow for every task
 
-1. Read `docs/prd.md` and inspect relevant existing code/tests.
+1. Read `docs/prd.md`. Locate existing code with CodeGraph (see "Code intelligence"), then inspect only what it returned.
 2. Summarize the intended change and likely affected files before broad edits.
 3. Implement the smallest complete vertical slice; avoid unrelated refactors.
 4. Add or update automated tests for business logic and state transitions.
