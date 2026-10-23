@@ -19,9 +19,9 @@ internal object TransactionDetailLoader {
         val items = transactionRepository.getItems(transactionId)
         val lines = items.map { item ->
             val product = productRepository.getProductById(item.productId)
-            val unitLabel = item.variantName ?: product?.baseUnit.orEmpty()
+            val unitLabel = item.unitLabelSnapshot ?: item.variantName ?: product?.baseUnit.orEmpty()
             TransactionDetailLine(
-                name = product?.name ?: "Item ${item.productId}",
+                name = item.productNameSnapshot ?: product?.name ?: "Item ${item.productId}",
                 quantityLabel = "${formatQuantity(item.qty)} $unitLabel".trim(),
                 unitPrice = item.appliedUnitPrice,
                 itemDiscount = item.itemDiscount,

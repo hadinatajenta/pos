@@ -16,24 +16,28 @@ internal object ReportContentLoader {
         val transactions = reportRepository.transactionsInRange(range)
         val quantityByProduct = LinkedHashMap<Long, Double>()
         val salesValueByProduct = LinkedHashMap<Long, Long>()
+        val snapshotNameByProduct = LinkedHashMap<Long, String>()
         transactions.forEach { transaction ->
             transactionRepository.getItems(transaction.id).forEach { item ->
                 quantityByProduct[item.productId] =
                     (quantityByProduct[item.productId] ?: 0.0) + item.qty
                 salesValueByProduct[item.productId] =
                     (salesValueByProduct[item.productId] ?: 0L) + item.subtotal
+                item.productNameSnapshot
+                    ?.takeIf { snapshotName -> snapshotName.isNotBlank() }
+                    ?.let { snapshotName -> snapshotNameByProduct[item.productId] = snapshotName }
             }
         }
         val summaries = quantityByProduct.entries
             .mapNotNull { entry ->
-                productRepository.getProductById(entry.key)?.let { product ->
-                    ReportProductSummary(
-                        productId = product.id,
-                        name = product.name,
-                        quantitySold = entry.value,
-                        salesValue = salesValueByProduct[entry.key] ?: 0L,
-                    )
-                }
+                val product = productRepository.getProductById(entry.key)
+                val name = product?.name ?: snapshotNameByProduct[entry.key] ?: return@mapNotNull null
+                ReportProductSummary(
+                    productId = entry.key,
+                    name = name,
+                    quantitySold = entry.value,
+                    salesValue = salesValueByProduct[entry.key] ?: 0L,
+                )
             }
             .sortedByDescending { summary -> summary.salesValue }
         return ReportContent(transactions = transactions, productSummaries = summaries)

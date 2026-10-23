@@ -34,9 +34,9 @@ internal object StoredReceiptBuilder {
     ): StoredReceipt {
         val receiptItems = items.map { item ->
             val product = productsById[item.productId]
-            val unitLabel = item.variantName ?: product?.baseUnit.orEmpty()
+            val unitLabel = item.unitLabelSnapshot ?: item.variantName ?: product?.baseUnit.orEmpty()
             StoredReceiptItem(
-                name = product?.name ?: "Item ${item.productId}",
+                name = item.productNameSnapshot ?: product?.name ?: "Item ${item.productId}",
                 quantityLabel = "${formatQuantity(item.qty)} $unitLabel".trim(),
                 unitPrice = item.appliedUnitPrice,
                 lineTotal = item.subtotal,
