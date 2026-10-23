@@ -26,7 +26,18 @@ interface ProductRepository {
     fun observeProducts(query: String?): Flow<List<Product>>
     suspend fun getProductById(productId: Long): Product?
     suspend fun findProductByBarcode(barcode: String): Product?
+    suspend fun findProductBySku(sku: String, excludeId: Long): Product? = null
+    suspend fun findProductByBarcode(barcode: String, excludeId: Long): Product? = null
+    suspend fun findProductByName(name: String, excludeId: Long): Product? = null
     suspend fun upsertProduct(product: Product): Long
+
+    suspend fun saveProductWithUnit(product: Product, unit: ProductUnit?): Long {
+        val productId = upsertProduct(product)
+        if (unit == null) return productId
+        upsertUnit(unit.copy(productId = productId))
+        return productId
+    }
+
     suspend fun deleteProduct(productId: Long)
     suspend fun getUnits(productId: Long): List<ProductUnit>
     suspend fun findUnitByBarcode(barcode: String): ProductUnit?

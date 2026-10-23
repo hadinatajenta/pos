@@ -146,6 +146,12 @@ private class FakeProductDao : ProductDao {
 
     override suspend fun findProductByBarcode(barcode: String): ProductEntity? = unused()
 
+    override suspend fun findProductBySku(sku: String, excludeId: Long): ProductEntity? = unused()
+
+    override suspend fun findProductByBarcode(barcode: String, excludeId: Long): ProductEntity? = unused()
+
+    override suspend fun findProductByName(name: String, excludeId: Long): ProductEntity? = unused()
+
     override suspend fun insertProduct(product: ProductEntity): Long = unused()
 
     override suspend fun updateProduct(product: ProductEntity) {

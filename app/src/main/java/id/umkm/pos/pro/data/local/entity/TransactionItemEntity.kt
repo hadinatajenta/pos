@@ -34,4 +34,6 @@ data class TransactionItemEntity(
     @ColumnInfo(name = "item_discount") val itemDiscount: Long,
     @ColumnInfo(name = "subtotal") val subtotal: Long,
     @ColumnInfo(name = "conversion_factor") val conversionFactor: Double?,
+    @ColumnInfo(name = "product_name_snapshot") val productNameSnapshot: String? = null,
+    @ColumnInfo(name = "unit_label_snapshot") val unitLabelSnapshot: String? = null,
 )

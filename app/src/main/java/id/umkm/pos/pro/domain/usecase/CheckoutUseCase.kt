@@ -145,6 +145,8 @@ class CheckoutUseCase(
                 itemDiscount = pricedLine.line.itemDiscount,
                 subtotal = pricedLine.itemSubtotal,
                 conversionFactor = conversionFactor,
+                productNameSnapshot = pricedLine.product.name,
+                unitLabelSnapshot = pricedLine.line.variantName ?: pricedLine.product.baseUnit,
             )
         }
 

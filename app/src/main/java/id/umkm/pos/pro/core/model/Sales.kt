@@ -47,6 +47,8 @@ data class TransactionItem(
     val itemDiscount: Long,
     val subtotal: Long,
     val conversionFactor: Double? = null,
+    val productNameSnapshot: String? = null,
+    val unitLabelSnapshot: String? = null,
 )
 
 data class DebtPayment(

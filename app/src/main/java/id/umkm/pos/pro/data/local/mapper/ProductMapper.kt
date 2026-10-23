@@ -20,6 +20,7 @@ object ProductMapper {
         minStockAlert = product.minStockAlert,
         isActive = product.isActive,
         imagePath = product.imagePath,
+        icon = product.icon,
     )
 
     fun toModel(entity: ProductEntity): Product = Product(
@@ -35,6 +36,7 @@ object ProductMapper {
         minStockAlert = entity.minStockAlert,
         isActive = entity.isActive,
         imagePath = entity.imagePath,
+        icon = entity.icon,
     )
 
     fun toEntity(unit: ProductUnit): ProductUnitEntity = ProductUnitEntity(

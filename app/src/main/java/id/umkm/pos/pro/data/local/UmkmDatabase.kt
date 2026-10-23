@@ -52,7 +52,7 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 8,
+    version = 10,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -191,6 +191,30 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9: Migration = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transaction_items ADD COLUMN product_name_snapshot TEXT")
+                db.execSQL("ALTER TABLE transaction_items ADD COLUMN unit_label_snapshot TEXT")
+                db.execSQL(
+                    "UPDATE transaction_items SET product_name_snapshot = " +
+                        "(SELECT products.name FROM products WHERE products.id = transaction_items.product_id) " +
+                        "WHERE product_name_snapshot IS NULL",
+                )
+                db.execSQL(
+                    "UPDATE transaction_items SET unit_label_snapshot = COALESCE(" +
+                        "variant_name, " +
+                        "(SELECT products.base_unit FROM products WHERE products.id = transaction_items.product_id)" +
+                        ") WHERE unit_label_snapshot IS NULL",
+                )
+            }
+        }
+
+        val MIGRATION_9_10: Migration = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE products ADD COLUMN icon TEXT")
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -202,6 +226,8 @@ abstract class UmkmDatabase : RoomDatabase() {
                     MIGRATION_5_6,
                     MIGRATION_6_7,
                     MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10,
                 )
                 .addCallback(SingletonRowsCallback)
                 .build()

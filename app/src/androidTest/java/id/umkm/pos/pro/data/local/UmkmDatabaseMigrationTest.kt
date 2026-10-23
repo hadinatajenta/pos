@@ -34,6 +34,8 @@ class UmkmDatabaseMigrationTest {
         context.deleteDatabase(TEST_DATABASE_NAME_5_6)
         context.deleteDatabase(TEST_DATABASE_NAME_6_7)
         context.deleteDatabase(TEST_DATABASE_NAME_7_8)
+        context.deleteDatabase(TEST_DATABASE_NAME_8_9)
+        context.deleteDatabase(TEST_DATABASE_NAME_9_10)
     }
 
 
@@ -281,6 +283,71 @@ class UmkmDatabaseMigrationTest {
         versionEight.close()
     }
 
+    @Test
+    fun migration8To9BackfillsProductSnapshotsAndKeepsDanglingRowsNull() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_8_9, 8).use { versionEight ->
+            versionEight.execSQL(INSERT_VERSION_EIGHT_PRODUCT)
+            versionEight.execSQL(INSERT_VERSION_EIGHT_TRANSACTION)
+            versionEight.execSQL(INSERT_VERSION_EIGHT_LIVE_ITEM)
+            versionEight.execSQL(INSERT_VERSION_EIGHT_DANGLING_ITEM)
+            versionEight.execSQL(INSERT_VERSION_EIGHT_VARIANT_ITEM)
+        }
+
+        val versionNine = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_8_9,
+            9,
+            true,
+            UmkmDatabase.MIGRATION_8_9,
+        )
+
+        assertTableRowCount(versionNine, "transaction_items", 3)
+        versionNine.query(
+            "SELECT product_id, product_name_snapshot, unit_label_snapshot " +
+                "FROM transaction_items ORDER BY id",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(7L, cursor.getLong(0))
+            assertEquals("Kopi Susu", cursor.getString(1))
+            assertEquals("pcs", cursor.getString(2))
+
+            assertTrue(cursor.moveToNext())
+            assertEquals(999L, cursor.getLong(0))
+            assertTrue(cursor.isNull(1))
+            assertTrue(cursor.isNull(2))
+
+            assertTrue(cursor.moveToNext())
+            assertEquals(7L, cursor.getLong(0))
+            assertEquals("Kopi Susu", cursor.getString(1))
+            assertEquals("dus", cursor.getString(2))
+        }
+        versionNine.close()
+    }
+
+    @Test
+    fun migration9To10KeepsProductsAndAddsANullableIcon() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_9_10, 9).use { versionNine ->
+            versionNine.execSQL(INSERT_VERSION_NINE_PRODUCT)
+        }
+
+        val versionTen = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_9_10,
+            10,
+            true,
+            UmkmDatabase.MIGRATION_9_10,
+        )
+
+        assertTableRowCount(versionTen, "products", 1)
+        versionTen.query("SELECT sku, name, base_price, icon FROM products").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.count)
+            assertEquals("SKU-V9-9", cursor.getString(0))
+            assertEquals("Teh Manis", cursor.getString(1))
+            assertEquals(8_000L, cursor.getLong(2))
+            assertTrue(cursor.isNull(3))
+        }
+        versionTen.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -306,6 +373,50 @@ class UmkmDatabaseMigrationTest {
         const val TEST_DATABASE_NAME_6_7 = "umkm-migration-6-7.db"
 
         const val TEST_DATABASE_NAME_7_8 = "umkm-migration-7-8.db"
+
+        const val TEST_DATABASE_NAME_8_9 = "umkm-migration-8-9.db"
+
+        const val TEST_DATABASE_NAME_9_10 = "umkm-migration-9-10.db"
+
+        const val INSERT_VERSION_NINE_PRODUCT =
+            "INSERT INTO products " +
+                "(id, sku, barcode, name, category, base_unit, base_hpp, base_price, " +
+                "stock_base_qty, min_stock_alert, is_active, image_path) " +
+                "VALUES (9, 'SKU-V9-9', NULL, 'Teh Manis', 'Minuman', 'pcs', 4000, 8000, " +
+                "30.0, 6.0, 1, NULL)"
+
+        const val INSERT_VERSION_EIGHT_PRODUCT =
+            "INSERT INTO products " +
+                "(id, sku, barcode, name, category, base_unit, base_hpp, base_price, " +
+                "stock_base_qty, min_stock_alert, is_active, image_path) " +
+                "VALUES (7, 'SKU-V8-7', NULL, 'Kopi Susu', NULL, 'pcs', 5000, 15000, " +
+                "100.0, 5.0, 1, NULL)"
+
+        const val INSERT_VERSION_EIGHT_TRANSACTION =
+            "INSERT INTO transactions " +
+                "(id, invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
+                "invoice_discount, tax_total, rounding, grand_total, total_hpp, net_profit, " +
+                "payment_method, paid_amount, change_amount, remaining_debt, due_date, status, notes) " +
+                "VALUES (1, 'INV-V8-1', 1700000000000, NULL, NULL, 6000, 0, 0, 0, 0, 6000, " +
+                "3000, 3000, 'CASH', 6000, 0, 0, NULL, 'COMPLETED', NULL)"
+
+        const val INSERT_VERSION_EIGHT_LIVE_ITEM =
+            "INSERT INTO transaction_items " +
+                "(id, transaction_id, product_id, variant_name, qty, unit_hpp, applied_unit_price, " +
+                "is_nego_price, is_wholesale_applied, item_discount, subtotal) " +
+                "VALUES (1, 1, 7, NULL, 2.0, 5000, 15000, 0, 0, 0, 30000)"
+
+        const val INSERT_VERSION_EIGHT_DANGLING_ITEM =
+            "INSERT INTO transaction_items " +
+                "(id, transaction_id, product_id, variant_name, qty, unit_hpp, applied_unit_price, " +
+                "is_nego_price, is_wholesale_applied, item_discount, subtotal) " +
+                "VALUES (2, 1, 999, NULL, 1.0, 1000, 2000, 0, 0, 0, 2000)"
+
+        const val INSERT_VERSION_EIGHT_VARIANT_ITEM =
+            "INSERT INTO transaction_items " +
+                "(id, transaction_id, product_id, variant_name, qty, unit_hpp, applied_unit_price, " +
+                "is_nego_price, is_wholesale_applied, item_discount, subtotal) " +
+                "VALUES (3, 1, 7, 'dus', 1.0, 200000, 240000, 0, 0, 0, 240000)"
 
         const val INSERT_VERSION_SEVEN_SETTINGS =
             "INSERT INTO app_settings " +

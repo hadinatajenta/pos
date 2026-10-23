@@ -21,6 +21,7 @@ class ProductMapperTest {
             stockBaseQty = 120.5,
             minStockAlert = 10.0,
             isActive = true,
+            icon = "☕",
         )
 
         val restored = ProductMapper.toModel(ProductMapper.toEntity(product))
@@ -53,6 +54,7 @@ class ProductMapperTest {
         assertThat(entity.barcode).isNull()
         assertThat(entity.category).isNull()
         assertThat(entity.isActive).isFalse()
+        assertThat(entity.icon).isNull()
         assertThat(entity.id).isEqualTo(0L)
     }
 

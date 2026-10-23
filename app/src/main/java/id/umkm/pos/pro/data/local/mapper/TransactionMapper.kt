@@ -72,6 +72,8 @@ object TransactionMapper {
         itemDiscount = item.itemDiscount,
         subtotal = item.subtotal,
         conversionFactor = item.conversionFactor,
+        productNameSnapshot = item.productNameSnapshot,
+        unitLabelSnapshot = item.unitLabelSnapshot,
     )
 
     fun toModel(entity: TransactionItemEntity): TransactionItem = TransactionItem(
@@ -87,5 +89,7 @@ object TransactionMapper {
         itemDiscount = entity.itemDiscount,
         subtotal = entity.subtotal,
         conversionFactor = entity.conversionFactor,
+        productNameSnapshot = entity.productNameSnapshot,
+        unitLabelSnapshot = entity.unitLabelSnapshot,
     )
 }

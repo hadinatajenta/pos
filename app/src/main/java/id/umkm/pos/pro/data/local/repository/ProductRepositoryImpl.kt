@@ -23,6 +23,15 @@ class ProductRepositoryImpl(
     override suspend fun findProductByBarcode(barcode: String): Product? =
         productDao.findProductByBarcode(barcode)?.let(ProductMapper::toModel)
 
+    override suspend fun findProductBySku(sku: String, excludeId: Long): Product? =
+        productDao.findProductBySku(sku, excludeId)?.let(ProductMapper::toModel)
+
+    override suspend fun findProductByBarcode(barcode: String, excludeId: Long): Product? =
+        productDao.findProductByBarcode(barcode, excludeId)?.let(ProductMapper::toModel)
+
+    override suspend fun findProductByName(name: String, excludeId: Long): Product? =
+        productDao.findProductByName(name, excludeId)?.let(ProductMapper::toModel)
+
     override suspend fun upsertProduct(product: Product): Long {
         val entity = ProductMapper.toEntity(product)
         return if (product.id == 0L) {
@@ -32,6 +41,12 @@ class ProductRepositoryImpl(
             product.id
         }
     }
+
+    override suspend fun saveProductWithUnit(product: Product, unit: ProductUnit?): Long =
+        productDao.upsertProductWithUnit(
+            product = ProductMapper.toEntity(product),
+            unit = unit?.let(ProductMapper::toEntity),
+        )
 
     override suspend fun deleteProduct(productId: Long) {
         productDao.deleteProduct(productId)

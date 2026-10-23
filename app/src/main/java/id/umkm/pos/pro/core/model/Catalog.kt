@@ -13,6 +13,7 @@ data class Product(
     val minStockAlert: Double,
     val isActive: Boolean,
     val imagePath: String? = null,
+    val icon: String? = null,
 )
 
 data class ProductUnit(
