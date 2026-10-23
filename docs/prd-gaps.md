@@ -1,5 +1,22 @@
 # Implementation status against the PRD
 
+## Products, tablet navigation, and demo data update (2026-10-23)
+
+The Products page was restored to its pre-redesign shell on 2026-10-23: title header with an add
+action, search and sort bar, stock and category chips, and a responsive card grid (one column on
+phones, two on tablets). On phones the add action floats at the bottom-right above the navigation bar;
+tablets keep it in the header. The compact row card is shared with the cashier, whose catalog is a
+single-column list with a 104 dp trailing action area (add button or counter). Add/Edit opens as a
+right-side drawer, a slide-over on phones and a 40% inline panel on tablets, with rounded top-left and
+bottom-left corners. The earlier hero,
+floating search, and sticky-filter description no longer applies. The Products page shares the app
+background `#F6F8F7` with the cashier. Tablet navigation keeps the left rail, now 88 dp wide with the
+selected label below its icon, and uses the phone navigation styling. Demo seed data no longer uses the word "demo": categories
+are plain, SKUs use `SMP-`, and notes use `SMP`; the clear action still removes legacy `DEMO-`
+records. `products.icon` is nullable in schema v10; the requested Spring Boot endpoints do not exist
+because this repository is Android Room/Compose. Verified with `testDebugUnitTest`, `assembleDebug`,
+`ProductsScreenTest` (5/5), and `AppRootTest` (6/6) on TB321FU. See PRD §16 version 1.18.
+
 Audit of `docs/prd.md` against the code on 19 October 2026, including the commit that added local
 JSON backup and the in-app privacy policy. Every entry was verified by reading the code and by
 running the checks in "Release gate status", not inferred.
@@ -225,6 +242,13 @@ guard, a non-zero variance (Kurang Rp 5.000) requiring the checkbox, the More ca
 close form at 135% font. The TB321FU tablet was disconnected for these runs. Lint reported 14
 pre-existing errors, 57 warnings, and no staff/shift-specific findings.
 
+**23 October 2026 — More hub redesign.** The More ("Lainnya") hub now has one store and shift hero,
+one grouped navigation surface under "Kelola", and a neutral debug surface under "Alat". On tablets
+the detail pane starts empty instead of auto-selecting Settings. Expected cash has an explicit error
+state with retry, and the demo actions stack at large font scales. Addresses audit findings 1–19 for
+PRD §4, §5, §5.3, §5.5, and §6.5. Test and device verification are recorded in PRD §16 by the
+orchestrator.
+
 **Remaining, deliberately deferred:** a per-cashier PIN. The owner PIN still protects the cash
 handover, and the staff selector fixes names and operator attribution, but the till is not
 authenticated per person yet. Per-user credentials, enrollment, recovery, and role-based staff
@@ -265,7 +289,8 @@ Referenced by the PRD §7.8 ad table. No code.
 PRD §4 lists Cashier, Products, Customers, Reports, and More as primary destinations. The app ships
 Kasir, Produk, Transaksi, Laporan, and Lainnya, with Customers under More. The previous audit
 recorded this as a deliberate deviation matching the approved mockups; confirm whether it stays and
-update the PRD if so.
+update the PRD if so. The More hub layout was redesigned on 2026-10-23 (see the dated note in §4);
+the destination deviation itself is unchanged.
 
 ## Release gate status
 
