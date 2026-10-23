@@ -1,41 +1,32 @@
 package id.umkm.pos.pro.ui.more
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AppResult
@@ -43,28 +34,21 @@ import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.Staff
-import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.LocalAppContainer
-import id.umkm.pos.pro.ui.common.HeaderActionButton
+import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StatusChip
-import id.umkm.pos.pro.ui.components.AutoSizeNumberText
-import id.umkm.pos.pro.ui.components.IconBadge
-import id.umkm.pos.pro.ui.components.MenuListRow
-import id.umkm.pos.pro.ui.components.PosCard
-import id.umkm.pos.pro.ui.components.ProductThumbnail
-import id.umkm.pos.pro.ui.components.SecondaryTextAction
+import id.umkm.pos.pro.ui.components.hub.HubGroup
+import id.umkm.pos.pro.ui.components.hub.HubRow
+import id.umkm.pos.pro.ui.components.hub.HubSectionLabel
 import id.umkm.pos.pro.ui.customers.CustomersRoute
 import id.umkm.pos.pro.ui.settings.SettingsRoute
 import id.umkm.pos.pro.ui.shift.LocalShiftLauncher
-import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import kotlinx.coroutines.CancellationException
-
 
 private enum class MoreDestination { SETTINGS, CUSTOMERS }
 
@@ -84,20 +68,23 @@ fun MoreRoute(
     val activeStaff by remember(container) {
         container.staffRepository.observeActiveStaff()
     }.collectAsState(initial = null)
-    var expectedCash by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(activeShift?.id) {
-        expectedCash = null
-        expectedCash = try {
-            activeShift?.let { shift ->
-                when (val result = container.shiftRepository.getShiftSummary(shift.id)) {
-                    is AppResult.Success -> result.value.expectedEndingCash
-                    is AppResult.Failure -> null
+
+    var expectedCashState by remember { mutableStateOf<ExpectedCashState>(ExpectedCashState.Loading) }
+    var cashRetryKey by remember { mutableIntStateOf(0) }
+    LaunchedEffect(activeShift?.id, cashRetryKey) {
+        val shift = activeShift
+        expectedCashState = ExpectedCashState.Loading
+        if (shift != null) {
+            expectedCashState = try {
+                when (val shiftSummaryResult = container.shiftRepository.getShiftSummary(shift.id)) {
+                    is AppResult.Success -> ExpectedCashState.Ready(shiftSummaryResult.value.expectedEndingCash)
+                    is AppResult.Failure -> ExpectedCashState.Error
                 }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                ExpectedCashState.Error
             }
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (error: Exception) {
-            null
         }
     }
 
@@ -111,21 +98,21 @@ fun MoreRoute(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isTwoPane = maxWidth >= PosBreakpoints.twoPane
-        if (isTwoPane) {
-            val selectedPane = activeDetail ?: MoreDestination.SETTINGS
+        if (maxWidth >= PosBreakpoints.twoPane) {
+            val hubWidth = (maxWidth * 0.38f).coerceIn(320.dp, 440.dp)
             Row(modifier = Modifier.fillMaxSize()) {
                 MoreHubColumn(
                     settings = settings,
                     customers = customers,
                     activeShift = activeShift,
                     activeStaff = activeStaff,
-                    expectedCash = expectedCash,
-                    selectedDestination = selectedPane,
+                    expectedCash = expectedCashState,
+                    selectedDestination = activeDetail,
                     onSelectDestination = { destination -> activeDetail = destination },
+                    onRetryExpectedCash = { cashRetryKey++ },
                     onOpenCashier = onOpenCashier,
                     modifier = Modifier
-                        .width(360.dp)
+                        .width(hubWidth)
                         .fillMaxHeight(),
                 )
                 VerticalDivider(
@@ -137,7 +124,8 @@ fun MoreRoute(
                         .weight(1f)
                         .fillMaxHeight(),
                 ) {
-                    when (selectedPane) {
+                    when (activeDetail) {
+                        null -> MoreEmptyDetail()
                         MoreDestination.CUSTOMERS -> CustomersRoute(
                             onBack = null,
                             modifier = Modifier.fillMaxSize(),
@@ -175,9 +163,10 @@ fun MoreRoute(
                     customers = customers,
                     activeShift = activeShift,
                     activeStaff = activeStaff,
-                    expectedCash = expectedCash,
+                    expectedCash = expectedCashState,
                     selectedDestination = null,
                     onSelectDestination = { destination -> activeDetail = destination },
+                    onRetryExpectedCash = { cashRetryKey++ },
                     onOpenCashier = onOpenCashier,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -201,19 +190,17 @@ private fun MoreHubColumn(
     customers: List<Customer>,
     activeShift: CashierShift?,
     activeStaff: Staff?,
-    expectedCash: Long?,
+    expectedCash: ExpectedCashState,
     selectedDestination: MoreDestination?,
     onSelectDestination: (MoreDestination) -> Unit,
+    onRetryExpectedCash: () -> Unit,
     onOpenCashier: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val strings = LocalPosStrings.current
-    val palette = LocalPosSemanticPalette.current
-    val customerCount = customers.size
-    val totalReceivable = customers.sumOf { it.totalDebt }
 
     Column(modifier = modifier) {
-        ScreenHeader(title = strings.navMore)
+        ScreenHeader(title = strings.navMore, supportingText = strings.moreHeaderSupporting)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -224,207 +211,112 @@ private fun MoreHubColumn(
                     end = PosSpacing.md,
                     top = PosSpacing.xs,
                     bottom = PosSizes.listBottomPadding,
-                ),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+                )
+                .testTag(MoreHubTestTags.HUB),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.lg),
         ) {
-            StoreIdentityHeroCard(
+            MoreHero(
                 settings = settings,
                 activeShift = activeShift,
                 activeStaff = activeStaff,
-                onOpenSettings = { onSelectDestination(MoreDestination.SETTINGS) },
-            )
-
-            ShiftCard(
-                activeShift = activeShift,
-                activeStaff = activeStaff,
                 expectedCash = expectedCash,
-                onOpenCashier = onOpenCashier,
+                onShiftAction = onOpenCashier,
+                onRetryExpectedCash = onRetryExpectedCash,
             )
+            MoreManageSection(
+                customers = customers,
+                selectedDestination = selectedDestination,
+                onSelectDestination = onSelectDestination,
+            )
+            DemoDataSection()
+        }
+    }
+}
 
-            MenuListRow(
+@Composable
+private fun MoreHero(
+    settings: AppSettings?,
+    activeShift: CashierShift?,
+    activeStaff: Staff?,
+    expectedCash: ExpectedCashState,
+    onShiftAction: () -> Unit,
+    onRetryExpectedCash: () -> Unit,
+) {
+    val shiftLauncher = LocalShiftLauncher.current
+    val storeName = settings?.storeName?.takeIf { it.isNotBlank() }
+    val cashierLabel = if (activeShift != null) {
+        null
+    } else {
+        settings?.cashierName?.takeIf { it.isNotBlank() }
+    }
+    val operatorName = if (activeShift == null) {
+        null
+    } else {
+        activeStaff?.name?.takeIf { it.isNotBlank() } ?: activeShift.cashierName
+    }
+
+    MoreHeroSection(
+        storeName = storeName,
+        cashierLabel = cashierLabel,
+        taxRatePercent = settings?.taxRatePercent ?: 0,
+        isStoreLoading = settings == null,
+        activeShift = activeShift,
+        operatorName = operatorName,
+        expectedCash = expectedCash,
+        onShiftAction = onShiftAction,
+        onOpenHistory = shiftLauncher::openHistory,
+        onRetryExpectedCash = onRetryExpectedCash,
+    )
+}
+
+@Composable
+private fun MoreManageSection(
+    customers: List<Customer>,
+    selectedDestination: MoreDestination?,
+    onSelectDestination: (MoreDestination) -> Unit,
+) {
+    val strings = LocalPosStrings.current
+    val palette = LocalPosSemanticPalette.current
+    val unpaidCount = customers.count { it.totalDebt > 0L }
+    val customersDescription = if (customers.isEmpty()) {
+        strings.moreCustomersEmptyDescription
+    } else {
+        strings.moreCustomersDescription
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+        HubSectionLabel(text = strings.moreSectionManage)
+        HubGroup {
+            HubRow(
                 title = strings.moreHubSettings,
+                description = strings.moreSettingsDescription,
                 iconRes = R.drawable.ic_settings,
-                isSelected = selectedDestination == MoreDestination.SETTINGS,
                 onClick = { onSelectDestination(MoreDestination.SETTINGS) },
+                isSelected = selectedDestination == MoreDestination.SETTINGS,
+                modifier = Modifier.testTag(MoreHubTestTags.SETTINGS_ROW),
             )
-
-            MenuListRow(
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                modifier = Modifier.padding(horizontal = PosSpacing.md),
+            )
+            HubRow(
                 title = strings.moreHubCustomers,
+                description = customersDescription,
                 iconRes = R.drawable.ic_users,
+                onClick = { onSelectDestination(MoreDestination.CUSTOMERS) },
                 isSelected = selectedDestination == MoreDestination.CUSTOMERS,
-
+                modifier = Modifier.testTag(MoreHubTestTags.CUSTOMERS_ROW),
                 badge = {
-                    if (totalReceivable > 0L) {
-                        val unpaidCount = customers.count { it.totalDebt > 0L }
+                    if (unpaidCount > 0) {
                         StatusChip(
                             iconRes = R.drawable.ic_clock,
                             label = strings.moreKasbonCount(unpaidCount),
                             containerColor = palette.warningContainer,
                             contentColor = palette.warning,
                         )
-                    } else {
-                        StatusChip(
-                            iconRes = R.drawable.ic_users,
-                            label = strings.moreCustomerCount(customerCount),
-                            containerColor = palette.neutralContainer,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 },
-                onClick = { onSelectDestination(MoreDestination.CUSTOMERS) },
-            )
-
-            DemoDataSection()
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ShiftCard(
-    activeShift: CashierShift?,
-    activeStaff: Staff?,
-    expectedCash: Long?,
-    onOpenCashier: () -> Unit,
-) {
-    val strings = LocalPosStrings.current
-    val shiftLauncher = LocalShiftLauncher.current
-    val activeOperatorName = if (activeShift == null) {
-        null
-    } else {
-        activeStaff?.name ?: activeShift.cashierName
-    }
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-        ) {
-            IconBadge(iconRes = R.drawable.ic_users)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = strings.moreShiftTitle,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = if (activeOperatorName == null) {
-                        strings.moreShiftEmptySubtitle
-                    } else {
-                        strings.moreShiftActiveSubtitle(activeOperatorName)
-                    },
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        if (activeShift != null) {
-            HorizontalDivider()
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            ) {
-                Text(
-                    text = strings.moreShiftExpectedCash,
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                AutoSizeNumberText(
-                    text = expectedCash?.let(Rupiah::format) ?: strings.shiftSummaryLoading,
-                    style = LocalAppTextStyles.current.financialValue,
-                    modifier = Modifier.widthIn(max = 176.dp),
-                )
-            }
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        ) {
-            HeaderActionButton(
-                text = if (activeShift == null) {
-                    strings.cashierShiftOpenAction
-                } else {
-                    strings.cashierShiftSwitchAction
-                },
-                iconRes = R.drawable.ic_users,
-                onClick = onOpenCashier,
-            )
-            SecondaryTextAction(
-                text = strings.shiftHistoryAction,
-                onClick = shiftLauncher::openHistory,
             )
         }
     }
 }
-
-@Composable
-private fun StoreIdentityHeroCard(
-    settings: AppSettings?,
-    activeShift: CashierShift?,
-    activeStaff: Staff?,
-    onOpenSettings: () -> Unit,
-) {
-    val strings = LocalPosStrings.current
-    val storeName = settings?.storeName?.takeIf { it.isNotBlank() } ?: strings.moreDefaultStoreName
-    val cashierName = if (activeShift != null) {
-        activeStaff?.name?.takeIf { it.isNotBlank() }
-            ?: activeShift.cashierName.takeIf { it.isNotBlank() }
-            ?: settings?.cashierName?.takeIf { it.isNotBlank() }
-            ?: strings.moreDefaultCashierName
-    } else {
-        settings?.cashierName?.takeIf { it.isNotBlank() }
-            ?: strings.moreDefaultCashierName
-    }
-    val taxRate = settings?.taxRatePercent ?: 0
-
-    PosCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onOpenSettings),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.md),
-        ) {
-            ProductThumbnail(
-                category = "toko",
-                productName = storeName,
-                size = 48.dp,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = storeName,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "$cashierName • ${strings.moreTaxSummary(taxRate)}",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(
-                painter = painterResource(R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-

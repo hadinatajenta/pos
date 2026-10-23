@@ -89,6 +89,11 @@ internal object AppRootFakeContainer : AppContainer {
 
         override suspend fun findProductByBarcode(barcode: String): Product? = null
 
+        override suspend fun findProductByName(name: String, excludeId: Long): Product? =
+            products.value.firstOrNull { product ->
+                product.name.trim() == name.trim() && product.id != excludeId
+            }
+
         override suspend fun upsertProduct(product: Product): Long = product.id
 
         override suspend fun deleteProduct(productId: Long) = Unit

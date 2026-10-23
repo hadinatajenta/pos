@@ -1,8 +1,10 @@
 package id.umkm.pos.pro.ui.more
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,8 +30,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import id.umkm.pos.pro.BuildConfig
 import id.umkm.pos.pro.R
@@ -44,6 +49,7 @@ import id.umkm.pos.pro.ui.common.asText
 import id.umkm.pos.pro.ui.common.toUiText
 import id.umkm.pos.pro.ui.components.IconBadge
 import id.umkm.pos.pro.ui.components.PosCard
+import id.umkm.pos.pro.ui.components.hub.HubSectionLabel
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosSizes
@@ -54,151 +60,240 @@ val LocalDemoDataSeeder = staticCompositionLocalOf<DemoDataSeeder?> { null }
 
 @Composable
 internal fun DemoDataSection(modifier: Modifier = Modifier) {
-    if (BuildConfig.DEBUG) {
-        DemoDataSectionContent(modifier = modifier)
+    if (!BuildConfig.DEBUG) return
+    val seeder = LocalDemoDataSeeder.current ?: return
+    DemoDataContent(seeder = seeder, modifier = modifier)
+}
+
+@Composable
+private fun DemoDataContent(seeder: DemoDataSeeder, modifier: Modifier = Modifier) {
+    val strings = LocalPosStrings.current
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+    ) {
+        HubSectionLabel(text = strings.moreSectionTools)
+        Text(
+            text = strings.moreDebugHint,
+            style = LocalAppTextStyles.current.supportingLabel,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        DemoDataCard(seeder = seeder)
     }
 }
 
 @Composable
-private fun DemoDataSectionContent(modifier: Modifier = Modifier) {
-    val seeder = LocalDemoDataSeeder.current ?: return
-    val strings = LocalPosStrings.current
+private fun DemoDataCard(seeder: DemoDataSeeder, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
-    val palette = LocalPosSemanticPalette.current
+    val isLargeFont = LocalDensity.current.fontScale >= 1.3f
     var isBusy by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<UiText?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
 
-    PosCard(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-        ) {
-            IconBadge(iconRes = R.drawable.ic_flask)
-            Text(
-                text = strings.demoDataTitle,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.weight(1f),
-            )
-            if (isBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                )
-            }
+    val loadDemoData: () -> Unit = {
+        scope.launch {
+            isBusy = true
+            statusMessage = null
+            statusMessage = seeder.load().toStatusMessage(::seedLoadedMessage)
+            isBusy = false
         }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-        ) {
-            OutlinedButton(
-                onClick = {
-                    if (!isBusy) {
-                        scope.launch {
-                            isBusy = true
-                            statusMessage = null
-                            statusMessage = seeder.load().toStatusMessage(::seedLoadedMessage)
-                            isBusy = false
-                        }
-                    }
-                },
-                enabled = !isBusy,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = PosSpacing.sm,
-                    vertical = PosSpacing.xs,
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = PosSizes.touchTarget),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_flask),
-                    contentDescription = null,
-                    modifier = Modifier.size(PosSizes.iconSmall),
-                )
-                Spacer(modifier = Modifier.width(PosSpacing.xs))
-                Text(
-                    text = strings.demoDataLoad,
-                    style = LocalAppTextStyles.current.buttonLabel,
-                    maxLines = 1,
-                )
-            }
-            OutlinedButton(
-                onClick = { if (!isBusy) showClearConfirm = true },
-                enabled = !isBusy,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = palette.danger,
-                ),
-                border = BorderStroke(1.dp, palette.danger.copy(alpha = 0.35f)),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = PosSpacing.sm,
-                    vertical = PosSpacing.xs,
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = PosSizes.touchTarget),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_trash),
-                    contentDescription = null,
-                    modifier = Modifier.size(PosSizes.iconSmall),
-                )
-                Spacer(modifier = Modifier.width(PosSpacing.xs))
-                Text(
-                    text = strings.demoDataClear,
-                    style = LocalAppTextStyles.current.buttonLabel,
-                    maxLines = 1,
-                )
-            }
+    }
+    val clearDemoData: () -> Unit = {
+        scope.launch {
+            isBusy = true
+            statusMessage = null
+            statusMessage = seeder.clear().toClearStatusMessage(::clearSummaryMessage)
+            isBusy = false
         }
+    }
 
+    PosCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(MoreHubTestTags.DEBUG_SECTION),
+    ) {
+        DemoCardHeader(isBusy = isBusy)
+        DemoCardActions(
+            isBusy = isBusy,
+            isLargeFont = isLargeFont,
+            onLoad = loadDemoData,
+            onClearRequest = { showClearConfirm = true },
+        )
         statusMessage?.let { message ->
-            Surface(
-                color = palette.neutralContainer,
-                shape = MaterialTheme.shapes.small,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = message.asText(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
-                )
-            }
+            DemoStatusMessage(message = message)
         }
     }
 
     if (showClearConfirm) {
-        AlertDialog(
-            onDismissRequest = { showClearConfirm = false },
-            title = { Text(text = strings.demoDataClearConfirmTitle) },
-            text = {
-                Text(text = strings.demoDataClearConfirmMsg)
+        DemoClearDialog(
+            onConfirm = {
+                showClearConfirm = false
+                clearDemoData()
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showClearConfirm = false
-                        scope.launch {
-                            isBusy = true
-                            statusMessage = null
-                            statusMessage = seeder.clear().toClearStatusMessage(::clearSummaryMessage)
-                            isBusy = false
-                        }
-                    },
-                ) {
-                    Text(text = strings.actionDelete)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearConfirm = false }) {
-                    Text(text = strings.actionCancel)
-                }
-            },
+            onDismiss = { showClearConfirm = false },
         )
     }
+}
+
+@Composable
+private fun DemoCardHeader(isBusy: Boolean) {
+    val strings = LocalPosStrings.current
+    val palette = LocalPosSemanticPalette.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+    ) {
+        IconBadge(
+            iconRes = R.drawable.ic_flask,
+            containerColor = palette.neutralContainer,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = strings.demoDataTitle,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.weight(1f),
+        )
+        if (isBusy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                strokeWidth = 2.dp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DemoCardActions(
+    isBusy: Boolean,
+    isLargeFont: Boolean,
+    onLoad: () -> Unit,
+    onClearRequest: () -> Unit,
+) {
+    val strings = LocalPosStrings.current
+
+    if (isLargeFont) {
+        Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+            DemoActionButton(
+                text = strings.demoDataLoad,
+                iconRes = R.drawable.ic_flask,
+                onClick = onLoad,
+                enabled = !isBusy,
+                isDestructive = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            DemoActionButton(
+                text = strings.demoDataClear,
+                iconRes = R.drawable.ic_trash,
+                onClick = onClearRequest,
+                enabled = !isBusy,
+                isDestructive = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+            DemoActionButton(
+                text = strings.demoDataLoad,
+                iconRes = R.drawable.ic_flask,
+                onClick = onLoad,
+                enabled = !isBusy,
+                isDestructive = false,
+                modifier = Modifier.weight(1f),
+            )
+            DemoActionButton(
+                text = strings.demoDataClear,
+                iconRes = R.drawable.ic_trash,
+                onClick = onClearRequest,
+                enabled = !isBusy,
+                isDestructive = true,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DemoActionButton(
+    text: String,
+    @DrawableRes iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    isDestructive: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalPosSemanticPalette.current
+
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = if (isDestructive) {
+            ButtonDefaults.outlinedButtonColors(contentColor = palette.danger)
+        } else {
+            ButtonDefaults.outlinedButtonColors()
+        },
+        border = if (isDestructive) {
+            BorderStroke(1.dp, palette.danger.copy(alpha = 0.35f))
+        } else {
+            ButtonDefaults.outlinedButtonBorder(enabled = enabled)
+        },
+        contentPadding = PaddingValues(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
+        modifier = modifier.heightIn(min = PosSizes.touchTarget),
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(PosSizes.iconSmall),
+        )
+        Spacer(modifier = Modifier.width(PosSpacing.xs))
+        Text(
+            text = text,
+            style = LocalAppTextStyles.current.buttonLabel,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun DemoStatusMessage(message: UiText, modifier: Modifier = Modifier) {
+    val palette = LocalPosSemanticPalette.current
+
+    Surface(
+        color = palette.neutralContainer,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = message.asText(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = PosSpacing.sm, vertical = PosSpacing.xs),
+        )
+    }
+}
+
+@Composable
+private fun DemoClearDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val strings = LocalPosStrings.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = strings.demoDataClearConfirmTitle) },
+        text = { Text(text = strings.demoDataClearConfirmMsg) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = strings.actionDelete)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = strings.actionCancel)
+            }
+        },
+    )
 }
 
 private fun AppResult<DemoSeedSummary>.toStatusMessage(message: (DemoSeedSummary) -> UiText): UiText =
