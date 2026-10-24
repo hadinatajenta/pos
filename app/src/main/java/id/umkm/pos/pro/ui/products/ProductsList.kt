@@ -38,8 +38,7 @@ private const val PRODUCT_ENTRANCE_ANIMATION_LIMIT = 12
 private val PRODUCT_GRID_GAP = 12.dp
 private val PRODUCT_GRID_HORIZONTAL_PADDING = 16.dp
 private val PRODUCT_GRID_TOP_PADDING = 8.dp
-private val PRODUCT_GRID_BOTTOM_PADDING = PosSizes.listBottomPadding + 24.dp
-private val PRODUCT_GRID_BOTTOM_PADDING_COMPACT = 96.dp
+private val PRODUCT_GRID_BOTTOM_PADDING = 96.dp
 private val EMPTY_STATE_CONTENT_PADDING = 24.dp
 
 @Composable
@@ -51,11 +50,7 @@ internal fun ProductsCatalogSection(
     modifier: Modifier = Modifier,
 ) {
     val strings = LocalPosStrings.current
-    val bottomPadding = if (isCompact) {
-        PRODUCT_GRID_BOTTOM_PADDING_COMPACT
-    } else {
-        PRODUCT_GRID_BOTTOM_PADDING
-    }
+    val bottomPadding = PRODUCT_GRID_BOTTOM_PADDING
     when (val catalogState = state.catalog) {
         UiState.Loading -> CatalogScrollColumn(modifier = modifier, bottomPadding = bottomPadding) {
             LoadingState(label = strings.productsLoading)

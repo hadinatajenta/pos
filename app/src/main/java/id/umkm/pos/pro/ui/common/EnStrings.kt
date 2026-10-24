@@ -12,6 +12,8 @@ object EnStrings : PosStrings {
 
     override val actionSave = "Save"
     override val actionCancel = "Cancel"
+    override val actionNo = "No"
+    override val actionYes = "Yes"
     override val actionClose = "Close"
     override val actionOpen = "Open"
     override val actionShare = "Share"
@@ -101,12 +103,17 @@ object EnStrings : PosStrings {
     override val cashierEmptyCartMsg = "Tap products to add them to this sale."
     override val cashierClearCart = "Clear"
     override val cashierPay = "Pay"
+    override val cashierProcess = "Process"
+    override val cashierPayNow = "Pay now"
+    override val cashierTotalDue = "Total due"
+    override val cashierInsufficientCash = "Not enough cash"
     override val cashierTotal = "Total"
     override val cashierSubtotal = "Subtotal"
     override val cashierDiscount = "Discount"
     override val cashierTax = "Tax"
     override val cashierRounding = "Rounding"
     override val cashierAmountReceived = "Amount received"
+    override val cashierEnterAmountOption = "Enter amount"
     override val cashierExactMoney = "Exact Cash"
     override val cashierQuickNominal = "Quick cash"
     override val cashierQuickNominalOptions = "Amount options"
@@ -158,6 +165,12 @@ object EnStrings : PosStrings {
     override val cashierLoadingProducts = "Loading products"
     override val cashierPaymentTitle = "Payment"
     override val cashierConfirmPayment = "Confirm payment"
+    override val cashierConfirmPaymentQuestion = "Confirm payment?"
+    override val cashierConfirmSheetTitle = "Confirm Payment"
+    override val cashierCashReceived = "Cash received"
+    override val cashierConfirmAndPay = "Confirm & Pay"
+    override val cashierPaymentMoreOptions = "More options"
+    override val cashierPaymentHideOptions = "Hide options"
     override val cashierPaymentMethodLabel = "Payment method"
     override val cashierAmountPaidNow = "Amount paid now"
     override val cashierDepositReceived = "Deposit received"
@@ -202,6 +215,10 @@ object EnStrings : PosStrings {
     override val cashierShiftRequired = "Open a shift before taking payments."
     override val shiftOpenTitle = "Open shift"
     override val shiftOpenSupporting = "Choose the cashier and starting cash."
+    override val shiftQuickOpenTitle = "Start shift"
+    override val shiftQuickOpenSubmit = "Start shift"
+    override val shiftQuickStartingCashHint = "Leave 0 if you do not track opening cash."
+    override val shiftQuickDetailsAction = "Details"
     override val shiftCloseTitle = "Close shift"
     override val shiftCloseSupporting = { cashierName: String -> "Active cashier: $cashierName" }
     override val shiftOperatorDescription = "Cash and starting cash stay; only the cashier changes."
@@ -317,6 +334,8 @@ object EnStrings : PosStrings {
     override val paymentCash = "Cash"
     override val paymentQris = "QRIS"
     override val paymentTransfer = "Bank Transfer"
+    override val paymentDebit = "Debit"
+    override val paymentCredit = "Credit"
     override val paymentSplit = "Split Payment"
     override val paymentKasbon = "Customer Credit"
     override val paymentSplitShort = "Split"
@@ -617,6 +636,7 @@ object EnStrings : PosStrings {
     override val reportsExportAdHint = { folder: String ->
         "Watch a short ad, then the file is saved to $folder."
     }
+    override val reportsAdRequired = "Watch the ad to the end to export the file."
     override val reportsExportFormat = "Format"
     override val reportsExportConfirm = "Watch & Export"
     override val reportsRangeCustomHint = "Choose Date"
@@ -764,12 +784,12 @@ object EnStrings : PosStrings {
     override val demoDataLoad = "Load Demo"
     override val demoDataClear = "Clear Demo"
     override val demoDataClearConfirmTitle = "Clear demo data?"
-    override val demoDataClearConfirmMsg = "Transactions, customers, and products tagged DEMO will be removed. Real store data is untouched."
-    override val demoDataLoaded = { products: Int, customers: Int, transactions: Int, returns: Int ->
-        "Loaded: $products products, $customers customers, $transactions transactions, $returns returns"
+    override val demoDataClearConfirmMsg = "Transactions and products in the demo data will be removed. Real store data is untouched."
+    override val demoDataLoaded = { products: Int, transactions: Int, returns: Int ->
+        "Loaded: $products products, $transactions transactions, $returns returns"
     }
-    override val demoDataCleared = { products: Int, customers: Int, transactions: Int ->
-        "Removed: $products products, $customers customers, $transactions transactions"
+    override val demoDataCleared = { products: Int, transactions: Int ->
+        "Removed: $products products, $transactions transactions"
     }
     override val demoDataFailed = { detail: String -> "Failed: $detail" }
 

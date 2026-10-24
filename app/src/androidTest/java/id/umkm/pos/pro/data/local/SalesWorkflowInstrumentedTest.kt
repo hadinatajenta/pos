@@ -55,10 +55,8 @@ class SalesWorkflowInstrumentedTest {
             .build()
         productRepository = ProductRepositoryImpl(database.productDao())
         transactionRepository = TransactionRepositoryImpl(
-            database,
-            database.transactionDao(),
-            database.debtPaymentDao(),
-            database.customerDao(),
+            database = database,
+            transactionDao = database.transactionDao(),
         )
         returnRepository = ReturnRepositoryImpl(
             database,
@@ -107,7 +105,6 @@ class SalesWorkflowInstrumentedTest {
         assertEquals(3_000L, checkout.pricedCart.totalHpp)
         assertEquals(3_000L, checkout.pricedCart.netProfit)
         assertEquals(4_000L, checkout.allocation.changeAmount)
-        assertEquals(TransactionStatus.COMPLETED, checkout.allocation.status)
 
         val saved = transactionRepository.getTransaction(checkout.transactionId)!!
         assertEquals(checkout.invoiceNo, saved.invoiceNo)
@@ -119,7 +116,6 @@ class SalesWorkflowInstrumentedTest {
         assertEquals(3_000L, saved.netProfit)
         assertEquals(10_000L, saved.paidAmount)
         assertEquals(4_000L, saved.changeAmount)
-        assertEquals(0L, saved.remainingDebt)
         assertEquals(TransactionStatus.COMPLETED, saved.status)
 
         val items = transactionRepository.getItems(checkout.transactionId)
@@ -292,10 +288,8 @@ class SalesWorkflowInstrumentedTest {
     private fun saleRequest(productId: Long, unitId: Long?, qty: Double, paidAmount: Long): CheckoutRequest =
         CheckoutRequest(
             lines = listOf(CheckoutLine(productId, unitId, qty, null, 0L)),
-            customerId = null,
             paymentMethod = PaymentMethod.CASH,
             paidAmount = paidAmount,
-            dueDate = null,
             invoiceDiscount = 0L,
             taxRatePercent = 0,
             roundingIncrement = 0L,

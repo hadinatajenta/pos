@@ -22,11 +22,6 @@ data class DemoProductSpec(
     val units: List<DemoUnitSpec> = emptyList(),
 )
 
-data class DemoCustomerSpec(
-    val name: String,
-    val whatsappNumber: String,
-)
-
 object DemoCatalog {
 
     val products: List<DemoProductSpec> = listOf(
@@ -211,13 +206,6 @@ object DemoCatalog {
             minStockAlert = 6.0,
             desiredRemainingStock = 20.0,
         ),
-    )
-
-    val customers: List<DemoCustomerSpec> = listOf(
-        DemoCustomerSpec(name = "Budi Santoso", whatsappNumber = "6281200000001"),
-        DemoCustomerSpec(name = "Siti Aminah", whatsappNumber = "6281200000002"),
-        DemoCustomerSpec(name = "Rizky Pratama", whatsappNumber = "6281200000003"),
-        DemoCustomerSpec(name = "Dewi Lestari", whatsappNumber = "6281200000004"),
     )
 
     val kopiSusuIndex: Int by lazy { indexOfName("Kopi Susu") }

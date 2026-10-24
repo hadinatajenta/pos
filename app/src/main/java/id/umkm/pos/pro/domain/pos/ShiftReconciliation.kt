@@ -7,13 +7,11 @@ object ShiftReconciliation {
     fun summarize(
         startingCash: Long,
         cashSales: Long,
-        cashDebtPayments: Long,
         cashRefunds: Long,
         transactionCount: Int,
     ): ShiftCashSummary = ShiftCashSummary(
         startingCash = startingCash,
         cashSales = cashSales,
-        cashDebtPayments = cashDebtPayments,
         cashRefunds = cashRefunds,
         transactionCount = transactionCount,
     )

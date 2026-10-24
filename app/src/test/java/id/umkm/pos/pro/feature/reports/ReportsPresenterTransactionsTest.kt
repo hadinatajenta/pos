@@ -2,7 +2,6 @@ package id.umkm.pos.pro.feature.reports
 
 import com.google.common.truth.Truth.assertThat
 import id.umkm.pos.pro.core.contract.ReportRepository
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.ui.MainDispatcherRule
 import id.umkm.pos.pro.ui.common.EnStrings
@@ -29,7 +28,7 @@ class ReportsPresenterTransactionsTest {
             reportRepository = FakeReportRepository(
                 transactions = listOf(
                     sampleTransaction(id = 1L, status = TransactionStatus.COMPLETED),
-                    sampleTransaction(id = 2L, status = TransactionStatus.PARTIAL_DEBT),
+                    sampleTransaction(id = 2L, status = TransactionStatus.COMPLETED),
                     sampleTransaction(id = 3L, status = TransactionStatus.RETURNED),
                 ),
             ),
@@ -84,12 +83,12 @@ class ReportsPresenterTransactionsTest {
     }
 
     @Test
-    fun searchQueryAndKasbonFilterNarrowVisibleTransactions() = runTest(mainDispatcherRule.testDispatcher) {
+    fun searchQueryNarrowsVisibleTransactions() = runTest(mainDispatcherRule.testDispatcher) {
         val presenter = createPresenter(
             reportRepository = FakeReportRepository(
                 transactions = listOf(
                     sampleTransaction(id = 1L, invoiceNo = "INV-20261018-0001", status = TransactionStatus.COMPLETED),
-                    sampleTransaction(id = 2L, invoiceNo = "INV-20261018-0002", status = TransactionStatus.PARTIAL_DEBT),
+                    sampleTransaction(id = 2L, invoiceNo = "INV-20261018-0002", status = TransactionStatus.COMPLETED),
                     sampleTransaction(id = 3L, invoiceNo = "INV-20261018-0003", status = TransactionStatus.RETURNED),
                 ),
             ),
@@ -99,10 +98,6 @@ class ReportsPresenterTransactionsTest {
         presenter.start()
         mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
 
-        presenter.selectStatusFilter(TransactionStatusFilter.KASBON)
-        assertThat(presenter.uiState.value.visibleTransactions.map { it.id }).containsExactly(2L)
-
-        presenter.selectStatusFilter(null)
         presenter.updateSearchQuery("0003")
         assertThat(presenter.uiState.value.visibleTransactions.map { it.id }).containsExactly(3L)
     }
@@ -122,20 +117,9 @@ class ReportsPresenterTransactionsTest {
                         ),
                     ),
                 ),
-                transactionsById = mapOf(5L to sampleTransaction(id = 5L, invoiceNo = "INV-5", customerId = 7L)),
+                transactionsById = mapOf(5L to sampleTransaction(id = 5L, invoiceNo = "INV-5")),
             ),
             productRepository = FakeProductRepository(mapOf(10L to sampleProduct(name = "Kopi Susu"))),
-            customerRepository = FakeCustomerRepository(
-                mapOf(
-                    7L to Customer(
-                        id = 7L,
-                        name = "Bu Rina",
-                        whatsappNumber = null,
-                        totalDebt = 0L,
-                        notes = null,
-                    ),
-                ),
-            ),
             settingsRepository = FakeSettingsRepository(sampleSettings(storeName = "Toko Uji", cashierName = "Sari")),
             scope = this,
         )
@@ -150,7 +134,6 @@ class ReportsPresenterTransactionsTest {
         val loadedDetail = requireNotNull(detail)
         assertThat(loadedDetail.transaction.invoiceNo).isEqualTo("INV-5")
         assertThat(loadedDetail.cashierName).isEqualTo("Sari")
-        assertThat(loadedDetail.customerName).isEqualTo("Bu Rina")
         assertThat(loadedDetail.lines).hasSize(1)
         assertThat(loadedDetail.lines.single().name).isEqualTo("Kopi Susu")
         assertThat(loadedDetail.lines.single().quantityLabel).isEqualTo("3 pcs")
@@ -270,7 +253,6 @@ class ReportsPresenterTransactionsTest {
         reportRepository: ReportRepository = FakeReportRepository(),
         transactionRepository: FakeTransactionRepository = FakeTransactionRepository(),
         productRepository: FakeProductRepository = FakeProductRepository(),
-        customerRepository: FakeCustomerRepository = FakeCustomerRepository(),
         settingsRepository: FakeSettingsRepository = FakeSettingsRepository(),
         scope: CoroutineScope,
         strings: PosStrings = IdStrings,
@@ -278,7 +260,6 @@ class ReportsPresenterTransactionsTest {
         reportRepository = reportRepository,
         transactionRepository = transactionRepository,
         productRepository = productRepository,
-        customerRepository = customerRepository,
         settingsRepository = settingsRepository,
         csvExporter = SalesCsvExporter(reportRepository, RecordingCsvSink(), utc),
         xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),

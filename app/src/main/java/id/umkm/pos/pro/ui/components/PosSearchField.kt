@@ -24,8 +24,21 @@ fun PosSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Search,
+    containerColor: Color = Color.Unspecified,
+    focusedContainerColor: Color = Color.Unspecified,
+    showFocusBorder: Boolean = true,
 ) {
     val strings = LocalPosStrings.current
+    val resolvedContainerColor = if (containerColor == Color.Unspecified) {
+        androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer
+    } else {
+        containerColor
+    }
+    val resolvedFocusedContainerColor = if (focusedContainerColor == Color.Unspecified) {
+        androidx.compose.material3.MaterialTheme.colorScheme.surface
+    } else {
+        focusedContainerColor
+    }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -51,11 +64,15 @@ fun PosSearchField(
             }
         },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer,
-            disabledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer,
+            focusedContainerColor = resolvedFocusedContainerColor,
+            unfocusedContainerColor = resolvedContainerColor,
+            disabledContainerColor = resolvedContainerColor,
             unfocusedBorderColor = Color.Transparent,
-            focusedBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+            focusedBorderColor = if (showFocusBorder) {
+                androidx.compose.material3.MaterialTheme.colorScheme.primary
+            } else {
+                Color.Transparent
+            },
         ),
         keyboardOptions = KeyboardOptions(imeAction = imeAction),
     )

@@ -41,10 +41,8 @@ class UmkmDatabaseInstrumentedTest {
 
     private val transactionRepository: TransactionRepositoryImpl by lazy {
         TransactionRepositoryImpl(
-            database,
-            database.transactionDao(),
-            database.debtPaymentDao(),
-            database.customerDao(),
+            database = database,
+            transactionDao = database.transactionDao(),
         )
     }
 
@@ -265,7 +263,6 @@ class UmkmDatabaseInstrumentedTest {
         invoiceNo = invoiceNo,
         createdAt = 1_000L,
         cashierId = null,
-        customerId = null,
         subtotal = 6_000L,
         discountTotal = 0L,
         invoiceDiscount = 0L,
@@ -277,8 +274,6 @@ class UmkmDatabaseInstrumentedTest {
         paymentMethod = PaymentMethod.CASH,
         paidAmount = 6_000L,
         changeAmount = 0L,
-        remainingDebt = 0L,
-        dueDate = null,
         status = TransactionStatus.COMPLETED,
         notes = null,
     )

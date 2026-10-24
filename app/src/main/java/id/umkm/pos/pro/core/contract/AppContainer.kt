@@ -5,7 +5,6 @@ import id.umkm.pos.pro.domain.security.SecurityService
 interface AppContainer {
     val productRepository: ProductRepository
     val productImageRepository: ProductImageRepository
-    val customerRepository: CustomerRepository
     val transactionRepository: TransactionRepository
     val returnRepository: ReturnRepository
     val shiftRepository: ShiftRepository

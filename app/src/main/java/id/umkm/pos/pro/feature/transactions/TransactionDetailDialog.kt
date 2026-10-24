@@ -111,9 +111,6 @@ private fun TransactionDetailContent(
             detail.cashierName?.takeIf { name -> name.isNotBlank() }?.let { cashierName ->
                 DetailInfoRow(label = strings.transactionsFieldCashier, value = cashierName)
             }
-            detail.customerName?.takeIf { name -> name.isNotBlank() }?.let { customerName ->
-                DetailInfoRow(label = strings.transactionsFieldCustomer, value = customerName)
-            }
             DetailInfoRow(
                 label = strings.transactionsFieldPaymentMethod,
                 value = paymentMethodLabel(transaction.paymentMethod, strings),
@@ -144,12 +141,6 @@ private fun TransactionDetailContent(
             DetailAmountRow(label = strings.transactionsFieldPaid, value = transaction.paidAmount)
             if (transaction.changeAmount > 0L) {
                 DetailAmountRow(label = strings.transactionsFieldChange, value = transaction.changeAmount)
-            }
-            if (transaction.remainingDebt > 0L) {
-                DetailAmountRow(label = strings.transactionsFieldRemainingDebt, value = transaction.remainingDebt)
-            }
-            transaction.dueDate?.let { dueDate ->
-                DetailInfoRow(label = strings.transactionsFieldDueDate, value = formatDate(dueDate, strings))
             }
         }
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {

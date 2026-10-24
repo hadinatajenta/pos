@@ -26,7 +26,6 @@ object ReportCsv {
         "net_profit",
         "paid_amount",
         "change_amount",
-        "remaining_debt",
     )
 
     fun reportTransactionColumns(strings: PosStrings): List<String> = listOf(
@@ -73,7 +72,6 @@ object ReportCsv {
                     transaction.netProfit.toString(),
                     transaction.paidAmount.toString(),
                     transaction.changeAmount.toString(),
-                    transaction.remainingDebt.toString(),
                 ),
             )
         }

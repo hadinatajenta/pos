@@ -36,6 +36,7 @@ class UmkmDatabaseMigrationTest {
         context.deleteDatabase(TEST_DATABASE_NAME_7_8)
         context.deleteDatabase(TEST_DATABASE_NAME_8_9)
         context.deleteDatabase(TEST_DATABASE_NAME_9_10)
+        context.deleteDatabase(TEST_DATABASE_NAME_10_11)
     }
 
 
@@ -348,6 +349,55 @@ class UmkmDatabaseMigrationTest {
         versionTen.close()
     }
 
+    @Test
+    fun migration10To11DropsCustomerDebtTablesAndKeepsTransactionHistory() {
+        migrationHelper.createDatabase(TEST_DATABASE_NAME_10_11, 10).use { versionTen ->
+            versionTen.execSQL(INSERT_VERSION_TEN_CUSTOMER)
+            versionTen.execSQL(INSERT_VERSION_TEN_TRANSACTION)
+            versionTen.execSQL(INSERT_VERSION_TEN_VARIANT_TRANSACTION)
+            versionTen.execSQL(INSERT_VERSION_TEN_ITEM)
+            versionTen.execSQL(INSERT_VERSION_TEN_DEBT_PAYMENT)
+        }
+
+        val versionEleven = migrationHelper.runMigrationsAndValidate(
+            TEST_DATABASE_NAME_10_11,
+            11,
+            true,
+            UmkmDatabase.MIGRATION_10_11,
+        )
+
+        versionEleven.query(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('customers', 'debt_payments')",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        versionEleven.query(
+            "SELECT payment_method, status FROM transactions WHERE id = 1",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("CASH", cursor.getString(0))
+            assertEquals("COMPLETED", cursor.getString(1))
+        }
+        versionEleven.query(
+            "SELECT payment_method, status FROM transactions WHERE id = 2",
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("CASH", cursor.getString(0))
+            assertEquals("COMPLETED", cursor.getString(1))
+        }
+        versionEleven.query("PRAGMA table_info(transactions)").use { cursor ->
+            val columns = buildSet {
+                while (cursor.moveToNext()) add(cursor.getString(cursor.getColumnIndexOrThrow("name")))
+            }
+            assertTrue("customer_id" !in columns)
+            assertTrue("remaining_debt" !in columns)
+            assertTrue("due_date" !in columns)
+        }
+        assertTableRowCount(versionEleven, "transaction_items", 2)
+        versionEleven.close()
+    }
+
     private fun assertTableRowCount(
         database: SupportSQLiteDatabase,
         table: String,
@@ -377,6 +427,43 @@ class UmkmDatabaseMigrationTest {
         const val TEST_DATABASE_NAME_8_9 = "umkm-migration-8-9.db"
 
         const val TEST_DATABASE_NAME_9_10 = "umkm-migration-9-10.db"
+
+        const val TEST_DATABASE_NAME_10_11 = "umkm-migration-10-11.db"
+
+        const val INSERT_VERSION_TEN_CUSTOMER =
+            "INSERT INTO customers (id, name, whatsapp_number, total_debt, notes) " +
+                "VALUES (1, 'Bu Rina', NULL, 5000, 'SMP')"
+
+        const val INSERT_VERSION_TEN_TRANSACTION =
+            "INSERT INTO transactions " +
+                "(id, invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
+                "invoice_discount, tax_total, rounding, grand_total, total_hpp, net_profit, " +
+                "payment_method, paid_amount, change_amount, remaining_debt, due_date, status, notes, " +
+                "cashier_name, shift_id, staff_id) " +
+                "VALUES (1, 'INV-V10-1', 1700000000000, NULL, 1, 6000, 0, 0, 0, 0, 6000, " +
+                "3000, 3000, 'SPLIT', 6000, 0, 0, NULL, 'COMPLETED', 'SPLIT', 'Sari', NULL, NULL)"
+
+        const val INSERT_VERSION_TEN_VARIANT_TRANSACTION =
+            "INSERT INTO transactions " +
+                "(id, invoice_no, created_at, cashier_id, customer_id, subtotal, discount_total, " +
+                "invoice_discount, tax_total, rounding, grand_total, total_hpp, net_profit, " +
+                "payment_method, paid_amount, change_amount, remaining_debt, due_date, status, notes, " +
+                "cashier_name, shift_id, staff_id) " +
+                "VALUES (2, 'INV-V10-2', 1700000001000, NULL, 1, 10000, 0, 0, 0, 0, 10000, " +
+                "4000, 6000, 'KASBON', 2000, 0, 8000, 1700005000000, 'PARTIAL_DEBT', 'KASBON', " +
+                "'Sari', NULL, NULL)"
+
+        const val INSERT_VERSION_TEN_ITEM =
+            "INSERT INTO transaction_items " +
+                "(id, transaction_id, product_id, variant_name, qty, unit_hpp, applied_unit_price, " +
+                "is_nego_price, is_wholesale_applied, item_discount, subtotal, conversion_factor, " +
+                "product_name_snapshot, unit_label_snapshot) " +
+                "VALUES (1, 1, 7, NULL, 2.0, 5000, 15000, 0, 0, 0, 30000, NULL, 'Kopi Susu', 'pcs')"
+
+        const val INSERT_VERSION_TEN_DEBT_PAYMENT =
+            "INSERT INTO debt_payments " +
+                "(id, transaction_id, customer_id, paid_at, amount, payment_method, note) " +
+                "VALUES (1, 2, 1, 1700000002000, 3000, 'CASH', 'SMP')"
 
         const val INSERT_VERSION_NINE_PRODUCT =
             "INSERT INTO products " +

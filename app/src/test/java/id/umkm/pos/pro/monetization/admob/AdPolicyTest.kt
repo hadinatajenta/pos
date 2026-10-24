@@ -53,8 +53,10 @@ class AdPolicyTest {
     fun bannerPlacementsMatchThePrd() {
         assertThat(AdPolicy.supportsBanner(AdPlacement.DEBT_LIST)).isTrue()
         assertThat(AdPolicy.supportsBanner(AdPlacement.STOCK_MANAGEMENT)).isTrue()
+        assertThat(AdPolicy.supportsBanner(AdPlacement.REPORTS)).isTrue()
         assertThat(AdPolicy.supportsBanner(AdPlacement.EXCEL_EXPORT)).isFalse()
         assertThat(AdPolicy.formatFor(AdPlacement.DEBT_LIST)).isEqualTo(AdFormat.BANNER)
+        assertThat(AdPolicy.formatFor(AdPlacement.REPORTS)).isEqualTo(AdFormat.BANNER)
     }
 
     @Test

@@ -5,6 +5,7 @@ import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.contract.RewardedAdOutcome
 import id.umkm.pos.pro.ui.MainDispatcherRule
 import id.umkm.pos.pro.ui.common.EnStrings
 import id.umkm.pos.pro.ui.common.IdStrings
@@ -99,8 +100,8 @@ class ReportsPresenterExportTest {
     }
 
     @Test
-    fun rewardedAdFailureDoesNotBlockExport() = runTest(mainDispatcherRule.testDispatcher) {
-        val adController = RecordingAdController(AppResult.Failure(AppError.Network("ads unavailable")))
+    fun rewardedAdEarnedAllowsExportToSucceed() = runTest(mainDispatcherRule.testDispatcher) {
+        val adController = RecordingAdController(outcome = RewardedAdOutcome.EARNED)
         val csvSink = RecordingCsvSink()
         val presenter = createPresenter(
             reportRepository = FakeReportRepository(transactions = listOf(sampleTransaction(id = 1L))),
@@ -119,6 +120,53 @@ class ReportsPresenterExportTest {
         assertThat(adController.callCount).isEqualTo(1)
         assertThat(presenter.uiState.value.exportState).isInstanceOf(ReportsExportState.Succeeded::class.java)
         assertThat(csvSink.writtenContent).isNotNull()
+    }
+
+    @Test
+    fun rewardedAdUnavailableDoesNotBlockExport() = runTest(mainDispatcherRule.testDispatcher) {
+        val adController = RecordingAdController(outcome = RewardedAdOutcome.UNAVAILABLE)
+        val csvSink = RecordingCsvSink()
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(transactions = listOf(sampleTransaction(id = 1L))),
+            transactionRepository = FakeTransactionRepository(mapOf(1L to listOf(sampleTransactionItem()))),
+            productRepository = FakeProductRepository(mapOf(10L to sampleProduct())),
+            csvSink = csvSink,
+            adController = adController,
+            scope = this,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.exportReport(ReportExportFormat.CSV)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(adController.callCount).isEqualTo(1)
+        assertThat(presenter.uiState.value.exportState).isInstanceOf(ReportsExportState.Succeeded::class.java)
+        assertThat(csvSink.writtenContent).isNotNull()
+    }
+
+    @Test
+    fun rewardedAdDismissedSetsAdRequiredStateAndWritesNoFile() = runTest(mainDispatcherRule.testDispatcher) {
+        val adController = RecordingAdController(outcome = RewardedAdOutcome.DISMISSED)
+        val csvSink = RecordingCsvSink()
+        val presenter = createPresenter(
+            reportRepository = FakeReportRepository(transactions = listOf(sampleTransaction(id = 1L))),
+            transactionRepository = FakeTransactionRepository(mapOf(1L to listOf(sampleTransactionItem()))),
+            productRepository = FakeProductRepository(mapOf(10L to sampleProduct())),
+            csvSink = csvSink,
+            adController = adController,
+            scope = this,
+        )
+
+        presenter.start()
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+        presenter.exportReport(ReportExportFormat.CSV)
+        mainDispatcherRule.testDispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(adController.callCount).isEqualTo(1)
+        assertThat(presenter.uiState.value.exportState).isEqualTo(ReportsExportState.AdRequired)
+        assertThat(csvSink.writtenPath).isNull()
+        assertThat(csvSink.writtenContent).isNull()
     }
 
     @Test
@@ -257,7 +305,6 @@ class ReportsPresenterExportTest {
         reportRepository = reportRepository,
         transactionRepository = transactionRepository,
         productRepository = productRepository,
-        customerRepository = FakeCustomerRepository(),
         settingsRepository = FakeSettingsRepository(),
         csvExporter = SalesCsvExporter(reportRepository, csvSink, utc),
         xlsxExporter = XlsxReportExporter(binarySink, utc),

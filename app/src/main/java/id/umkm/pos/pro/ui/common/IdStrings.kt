@@ -12,6 +12,8 @@ object IdStrings : PosStrings {
 
     override val actionSave = "Simpan"
     override val actionCancel = "Batal"
+    override val actionNo = "Tidak"
+    override val actionYes = "Ya"
     override val actionClose = "Tutup"
     override val actionOpen = "Buka"
     override val actionShare = "Bagikan"
@@ -101,12 +103,17 @@ object IdStrings : PosStrings {
     override val cashierEmptyCartMsg = "Ketuk produk untuk menambahkan ke penjualan."
     override val cashierClearCart = "Kosongkan"
     override val cashierPay = "Bayar"
+    override val cashierProcess = "Proses"
+    override val cashierPayNow = "Bayar Sekarang"
+    override val cashierTotalDue = "Total Tagihan"
+    override val cashierInsufficientCash = "Uang Kurang"
     override val cashierTotal = "Total"
     override val cashierSubtotal = "Subtotal"
     override val cashierDiscount = "Diskon"
     override val cashierTax = "Pajak"
     override val cashierRounding = "Pembulatan"
     override val cashierAmountReceived = "Jumlah diterima"
+    override val cashierEnterAmountOption = "Masukkan nominal"
     override val cashierExactMoney = "Uang Pas"
     override val cashierQuickNominal = "Nominal cepat"
     override val cashierQuickNominalOptions = "Pilihan nominal"
@@ -158,6 +165,12 @@ object IdStrings : PosStrings {
     override val cashierLoadingProducts = "Memuat produk"
     override val cashierPaymentTitle = "Pembayaran"
     override val cashierConfirmPayment = "Konfirmasi pembayaran"
+    override val cashierConfirmPaymentQuestion = "Konfirmasi pembayaran?"
+    override val cashierConfirmSheetTitle = "Konfirmasi Pembayaran"
+    override val cashierCashReceived = "Uang Diterima"
+    override val cashierConfirmAndPay = "Konfirmasi & Bayar"
+    override val cashierPaymentMoreOptions = "Opsi lainnya"
+    override val cashierPaymentHideOptions = "Sembunyikan opsi"
     override val cashierPaymentMethodLabel = "Metode pembayaran"
     override val cashierAmountPaidNow = "Jumlah dibayar sekarang"
     override val cashierDepositReceived = "Titipan diterima"
@@ -202,6 +215,10 @@ object IdStrings : PosStrings {
     override val cashierShiftRequired = "Buka shift terlebih dahulu sebelum menerima pembayaran."
     override val shiftOpenTitle = "Buka shift"
     override val shiftOpenSupporting = "Pilih kasir dan isi modal awal."
+    override val shiftQuickOpenTitle = "Mulai shift"
+    override val shiftQuickOpenSubmit = "Mulai shift"
+    override val shiftQuickStartingCashHint = "Isi 0 jika tidak mencatat modal awal."
+    override val shiftQuickDetailsAction = "Atur detail"
     override val shiftCloseTitle = "Tutup shift"
     override val shiftCloseSupporting = { cashierName: String -> "Kasir aktif: $cashierName" }
     override val shiftOperatorDescription = "Laci dan modal tetap; hanya kasir yang berganti."
@@ -317,6 +334,8 @@ object IdStrings : PosStrings {
     override val paymentCash = "Tunai"
     override val paymentQris = "QRIS"
     override val paymentTransfer = "Transfer"
+    override val paymentDebit = "Debit"
+    override val paymentCredit = "Kredit"
     override val paymentSplit = "Bagi Bayar"
     override val paymentKasbon = "Kasbon"
     override val paymentSplitShort = "Bagi"
@@ -617,6 +636,7 @@ object IdStrings : PosStrings {
     override val reportsExportAdHint = { folder: String ->
         "Tonton iklan singkat, lalu berkas disimpan di folder $folder."
     }
+    override val reportsAdRequired = "Tonton iklan sampai selesai untuk mengekspor berkas."
     override val reportsExportFormat = "Format"
     override val reportsExportConfirm = "Tonton & Ekspor"
     override val reportsRangeCustomHint = "Pilih Tanggal"
@@ -764,12 +784,12 @@ object IdStrings : PosStrings {
     override val demoDataLoad = "Muat Demo"
     override val demoDataClear = "Hapus Demo"
     override val demoDataClearConfirmTitle = "Hapus data demo?"
-    override val demoDataClearConfirmMsg = "Transaksi, pelanggan, dan produk bertanda DEMO akan dihapus. Data asli toko tidak diubah."
-    override val demoDataLoaded = { products: Int, customers: Int, transactions: Int, returns: Int ->
-        "Dimuat: $products produk, $customers pelanggan, $transactions transaksi, $returns retur"
+    override val demoDataClearConfirmMsg = "Transaksi dan produk data demo akan dihapus. Data asli toko tidak diubah."
+    override val demoDataLoaded = { products: Int, transactions: Int, returns: Int ->
+        "Dimuat: $products produk, $transactions transaksi, $returns retur"
     }
-    override val demoDataCleared = { products: Int, customers: Int, transactions: Int ->
-        "Dihapus: $products produk, $customers pelanggan, $transactions transaksi"
+    override val demoDataCleared = { products: Int, transactions: Int ->
+        "Dihapus: $products produk, $transactions transaksi"
     }
     override val demoDataFailed = { detail: String -> "Gagal: $detail" }
 

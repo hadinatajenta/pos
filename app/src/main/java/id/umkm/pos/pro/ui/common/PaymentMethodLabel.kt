@@ -6,6 +6,6 @@ fun paymentMethodLabel(method: PaymentMethod, strings: PosStrings): String = whe
     PaymentMethod.CASH -> strings.paymentCash
     PaymentMethod.QRIS -> strings.paymentQris
     PaymentMethod.TRANSFER -> strings.paymentTransfer
-    PaymentMethod.SPLIT -> strings.paymentSplit
-    PaymentMethod.KASBON -> strings.paymentKasbon
+    PaymentMethod.DEBIT -> strings.paymentDebit
+    PaymentMethod.CREDIT -> strings.paymentCredit
 }

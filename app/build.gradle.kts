@@ -9,6 +9,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+configurations.matching { it.name.endsWith("CompileClasspath") }.configureEach {
+    resolutionStrategy.force("com.google.guava:listenablefuture:1.0")
+}
+
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val isReleaseSigningConfigured = keystorePropertiesFile.exists()
@@ -26,6 +30,10 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+        buildConfigField("String", "ADMOB_REWARDED_EXPORT_UNIT_ID", "\"ca-app-pub-3940256099942544/5224354917\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -51,6 +59,9 @@ android {
         }
         release {
             signingConfig = if (isReleaseSigningConfigured) signingConfigs.getByName("release") else null
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-5729173430518647~5768680380"
+            buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"ca-app-pub-5729173430518647/1672900587\"")
+            buildConfigField("String", "ADMOB_REWARDED_EXPORT_UNIT_ID", "\"ca-app-pub-5729173430518647/6119412059\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -128,6 +139,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.zxing.core)
+    implementation(libs.play.services.ads)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

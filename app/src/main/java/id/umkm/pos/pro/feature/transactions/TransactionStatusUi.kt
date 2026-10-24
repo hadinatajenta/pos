@@ -13,7 +13,6 @@ import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 
 internal fun transactionStatusLabel(status: TransactionStatus, strings: PosStrings): String = when (status) {
     TransactionStatus.COMPLETED -> strings.transactionsStatusCompleted
-    TransactionStatus.PARTIAL_DEBT -> strings.transactionsStatusDebt
     TransactionStatus.RETURNED -> strings.transactionsStatusReturned
 }
 
@@ -22,7 +21,6 @@ internal fun transactionStatusContentColor(status: TransactionStatus): Color {
     val palette = LocalPosSemanticPalette.current
     return when (status) {
         TransactionStatus.COMPLETED -> palette.success
-        TransactionStatus.PARTIAL_DEBT -> palette.warning
         TransactionStatus.RETURNED -> palette.danger
     }
 }
@@ -41,12 +39,6 @@ internal fun TransactionStatusChip(
             containerColor = palette.successContainer
             contentColor = palette.success
             iconRes = R.drawable.ic_circle_check
-        }
-
-        TransactionStatus.PARTIAL_DEBT -> {
-            containerColor = palette.warningContainer
-            contentColor = palette.warning
-            iconRes = R.drawable.ic_circle_alert
         }
 
         TransactionStatus.RETURNED -> {

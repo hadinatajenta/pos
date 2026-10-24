@@ -1,6 +1,5 @@
 package id.umkm.pos.pro.feature.reports
 
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
@@ -12,7 +11,6 @@ internal object TransactionDetailLoader {
         transactionId: Long,
         transactionRepository: TransactionRepository,
         productRepository: ProductRepository,
-        customerRepository: CustomerRepository,
         settingsRepository: SettingsRepository,
     ): TransactionDetail? {
         val transaction = transactionRepository.getTransaction(transactionId) ?: return null
@@ -28,12 +26,8 @@ internal object TransactionDetailLoader {
                 lineTotal = item.subtotal,
             )
         }
-        val customerName = transaction.customerId?.let { customerId ->
-            customerRepository.getCustomer(customerId)?.name
-        }
         return TransactionDetail(
             transaction = transaction,
-            customerName = customerName,
             cashierName = settingsRepository.getSettings().cashierName,
             lines = lines,
         )

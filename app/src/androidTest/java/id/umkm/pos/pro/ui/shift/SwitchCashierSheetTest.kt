@@ -50,7 +50,6 @@ class SwitchCashierSheetTest {
     private val summary = ShiftCashSummary(
         startingCash = 100_000L,
         cashSales = 40_000L,
-        cashDebtPayments = 10_000L,
         cashRefunds = 0L,
         transactionCount = 3,
     )
@@ -61,6 +60,8 @@ class SwitchCashierSheetTest {
         onSwitchOperator: (Long) -> Unit = {},
         onCloseShift: () -> Unit = {},
         onSwitchShift: () -> Unit = {},
+        onOpenShift: () -> Unit = {},
+        onOpenFullForm: () -> Unit = {},
     ): ShiftActions = ShiftActions(
         onSelectStaff = onSelectStaff,
         onStartingCashChange = {},
@@ -68,7 +69,7 @@ class SwitchCashierSheetTest {
         onSelectNextStaff = onSelectNextStaff,
         onNextStartingCashChange = {},
         onVarianceAcknowledgedChange = {},
-        onOpenShift = {},
+        onOpenShift = onOpenShift,
         onCloseShift = onCloseShift,
         onSwitchShift = onSwitchShift,
         onSwitchOperator = onSwitchOperator,
@@ -76,6 +77,7 @@ class SwitchCashierSheetTest {
         onDismissHistory = {},
         onRetryHistory = {},
         onMessageConsumed = {},
+        onOpenFullForm = onOpenFullForm,
     )
 
     private val noOpActions = testActions()
@@ -104,6 +106,71 @@ class SwitchCashierSheetTest {
         staffOptions = listOf(dini, budi),
         activeStaff = dini,
     )
+
+    @Test
+    fun phoneQuickOpenVariantRendersCompactHeaderPrefilledZeroAndActions() {
+        showSheet(
+            ShiftUiState(
+                mode = ShiftSheetMode.SHIFT_FORM,
+                isQuickMode = true,
+                staffOptions = listOf(dini),
+                selectedStaffId = dini.id,
+                startingCashInput = "0",
+            ),
+        )
+
+        composeRule.onNodeWithTag(SHIFT_SHEET_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.shiftQuickOpenTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(IdStrings.cashierShiftRequired).assertIsDisplayed()
+        composeRule.onNodeWithText("Dini").assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG).assertDoesNotExist()
+        composeRule.onNodeWithText(IdStrings.shiftQuickStartingCashHint).assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_PRIMARY_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftQuickOpenSubmit))
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_QUICK_DETAILS_ACTION_TEST_TAG)
+            .assert(hasText(IdStrings.shiftQuickDetailsAction))
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_OPERATOR_TAB_TEST_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(SHIFT_CLOSE_TAB_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun phoneQuickOpenWithMultipleStaffShowsCashierPicker() {
+        var selectedStaffId: Long? = null
+        showSheet(
+            state = ShiftUiState(
+                mode = ShiftSheetMode.SHIFT_FORM,
+                isQuickMode = true,
+                staffOptions = listOf(dini, budi),
+                selectedStaffId = dini.id,
+                startingCashInput = "0",
+            ),
+            actions = testActions(onSelectStaff = { staffId -> selectedStaffId = staffId }),
+        )
+
+        composeRule.onNodeWithTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(SHIFT_STAFF_ROW_TEST_TAG_PREFIX + budi.id).performClick()
+        assertThat(selectedStaffId).isEqualTo(budi.id)
+    }
+
+    @Test
+    fun phoneQuickOpenDetailsActionInvokesOpenFullForm() {
+        var detailsClicked = false
+        showSheet(
+            state = ShiftUiState(
+                mode = ShiftSheetMode.SHIFT_FORM,
+                isQuickMode = true,
+                staffOptions = listOf(dini),
+                selectedStaffId = dini.id,
+                startingCashInput = "0",
+            ),
+            actions = testActions(onOpenFullForm = { detailsClicked = true }),
+        )
+
+        composeRule.onNodeWithTag(SHIFT_QUICK_DETAILS_ACTION_TEST_TAG).performClick()
+        assertThat(detailsClicked).isTrue()
+    }
 
     @Test
     fun phoneOpenShiftFormShowsStaffPickerWithoutAFreeTextCashierField() {
@@ -225,7 +292,7 @@ class SwitchCashierSheetTest {
     fun phoneCloseTabHidesZeroDebtAndRefundRows() {
         showSheet(
             idleOperatorState().copy(
-                summary = summary.copy(cashDebtPayments = 0L, cashRefunds = 0L),
+                summary = summary.copy(cashRefunds = 0L),
             ),
         )
 

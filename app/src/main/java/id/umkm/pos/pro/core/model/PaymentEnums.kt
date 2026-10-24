@@ -4,12 +4,11 @@ enum class PaymentMethod {
     CASH,
     QRIS,
     TRANSFER,
-    SPLIT,
-    KASBON,
+    DEBIT,
+    CREDIT,
 }
 
 enum class TransactionStatus {
     COMPLETED,
-    PARTIAL_DEBT,
     RETURNED,
 }

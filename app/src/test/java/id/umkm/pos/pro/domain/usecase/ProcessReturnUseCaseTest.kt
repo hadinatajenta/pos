@@ -24,10 +24,8 @@ class ProcessReturnUseCaseTest {
         val result = checkout(
             CheckoutRequest(
                 lines = listOf(CheckoutLine(1L, null, 3.0, null, 0L)),
-                customerId = null,
                 paymentMethod = PaymentMethod.CASH,
                 paidAmount = 6_000L,
-                dueDate = null,
                 invoiceDiscount = 0L,
                 taxRatePercent = 0,
                 roundingIncrement = 0L,

@@ -13,11 +13,9 @@ object BackupTables {
     val insertOrder: List<String> = listOf(
         "products",
         "product_variants_units",
-        "customers",
         STAFF_TABLE,
         "transactions",
         "transaction_items",
-        "debt_payments",
         "returns",
         "return_lines",
         "cashier_shifts",

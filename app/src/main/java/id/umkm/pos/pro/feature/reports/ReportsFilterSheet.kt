@@ -1,9 +1,7 @@
 package id.umkm.pos.pro.feature.reports
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -16,15 +14,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,19 +35,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.core.model.ReportRange
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.PosStrings
-import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosSizes
-import id.umkm.pos.pro.ui.theme.PosSpacing
 import java.util.TimeZone
 
 private enum class FilterPickerTarget { START, END }
@@ -93,58 +92,69 @@ internal fun ReportsFilterSheet(
     var activePicker by remember { mutableStateOf<FilterPickerTarget?>(null) }
     val strings = LocalPosStrings.current
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = ReportsPalette.CardSurface,
+        contentColor = ReportsPalette.TextMain,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = PosSpacing.lg, vertical = PosSpacing.sm)
-                .padding(bottom = PosSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Text(
                 text = strings.reportsFilterPeriod,
-                style = LocalAppTextStyles.current.sectionHeading,
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = ReportsPalette.TextMain,
             )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-            ) {
-                FILTER_PRESETS.forEach { option ->
-                    RangeChip(
-                        label = option.pickerLabel(strings),
-                        selected = option == preset,
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FILTER_PRESETS.forEach { option ->
+                        RangeChip(
+                            label = option.pickerLabel(strings),
+                            selected = option == preset,
+                            onClick = {
+                                onPresetSelected(option)
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+                RangeChip(
+                    label = ReportsRangePreset.CUSTOM.pickerLabel(strings),
+                    selected = preset == ReportsRangePreset.CUSTOM,
+                    onClick = { isCustomEditing = true },
+                )
+            }
+            if (isCustomEditing) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FilterDateButton(
+                        title = strings.reportsRangeStart,
+                        value = ReportDates.formatEpochDayShort(draftStartEpochDay, strings),
+                        onClick = { activePicker = FilterPickerTarget.START },
+                    )
+                    FilterDateButton(
+                        title = strings.reportsRangeEnd,
+                        value = ReportDates.formatEpochDayShort(draftEndEpochDay, strings),
+                        onClick = { activePicker = FilterPickerTarget.END },
+                    )
+                    PrimaryActionButton(
+                        text = strings.actionApply,
                         onClick = {
-                            onPresetSelected(option)
+                            onCustomRangeSelected(draftStartEpochDay, draftEndEpochDay)
                             onDismiss()
                         },
                     )
                 }
-            }
-            RangeChip(
-                label = ReportsRangePreset.CUSTOM.pickerLabel(strings),
-                selected = preset == ReportsRangePreset.CUSTOM,
-                onClick = { isCustomEditing = true },
-            )
-            if (isCustomEditing) {
-                FilterDateButton(
-                    title = strings.reportsRangeStart,
-                    value = ReportDates.formatEpochDayShort(draftStartEpochDay, strings),
-                    onClick = { activePicker = FilterPickerTarget.START },
-                )
-                FilterDateButton(
-                    title = strings.reportsRangeEnd,
-                    value = ReportDates.formatEpochDayShort(draftEndEpochDay, strings),
-                    onClick = { activePicker = FilterPickerTarget.END },
-                )
-                PrimaryActionButton(
-                    text = strings.actionApply,
-                    onClick = {
-                        onCustomRangeSelected(draftStartEpochDay, draftEndEpochDay)
-                        onDismiss()
-                    },
-                )
             }
         }
     }
@@ -191,33 +201,50 @@ private fun FilterDateButton(
     onClick: () -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        color = ReportsPalette.CardSurface,
+        contentColor = ReportsPalette.TextMain,
+        shape = ReportsShapes.smallCard,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = PosSizes.touchTarget)
+            .shadow(
+                elevation = 4.dp,
+                shape = ReportsShapes.smallCard,
+                clip = false,
+                ambientColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.05f),
+                spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.05f),
+            )
+            .clickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     text = title,
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ReportsPalette.TextMuted,
                 )
                 Text(
                     text = value,
-                    style = LocalAppTextStyles.current.body,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ReportsPalette.TextMain,
                 )
             }
             Icon(
                 painter = painterResource(R.drawable.ic_calendar),
                 contentDescription = null,
-                modifier = Modifier.size(PosSizes.iconSmall),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+                tint = ReportsPalette.Primary,
             )
         }
     }
@@ -229,31 +256,11 @@ internal fun RangeChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Surface(
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        },
-        contentColor = if (selected) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        shape = androidx.compose.foundation.shape.CircleShape,
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Box(
-            modifier = Modifier.heightIn(min = 38.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = label,
-                style = LocalAppTextStyles.current.supportingLabel,
-                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
-            )
-        }
-    }
+    ReportsFilterPill(
+        label = label,
+        selected = selected,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -265,34 +272,44 @@ internal fun ExportDialog(
     val strings = LocalPosStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = strings.reportsExportDialogTitle) },
+        shape = ReportsShapes.card,
+        containerColor = ReportsPalette.CardSurface,
+        titleContentColor = ReportsPalette.TextMain,
+        textContentColor = ReportsPalette.TextMain,
+        tonalElevation = 0.dp,
+        title = {
+            Text(
+                text = strings.reportsExportDialogTitle,
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = ReportsPalette.TextMain,
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     text = strings.reportsExportAdHint(DownloadsFileSink.DESTINATION_LABEL),
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = ReportsPalette.TextMuted,
                 )
-                Text(
-                    text = strings.reportsExportFormat,
-                    style = LocalAppTextStyles.current.tableHeader,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                ReportExportFormat.entries.forEach { format ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = PosSizes.touchTarget)
-                            .selectable(
-                                selected = format == selectedFormat,
-                                role = Role.RadioButton,
-                                onClick = { selectedFormat = format },
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = format == selectedFormat, onClick = null)
-                        Spacer(modifier = Modifier.width(PosSpacing.sm))
-                        Text(text = format.label, style = LocalAppTextStyles.current.body)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = strings.reportsExportFormat,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.6.sp,
+                        color = ReportsPalette.TextMuted,
+                    )
+                    ReportExportFormat.entries.forEach { format ->
+                        ExportFormatOption(
+                            format = format,
+                            selected = format == selectedFormat,
+                            onSelect = { selectedFormat = format },
+                        )
                     }
                 }
             }
@@ -302,7 +319,12 @@ internal fun ExportDialog(
                 onClick = { onConfirm(selectedFormat) },
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = strings.reportsExportConfirm)
+                Text(
+                    text = strings.reportsExportConfirm,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ReportsPalette.Primary,
+                )
             }
         },
         dismissButton = {
@@ -310,8 +332,49 @@ internal fun ExportDialog(
                 onClick = onDismiss,
                 modifier = Modifier.heightIn(min = PosSizes.touchTarget),
             ) {
-                Text(text = strings.actionCancel)
+                Text(
+                    text = strings.actionCancel,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ReportsPalette.TextMuted,
+                )
             }
         },
     )
+}
+
+@Composable
+private fun ExportFormatOption(
+    format: ReportExportFormat,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = PosSizes.touchTarget)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onSelect,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = ReportsPalette.Primary,
+                unselectedColor = ReportsPalette.TextMuted,
+            ),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = format.label,
+            fontSize = 15.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = ReportsPalette.TextMain,
+        )
+    }
 }

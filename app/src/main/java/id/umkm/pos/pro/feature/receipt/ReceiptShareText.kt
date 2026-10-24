@@ -16,7 +16,6 @@ data class ReceiptShareData(
     val invoiceNo: String,
     val createdAtLabel: String,
     val cashierName: String?,
-    val customerName: String?,
     val paymentMethodLabel: String,
     val items: List<ReceiptShareItem>,
     val subtotal: Long,
@@ -26,8 +25,6 @@ data class ReceiptShareData(
     val grandTotal: Long,
     val paidAmount: Long,
     val changeAmount: Long,
-    val remainingDebt: Long,
-    val dueDateLabel: String?,
 )
 
 object ReceiptShareText {
@@ -43,9 +40,6 @@ object ReceiptShareText {
         lines += strings.receiptDateLabel(data.createdAtLabel)
         data.cashierName?.takeIf { it.isNotBlank() }?.let { cashier ->
             lines += strings.receiptCashierLabel(cashier)
-        }
-        data.customerName?.takeIf { it.isNotBlank() }?.let { customer ->
-            lines += strings.receiptCustomerLabel(customer)
         }
         lines += strings.receiptMethodLabel(data.paymentMethodLabel)
         lines += SEPARATOR
@@ -75,12 +69,6 @@ object ReceiptShareText {
         lines += strings.receiptPaid(Rupiah.format(data.paidAmount))
         if (data.changeAmount > 0L) {
             lines += strings.receiptChange(Rupiah.format(data.changeAmount))
-        }
-        if (data.remainingDebt > 0L) {
-            lines += strings.receiptRemainingDebt(Rupiah.format(data.remainingDebt))
-            data.dueDateLabel?.let { dueDate ->
-                lines += strings.receiptDueDate(dueDate)
-            }
         }
         lines += SEPARATOR
         lines += ""

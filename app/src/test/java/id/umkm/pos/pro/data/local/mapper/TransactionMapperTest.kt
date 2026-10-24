@@ -16,7 +16,6 @@ class TransactionMapperTest {
             invoiceNo = "INV-2026-0001",
             createdAt = 1_700_000_000_000L,
             cashierId = 1L,
-            customerId = 11L,
             subtotal = 90_000L,
             discountTotal = 15_000L,
             invoiceDiscount = 10_000L,
@@ -25,13 +24,11 @@ class TransactionMapperTest {
             grandTotal = 84_000L,
             totalHpp = 60_000L,
             netProfit = 20_000L,
-            paymentMethod = PaymentMethod.SPLIT,
+            paymentMethod = PaymentMethod.TRANSFER,
             paidAmount = 80_000L,
             changeAmount = 0L,
-            remainingDebt = 4_000L,
-            dueDate = 1_700_500_000_000L,
-            status = TransactionStatus.PARTIAL_DEBT,
-            notes = "kasbon sisa",
+            status = TransactionStatus.COMPLETED,
+            notes = "transfer",
         )
 
         val restored = TransactionMapper.toModel(TransactionMapper.toEntity(transaction))
@@ -46,7 +43,6 @@ class TransactionMapperTest {
             invoiceNo = "INV-2026-0002",
             createdAt = 10L,
             cashierId = null,
-            customerId = null,
             subtotal = 50_000L,
             discountTotal = 5_000L,
             invoiceDiscount = 5_000L,
@@ -58,8 +54,6 @@ class TransactionMapperTest {
             paymentMethod = PaymentMethod.CASH,
             paidAmount = 50_000L,
             changeAmount = 5_000L,
-            remainingDebt = 0L,
-            dueDate = null,
             status = TransactionStatus.COMPLETED,
             notes = null,
         )
@@ -68,9 +62,7 @@ class TransactionMapperTest {
 
         assertThat(entity.invoiceDiscount).isEqualTo(5_000L)
         assertThat(entity.discountTotal).isEqualTo(5_000L)
-        assertThat(entity.customerId).isNull()
         assertThat(entity.cashierId).isNull()
-        assertThat(entity.dueDate).isNull()
         assertThat(entity.notes).isNull()
         assertThat(entity.paymentMethod).isEqualTo(PaymentMethod.CASH)
         assertThat(entity.status).isEqualTo(TransactionStatus.COMPLETED)

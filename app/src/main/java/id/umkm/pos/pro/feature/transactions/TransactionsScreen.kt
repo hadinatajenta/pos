@@ -1,33 +1,42 @@
 package id.umkm.pos.pro.feature.transactions
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ReportRange
@@ -40,14 +49,16 @@ import id.umkm.pos.pro.feature.reports.ReportsUiState
 import id.umkm.pos.pro.feature.reports.TransactionStatusFilter
 import id.umkm.pos.pro.feature.reports.label
 import id.umkm.pos.pro.feature.reports.periodLabel
+import id.umkm.pos.pro.ui.common.CenteredScreenHeader
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.ErrorState
-import id.umkm.pos.pro.ui.common.HeaderActionButton
 import id.umkm.pos.pro.ui.common.LoadingState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
-import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.components.PosSearchField
+import id.umkm.pos.pro.ui.products.ProductPalette
+import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.PosBreakpoints
+import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import java.util.TimeZone
@@ -73,26 +84,12 @@ internal fun TransactionsScreen(
         val isExpanded = maxWidth >= PosBreakpoints.twoPane
         val horizontalPadding = if (isExpanded) PosSpacing.lg else PosSpacing.md
         Column(modifier = Modifier.fillMaxSize()) {
-            ScreenHeader(
+            CenteredScreenHeader(
                 title = strings.transactionsTitle,
                 supportingText = strings.transactionsCountWithPeriod(
                     uiState.visibleTransactions.size,
                     activePeriodLabel,
                 ),
-                actions = {
-                    IconButton(onClick = { isFilterSheetVisible = true }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_calendar),
-                            contentDescription = strings.transactionsFilterPeriod,
-                        )
-                    }
-                    HeaderActionButton(
-                        text = strings.actionAdd,
-                        iconRes = R.drawable.ic_plus,
-                        contentDescription = strings.transactionsAddAction,
-                        onClick = onAddTransaction,
-                    )
-                },
             )
             PosSearchField(
                 value = uiState.searchQuery,
@@ -104,7 +101,17 @@ internal fun TransactionsScreen(
                         start = horizontalPadding,
                         end = horizontalPadding,
                         bottom = PosSpacing.xs,
+                    )
+                    .shadow(
+                        elevation = 3.dp,
+                        shape = PosShapes.large,
+                        clip = false,
+                        ambientColor = Color.Black.copy(alpha = 0.05f),
+                        spotColor = Color.Black.copy(alpha = 0.05f),
                     ),
+                containerColor = Color.White,
+                focusedContainerColor = Color.White,
+                showFocusBorder = false,
             )
             TransactionsFilterRow(
                 transactions = uiState.transactions,
@@ -146,7 +153,7 @@ internal fun TransactionsScreen(
                         },
                     )
 
-                    isExpanded -> TransactionsTable(
+                    isExpanded -> TransactionsCompactList(
                         transactions = uiState.visibleTransactions,
                         timeZone = timeZone,
                         actions = actions,
@@ -181,65 +188,97 @@ private fun TransactionsFilterRow(
     onOpenPeriodFilter: () -> Unit,
     onSelectAll: () -> Unit,
     onToggleStatusFilter: (TransactionStatusFilter) -> Unit,
-    horizontalPadding: androidx.compose.ui.unit.Dp,
+    horizontalPadding: Dp,
 ) {
     val strings = LocalPosStrings.current
-    val chipColors = FilterChipDefaults.filterChipColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        selectedContainerColor = MaterialTheme.colorScheme.primary,
-        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-    )
-    LazyRow(
+    val containerShape = RoundedCornerShape(18.dp)
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = PosSpacing.xs),
-        contentPadding = PaddingValues(horizontal = horizontalPadding),
-        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+            .padding(
+                start = horizontalPadding,
+                end = horizontalPadding,
+                top = 4.dp,
+                bottom = 8.dp,
+            )
+            .shadow(
+                elevation = 4.dp,
+                shape = containerShape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.05f),
+                spotColor = Color.Black.copy(alpha = 0.05f),
+            )
+            .background(ProductPalette.Surface, containerShape),
     ) {
-        item(key = "period") {
-            FilterChip(
-                selected = false,
-                onClick = onOpenPeriodFilter,
-                label = { Text(text = periodText) },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_calendar),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                },
-                shape = CircleShape,
-                border = null,
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    iconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-            )
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            contentPadding = PaddingValues(horizontal = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            item(key = "period") {
+                TransactionFilterChip(
+                    label = periodText,
+                    selected = false,
+                    onClick = onOpenPeriodFilter,
+                    leadingIconRes = R.drawable.ic_calendar,
+                )
+            }
+            item(key = "all") {
+                TransactionFilterChip(
+                    label = strings.transactionsFilterAll(transactions.size),
+                    selected = statusFilter == null,
+                    onClick = onSelectAll,
+                )
+            }
+            items(
+                items = TransactionStatusFilter.entries,
+                key = { option -> option.name },
+            ) { option ->
+                val count = transactions.count { transaction -> transaction.status in option.statuses }
+                TransactionFilterChip(
+                    label = strings.transactionsFilterOption(option.label(strings), count),
+                    selected = option == statusFilter,
+                    onClick = { onToggleStatusFilter(option) },
+                )
+            }
         }
-        item(key = "all") {
-            FilterChip(
-                selected = statusFilter == null,
-                onClick = onSelectAll,
-                label = { Text(text = strings.transactionsFilterAll(transactions.size)) },
-                shape = CircleShape,
-                border = null,
-                colors = chipColors,
-            )
-        }
-        items(
-            items = TransactionStatusFilter.entries,
-            key = { option -> option.name },
-        ) { option ->
-            val count = transactions.count { transaction -> transaction.status in option.statuses }
-            FilterChip(
-                selected = option == statusFilter,
-                onClick = { onToggleStatusFilter(option) },
-                label = { Text(text = strings.transactionsFilterOption(option.label(strings), count)) },
-                shape = CircleShape,
-                border = null,
-                colors = chipColors,
+    }
+}
+
+@Composable
+private fun TransactionFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    leadingIconRes: Int? = null,
+) {
+    Surface(
+        onClick = onClick,
+        color = if (selected) ProductPalette.Brand else Color.Transparent,
+        contentColor = if (selected) Color.White else ProductPalette.MutedText,
+        shape = CircleShape,
+        modifier = Modifier.heightIn(min = 36.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (leadingIconRes != null) {
+                Icon(
+                    painter = painterResource(leadingIconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
             )
         }
     }
@@ -262,9 +301,8 @@ private fun previewTransactionsState(): ReportsUiState {
         sampleTransaction(
             id = 3L,
             invoiceNo = "INV-20261017-0001",
-            paymentMethod = PaymentMethod.KASBON,
+            paymentMethod = PaymentMethod.TRANSFER,
             grandTotal = 120_000L,
-            status = TransactionStatus.PARTIAL_DEBT,
         ),
     )
     return ReportsUiState(
@@ -293,7 +331,6 @@ private fun sampleTransaction(
     invoiceNo = invoiceNo,
     createdAt = 1_705_320_180_000L,
     cashierId = null,
-    customerId = null,
     subtotal = grandTotal,
     discountTotal = 0L,
     invoiceDiscount = 0L,
@@ -305,8 +342,6 @@ private fun sampleTransaction(
     paymentMethod = paymentMethod,
     paidAmount = grandTotal,
     changeAmount = 0L,
-    remainingDebt = 0L,
-    dueDate = null,
     status = status,
     notes = null,
 )

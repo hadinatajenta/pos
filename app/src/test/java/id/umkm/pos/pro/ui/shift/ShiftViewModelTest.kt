@@ -41,7 +41,6 @@ class ShiftViewModelTest {
     private val summary = ShiftCashSummary(
         startingCash = 100_000L,
         cashSales = 40_000L,
-        cashDebtPayments = 10_000L,
         cashRefunds = 0L,
         transactionCount = 3,
     )
@@ -66,11 +65,151 @@ class ShiftViewModelTest {
 
         val state = viewModel.state.value
         assertThat(state.mode).isEqualTo(ShiftSheetMode.SHIFT_FORM)
+        assertThat(state.isQuickMode).isFalse()
+        assertThat(state.startingCashInput).isEmpty()
         assertThat(state.activeShift).isNull()
         assertThat(state.staffOptions.map(Staff::name)).containsExactly("Dini", "Budi")
         assertThat(state.activeStaff?.id).isEqualTo(dini.id)
         assertThat(state.selectedStaffId).isEqualTo(dini.id)
         assertThat(state.selectedNextStaffId).isNull()
+    }
+
+    @Test
+    fun quickFormPreselectsStaffAndPrefillsZero() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = null, summary = summary)
+        val viewModel = createViewModel(repository)
+
+        viewModel.onQuickOpenShiftForm()
+
+        val state = viewModel.state.value
+        assertThat(state.mode).isEqualTo(ShiftSheetMode.SHIFT_FORM)
+        assertThat(state.isQuickMode).isTrue()
+        assertThat(state.staffOptions.map(Staff::name)).containsExactly("Dini", "Budi")
+        assertThat(state.activeStaff?.id).isEqualTo(dini.id)
+        assertThat(state.selectedStaffId).isEqualTo(dini.id)
+        assertThat(state.startingCashInput).isEqualTo("0")
+        assertThat(state.isOpenInputReady).isTrue()
+        assertThat(state.lastOpenedShiftId).isNull()
+    }
+
+    @Test
+    fun submittingQuickFormWithZeroOpensShiftAndSetsLastOpenedShiftId() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = null, summary = summary)
+        val viewModel = createViewModel(repository)
+        viewModel.onQuickOpenShiftForm()
+
+        viewModel.onOpenShift()
+
+        assertThat(repository.openedStaffIds).containsExactly(dini.id)
+        assertThat(repository.openedStartingCash).containsExactly(0L)
+        val state = viewModel.state.value
+        assertThat(state.mode).isEqualTo(ShiftSheetMode.HIDDEN)
+        assertThat(state.isQuickMode).isFalse()
+        assertThat(state.lastOpenedShiftId).isEqualTo(repository.activeShift?.id)
+        assertThat(state.activeShift?.cashierName).isEqualTo("Dini")
+        assertThat(state.message?.resolve(IdStrings)).isEqualTo("Shift Dini dibuka.")
+    }
+
+    @Test
+    fun lastOpenedShiftIdSignalFiresOnceAndClearsWhenConsumed() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = null, summary = summary)
+        val viewModel = createViewModel(repository)
+        viewModel.onQuickOpenShiftForm()
+
+        var callbackInvocations = 0
+        val observedShiftIds = mutableListOf<Long>()
+        fun pollObserver() {
+            val shiftId = viewModel.state.value.lastOpenedShiftId
+            if (shiftId != null) {
+                observedShiftIds += shiftId
+                callbackInvocations++
+                viewModel.onOpenedShiftConsumed()
+            }
+        }
+
+        pollObserver()
+        assertThat(callbackInvocations).isEqualTo(0)
+
+        viewModel.onOpenShift()
+        pollObserver()
+        assertThat(callbackInvocations).isEqualTo(1)
+        assertThat(observedShiftIds).containsExactly(1L)
+        assertThat(viewModel.state.value.lastOpenedShiftId).isNull()
+
+        pollObserver()
+        assertThat(callbackInvocations).isEqualTo(1)
+    }
+
+    @Test
+    fun dismissingFormResetsQuickModeAndDoesNotSetLastOpenedShiftId() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = null, summary = summary)
+        val viewModel = createViewModel(repository)
+        viewModel.onQuickOpenShiftForm()
+        assertThat(viewModel.state.value.isQuickMode).isTrue()
+
+        var callbackInvocations = 0
+        fun checkCallback() {
+            if (viewModel.state.value.lastOpenedShiftId != null) {
+                callbackInvocations++
+            }
+        }
+
+        viewModel.onDismissForm()
+
+        checkCallback()
+        assertThat(callbackInvocations).isEqualTo(0)
+        val state = viewModel.state.value
+        assertThat(state.mode).isEqualTo(ShiftSheetMode.HIDDEN)
+        assertThat(state.isQuickMode).isFalse()
+        assertThat(state.lastOpenedShiftId).isNull()
+    }
+
+    @Test
+    fun fullFormStillStartsWithAnEmptyStartingCashField() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = null, summary = summary)
+        val viewModel = createViewModel(repository)
+
+        viewModel.onOpenShiftForm()
+
+        val state = viewModel.state.value
+        assertThat(state.mode).isEqualTo(ShiftSheetMode.SHIFT_FORM)
+        assertThat(state.isQuickMode).isFalse()
+        assertThat(state.startingCashInput).isEmpty()
+        assertThat(state.selectedStaffId).isEqualTo(dini.id)
+        assertThat(state.isOpenInputReady).isFalse()
+        assertThat(state.lastOpenedShiftId).isNull()
+    }
+
+    @Test
+    fun switchingToFullFormFromQuickFormClearsZeroPrefillAndPreservesStaff() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = null, summary = summary)
+        val viewModel = createViewModel(repository)
+        viewModel.onQuickOpenShiftForm()
+        viewModel.onSelectStaff(budi.id)
+        assertThat(viewModel.state.value.isQuickMode).isTrue()
+        assertThat(viewModel.state.value.startingCashInput).isEqualTo("0")
+        assertThat(viewModel.state.value.selectedStaffId).isEqualTo(budi.id)
+
+        viewModel.onOpenFullForm()
+
+        val state = viewModel.state.value
+        assertThat(state.mode).isEqualTo(ShiftSheetMode.SHIFT_FORM)
+        assertThat(state.isQuickMode).isFalse()
+        assertThat(state.startingCashInput).isEmpty()
+        assertThat(state.selectedStaffId).isEqualTo(budi.id)
+    }
+
+    @Test
+    fun quickOpenWhenActiveShiftAlreadyExistsFallsBackToNormalFormWithoutQuickMode() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeShiftRepository(initialActiveShift = activeShift, summary = summary)
+        val viewModel = createViewModel(repository)
+
+        viewModel.onQuickOpenShiftForm()
+
+        val state = viewModel.state.value
+        assertThat(state.mode).isEqualTo(ShiftSheetMode.SHIFT_FORM)
+        assertThat(state.isQuickMode).isFalse()
+        assertThat(state.startingCashInput).isEmpty()
     }
 
     @Test
@@ -163,7 +302,7 @@ class ShiftViewModelTest {
         val repository = FakeShiftRepository(activeShift, summary)
         val viewModel = createViewModel(repository)
         viewModel.onOpenShiftForm()
-        viewModel.onActualEndingCashChange("150000")
+        viewModel.onActualEndingCashChange("140000")
         viewModel.onNextStartingCashChange("200000")
 
         viewModel.onSwitchShift()
@@ -178,7 +317,7 @@ class ShiftViewModelTest {
         val repository = FakeShiftRepository(activeShift, summary)
         val viewModel = createViewModel(repository)
         viewModel.onOpenShiftForm()
-        viewModel.onActualEndingCashChange("150000")
+        viewModel.onActualEndingCashChange("140000")
         viewModel.onSelectNextStaff(budi.id)
         viewModel.onNextStartingCashChange("200000")
 
@@ -187,7 +326,7 @@ class ShiftViewModelTest {
         assertThat(repository.switchCalls).containsExactly(
             SwitchCall(
                 closeShiftId = 1L,
-                actualEndingCash = 150_000L,
+                actualEndingCash = 140_000L,
                 nextStaffId = budi.id,
                 nextStartingCash = 200_000L,
             ),
@@ -243,7 +382,7 @@ class ShiftViewModelTest {
 
         val entry = viewModel.state.value.history.single()
         assertThat(entry.isActive).isTrue()
-        assertThat(entry.expectedEndingCash).isEqualTo(150_000L)
+        assertThat(entry.expectedEndingCash).isEqualTo(140_000L)
         assertThat(viewModel.state.value.mode).isEqualTo(ShiftSheetMode.HISTORY)
     }
 
@@ -260,6 +399,7 @@ class ShiftViewModelTest {
     ) : ShiftRepository {
 
         private val activeShiftState = MutableStateFlow(initialActiveShift)
+        val activeShift: CashierShift? get() = activeShiftState.value
         private var nextShiftId = (initialActiveShift?.id ?: 0L) + 1L
         private val staff = listOf(
             Staff(id = 1L, name = "Dini"),

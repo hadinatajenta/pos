@@ -49,13 +49,37 @@ fun ShiftHost(
     }
     val viewModel: ShiftViewModel = viewModel(factory = viewModelFactory)
     val state by viewModel.state.collectAsState()
-    val actions = remember(viewModel) { ShiftActions.from(viewModel) }
+    var pendingQuickOpen by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val actions = remember(viewModel) {
+        val base = ShiftActions.from(viewModel)
+        ShiftActions(
+            onSelectStaff = base.onSelectStaff,
+            onStartingCashChange = base.onStartingCashChange,
+            onActualEndingCashChange = base.onActualEndingCashChange,
+            onSelectNextStaff = base.onSelectNextStaff,
+            onNextStartingCashChange = base.onNextStartingCashChange,
+            onVarianceAcknowledgedChange = base.onVarianceAcknowledgedChange,
+            onOpenShift = base.onOpenShift,
+            onCloseShift = base.onCloseShift,
+            onSwitchShift = base.onSwitchShift,
+            onSwitchOperator = base.onSwitchOperator,
+            onDismissForm = {
+                pendingQuickOpen = null
+                base.onDismissForm()
+            },
+            onDismissHistory = base.onDismissHistory,
+            onRetryHistory = base.onRetryHistory,
+            onMessageConsumed = base.onMessageConsumed,
+            onOpenFullForm = base.onOpenFullForm,
+        )
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     var pendingCartClear by remember { mutableStateOf<(() -> Unit)?>(null) }
     var isCartGuardVisible by remember { mutableStateOf(false) }
     val launcher = remember(viewModel) {
         object : ShiftLauncher {
             override fun openShift(cartItemCount: Int, onClearCart: () -> Unit) {
+                pendingQuickOpen = null
                 if (cartItemCount > 0 && viewModel.state.value.activeShift != null) {
                     pendingCartClear = onClearCart
                     isCartGuardVisible = true
@@ -64,7 +88,18 @@ fun ShiftHost(
                 }
             }
 
+            override fun openQuickShift(onOpened: () -> Unit) {
+                if (viewModel.state.value.activeShift != null) {
+                    pendingQuickOpen = null
+                    viewModel.onOpenShiftForm()
+                } else {
+                    pendingQuickOpen = onOpened
+                    viewModel.onQuickOpenShiftForm()
+                }
+            }
+
             override fun openHistory() {
+                pendingQuickOpen = null
                 viewModel.onOpenHistory()
             }
         }
@@ -74,6 +109,18 @@ fun ShiftHost(
         if (messageText == null) return@LaunchedEffect
         snackbarHostState.showSnackbar(messageText)
         actions.onMessageConsumed()
+    }
+    LaunchedEffect(state.lastOpenedShiftId) {
+        if (state.lastOpenedShiftId == null) return@LaunchedEffect
+        val callback = pendingQuickOpen
+        pendingQuickOpen = null
+        callback?.invoke()
+        viewModel.onOpenedShiftConsumed()
+    }
+    LaunchedEffect(state.mode) {
+        if (state.mode == ShiftSheetMode.HIDDEN && state.lastOpenedShiftId == null) {
+            pendingQuickOpen = null
+        }
     }
     CompositionLocalProvider(LocalShiftLauncher provides launcher) {
         Box(modifier = modifier.fillMaxSize()) {
@@ -93,6 +140,7 @@ fun ShiftHost(
                     state = state,
                     actions = actions,
                     onManageStaff = {
+                        pendingQuickOpen = null
                         viewModel.onDismissForm()
                         onManageStaff()
                     },

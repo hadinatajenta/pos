@@ -27,9 +27,7 @@ internal object StoredReceiptBuilder {
         productsById: Map<Long, Product>,
         storeName: String,
         cashierName: String?,
-        customerName: String?,
         createdAtLabel: String,
-        dueDateLabel: String?,
         strings: PosStrings,
     ): StoredReceipt {
         val receiptItems = items.map { item ->
@@ -48,7 +46,6 @@ internal object StoredReceiptBuilder {
             invoiceNo = transaction.invoiceNo,
             createdAtLabel = createdAtLabel,
             cashierName = cashierName,
-            customerName = customerName,
             paymentMethodLabel = paymentMethodLabel(transaction.paymentMethod, strings),
             items = receiptItems.map { item ->
                 ReceiptShareItem(
@@ -66,8 +63,6 @@ internal object StoredReceiptBuilder {
             grandTotal = transaction.grandTotal,
             paidAmount = transaction.paidAmount,
             changeAmount = transaction.changeAmount,
-            remainingDebt = transaction.remainingDebt,
-            dueDateLabel = dueDateLabel,
         )
         val document = ReceiptDocument(
             storeName = storeName,
@@ -136,15 +131,6 @@ internal object StoredReceiptBuilder {
                 twoColumnLine(
                     strings.transactionsFieldChange,
                     Rupiah.format(transaction.changeAmount),
-                    RECEIPT_WIDTH_CHARS,
-                ),
-            )
-        }
-        if (transaction.remainingDebt > 0L) {
-            lines += ReceiptLine(
-                twoColumnLine(
-                    strings.receiptRemainingDebtShort,
-                    Rupiah.format(transaction.remainingDebt),
                     RECEIPT_WIDTH_CHARS,
                 ),
             )

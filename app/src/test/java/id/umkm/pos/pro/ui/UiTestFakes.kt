@@ -5,7 +5,6 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.BackupImportSummary
 import id.umkm.pos.pro.core.contract.Clock
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.PrinterConnection
 import id.umkm.pos.pro.core.contract.PrinterInfo
@@ -20,8 +19,6 @@ import id.umkm.pos.pro.core.contract.ScanSource
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.AppSettings
-import id.umkm.pos.pro.core.model.Customer
-import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
@@ -126,44 +123,10 @@ class FakeCatalogRepository : ProductRepository {
     }
 }
 
-class FakeCustomerStore : CustomerRepository {
-
-    private val customers = MutableStateFlow<List<Customer>>(emptyList())
-    private var nextGeneratedId = 1L
-
-    fun setCustomers(values: List<Customer>) {
-        customers.value = values
-    }
-
-    fun currentCustomers(): List<Customer> = customers.value
-
-    override fun observeCustomers(query: String?): Flow<List<Customer>> = customers.map { list ->
-        val trimmed = query?.trim().orEmpty()
-        if (trimmed.isEmpty()) list else list.filter { it.name.contains(trimmed, ignoreCase = true) }
-    }
-
-    override suspend fun getCustomer(customerId: Long): Customer? =
-        customers.value.firstOrNull { it.id == customerId }
-
-    override suspend fun upsertCustomer(customer: Customer): Long {
-        val customerId = if (customer.id == 0L) nextGeneratedId++ else customer.id
-        customers.value = customers.value.filterNot { it.id == customerId } + customer.copy(id = customerId)
-        return customerId
-    }
-
-    override suspend fun deleteCustomer(customerId: Long) {
-        customers.value = customers.value.filterNot { it.id == customerId }
-    }
-
-    override fun observeDebtPayments(customerId: Long): Flow<List<DebtPayment>> = flowOf(emptyList())
-}
-
 class FakeTransactionStore : TransactionRepository {
 
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
     private var nextGeneratedId = 1L
-
-    val recordedPayments = mutableListOf<DebtPayment>()
 
     fun setTransactions(values: List<Transaction>) {
         transactions.value = values
@@ -190,24 +153,6 @@ class FakeTransactionStore : TransactionRepository {
     }
 
     override suspend fun nextInvoiceNumber(createdAtMillis: Long): String = "INV-$createdAtMillis"
-
-    override suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long> {
-        val existing = transactions.value.firstOrNull { it.id == payment.transactionId }
-            ?: return AppResult.Failure(AppError.NotFound("transaction ${payment.transactionId} was not found"))
-        val remainingDebt = (existing.remainingDebt - payment.amount).coerceAtLeast(0L)
-        transactions.value = transactions.value.map { transaction ->
-            if (transaction.id == existing.id) {
-                transaction.copy(
-                    remainingDebt = remainingDebt,
-                    status = if (remainingDebt == 0L) TransactionStatus.COMPLETED else TransactionStatus.PARTIAL_DEBT,
-                )
-            } else {
-                transaction
-            }
-        }
-        recordedPayments += payment
-        return AppResult.Success(recordedPayments.size.toLong())
-    }
 
     override suspend fun markReturned(
         transactionId: Long,
@@ -365,40 +310,3 @@ fun uiSampleProduct(
     icon = icon,
 )
 
-fun uiSampleCustomer(id: Long, name: String, totalDebt: Long): Customer = Customer(
-    id = id,
-    name = name,
-    whatsappNumber = null,
-    totalDebt = totalDebt,
-    notes = null,
-)
-
-fun uiSampleDebtTransaction(
-    id: Long,
-    customerId: Long,
-    remainingDebt: Long,
-    paidAmount: Long = 0L,
-    dueDate: Long? = null,
-    createdAt: Long = 1_000L,
-): Transaction = Transaction(
-    id = id,
-    invoiceNo = "INV-$id",
-    createdAt = createdAt,
-    cashierId = null,
-    customerId = customerId,
-    subtotal = remainingDebt + paidAmount,
-    discountTotal = 0L,
-    invoiceDiscount = 0L,
-    taxTotal = 0L,
-    rounding = 0L,
-    grandTotal = remainingDebt + paidAmount,
-    totalHpp = 0L,
-    netProfit = 0L,
-    paymentMethod = PaymentMethod.KASBON,
-    paidAmount = paidAmount,
-    changeAmount = 0L,
-    remainingDebt = remainingDebt,
-    dueDate = dueDate,
-    status = if (remainingDebt == 0L) TransactionStatus.COMPLETED else TransactionStatus.PARTIAL_DEBT,
-    notes = null,
-)

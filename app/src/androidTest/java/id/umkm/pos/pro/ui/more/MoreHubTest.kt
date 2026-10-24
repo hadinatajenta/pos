@@ -14,6 +14,9 @@ import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.components.hub.HubGroup
 import id.umkm.pos.pro.ui.components.hub.HubRow
+import id.umkm.pos.pro.ui.shift.LocalShiftLauncher
+import id.umkm.pos.pro.ui.shift.NoOpShiftLauncher
+import id.umkm.pos.pro.ui.shift.ShiftLauncher
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import org.junit.Rule
 import org.junit.Test
@@ -40,11 +43,16 @@ class MoreHubTest {
         activeShift: CashierShift? = defaultActiveShift,
         operatorName: String? = "Sari",
         expectedCash: ExpectedCashState = ExpectedCashState.Ready(125_000L),
+        onShiftAction: () -> Unit = {},
         onRetryExpectedCash: () -> Unit = {},
+        shiftLauncher: ShiftLauncher = NoOpShiftLauncher,
     ) {
         composeRule.setContent {
             UmkmPosTheme {
-                CompositionLocalProvider(LocalPosStrings provides IdStrings) {
+                CompositionLocalProvider(
+                    LocalPosStrings provides IdStrings,
+                    LocalShiftLauncher provides shiftLauncher,
+                ) {
                     MoreHeroSection(
                         storeName = storeName,
                         cashierLabel = cashierLabel,
@@ -53,7 +61,7 @@ class MoreHubTest {
                         activeShift = activeShift,
                         operatorName = operatorName,
                         expectedCash = expectedCash,
-                        onShiftAction = {},
+                        onShiftAction = onShiftAction,
                         onOpenHistory = {},
                         onRetryExpectedCash = onRetryExpectedCash,
                     )
@@ -154,5 +162,56 @@ class MoreHubTest {
         composeRule.onNodeWithText(IdStrings.moreShiftEmptySubtitle).assertIsDisplayed()
         composeRule.onNodeWithText(IdStrings.cashierShiftOpenAction).assertIsDisplayed()
         composeRule.onNodeWithText(IdStrings.moreShiftExpectedCash).assertDoesNotExist()
+    }
+
+    @Test
+    fun noActiveShiftShiftActionNavigatesAndOpensQuickShift() {
+        var isShiftActionCalled = false
+        var isQuickShiftCalled = false
+        val launcher = object : ShiftLauncher by NoOpShiftLauncher {
+            override fun openQuickShift(onOpened: () -> Unit) {
+                isQuickShiftCalled = true
+            }
+        }
+
+        showHero(
+            activeShift = null,
+            operatorName = null,
+            cashierLabel = null,
+            onShiftAction = { isShiftActionCalled = true },
+            shiftLauncher = launcher,
+        )
+
+        composeRule.onNodeWithTag(MoreHubTestTags.SHIFT_ACTION).performClick()
+
+        composeRule.runOnIdle {
+            assertThat(isShiftActionCalled).isTrue()
+            assertThat(isQuickShiftCalled).isTrue()
+        }
+    }
+
+    @Test
+    fun activeShiftShiftActionOnlyNavigatesWithoutOpeningQuickShift() {
+        var isShiftActionCalled = false
+        var isQuickShiftCalled = false
+        val launcher = object : ShiftLauncher by NoOpShiftLauncher {
+            override fun openQuickShift(onOpened: () -> Unit) {
+                isQuickShiftCalled = true
+            }
+        }
+
+        showHero(
+            activeShift = defaultActiveShift,
+            onShiftAction = { isShiftActionCalled = true },
+            shiftLauncher = launcher,
+        )
+
+        composeRule.onNodeWithText(IdStrings.cashierShiftSwitchAction).assertIsDisplayed()
+        composeRule.onNodeWithTag(MoreHubTestTags.SHIFT_ACTION).performClick()
+
+        composeRule.runOnIdle {
+            assertThat(isShiftActionCalled).isTrue()
+            assertThat(isQuickShiftCalled).isFalse()
+        }
     }
 }

@@ -20,18 +20,14 @@ class CheckoutUseCaseTest {
 
     private fun request(
         lines: List<CheckoutLine>,
-        customerId: Long? = null,
         paymentMethod: PaymentMethod = PaymentMethod.CASH,
         paidAmount: Long = 0L,
-        dueDate: Long? = null,
         invoiceDiscount: Long = 0L,
         taxRatePercent: Int = 0,
     ) = CheckoutRequest(
         lines = lines,
-        customerId = customerId,
         paymentMethod = paymentMethod,
         paidAmount = paidAmount,
-        dueDate = dueDate,
         invoiceDiscount = invoiceDiscount,
         taxRatePercent = taxRatePercent,
         roundingIncrement = 0L,
@@ -53,14 +49,12 @@ class CheckoutUseCaseTest {
         assertThat(checkout.pricedCart.totalHpp).isEqualTo(3_000L)
         assertThat(checkout.pricedCart.netProfit).isEqualTo(3_000L)
         assertThat(checkout.allocation.changeAmount).isEqualTo(4_000L)
-        assertThat(checkout.allocation.status).isEqualTo(TransactionStatus.COMPLETED)
 
         val saved = transactions.savedTransactions.single()
         assertThat(saved.subtotal).isEqualTo(6_000L)
         assertThat(saved.grandTotal).isEqualTo(6_000L)
         assertThat(saved.paidAmount).isEqualTo(10_000L)
         assertThat(saved.changeAmount).isEqualTo(4_000L)
-        assertThat(saved.remainingDebt).isEqualTo(0L)
         assertThat(saved.status).isEqualTo(TransactionStatus.COMPLETED)
         assertThat(saved.invoiceNo).startsWith("INV-TEST-")
         assertThat(transactions.itemsFor(checkout.transactionId).single().unitHpp).isEqualTo(1_000L)
@@ -84,25 +78,17 @@ class CheckoutUseCaseTest {
     }
 
     @Test
-    fun kasbonSaleCreatesPartialDebtWithDueDate() = runTest {
+    fun cashUnderpaymentFailsValidation() = runTest {
         val result = useCase(
             request(
                 lines = listOf(CheckoutLine(1L, null, 3.0, null, 0L)),
-                customerId = 7L,
-                paymentMethod = PaymentMethod.KASBON,
+                paymentMethod = PaymentMethod.CASH,
                 paidAmount = 1_000L,
-                dueDate = 99_000L,
             ),
         )
 
-        val checkout = (result as AppResult.Success<CheckoutResult>).value
-        assertThat(checkout.allocation.remainingDebt).isEqualTo(5_000L)
-        assertThat(checkout.allocation.status).isEqualTo(TransactionStatus.PARTIAL_DEBT)
-
-        val saved = transactions.savedTransactions.single()
-        assertThat(saved.customerId).isEqualTo(7L)
-        assertThat(saved.remainingDebt).isEqualTo(5_000L)
-        assertThat(saved.dueDate).isEqualTo(99_000L)
+        assertThat(result).isInstanceOf(AppResult.Failure::class.java)
+        assertThat(transactions.savedTransactions).isEmpty()
     }
 
     @Test

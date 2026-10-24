@@ -6,20 +6,18 @@ import org.junit.Test
 class ShiftReconciliationTest {
 
     @Test
-    fun expectedEndingCashAddsCashSalesAndDebtPaymentsThenSubtractsRefunds() {
+    fun expectedEndingCashAddsCashSalesThenSubtractsRefunds() {
         val summary = ShiftReconciliation.summarize(
             startingCash = 100_000L,
             cashSales = 250_000L,
-            cashDebtPayments = 30_000L,
             cashRefunds = 20_000L,
             transactionCount = 7,
         )
 
         assertThat(summary.startingCash).isEqualTo(100_000L)
         assertThat(summary.cashSales).isEqualTo(250_000L)
-        assertThat(summary.cashDebtPayments).isEqualTo(30_000L)
         assertThat(summary.cashRefunds).isEqualTo(20_000L)
-        assertThat(summary.expectedEndingCash).isEqualTo(360_000L)
+        assertThat(summary.expectedEndingCash).isEqualTo(330_000L)
     }
 
     @Test
@@ -27,7 +25,6 @@ class ShiftReconciliationTest {
         val summary = ShiftReconciliation.summarize(
             startingCash = 0L,
             cashSales = 0L,
-            cashDebtPayments = 0L,
             cashRefunds = 0L,
             transactionCount = 0,
         )
@@ -41,7 +38,6 @@ class ShiftReconciliationTest {
         val summary = ShiftReconciliation.summarize(
             startingCash = 100_000L,
             cashSales = 30_000L,
-            cashDebtPayments = 0L,
             cashRefunds = 50_000L,
             transactionCount = 3,
         )
@@ -56,12 +52,11 @@ class ShiftReconciliationTest {
         val summary = ShiftReconciliation.summarize(
             startingCash = 1_000_000_000_000_000_000L,
             cashSales = 2_000_000_000_000_000_000L,
-            cashDebtPayments = 500_000_000_000_000_000L,
             cashRefunds = 100_000_000_000_000_000L,
             transactionCount = 10_000,
         )
 
-        assertThat(summary.expectedEndingCash).isEqualTo(3_400_000_000_000_000_000L)
+        assertThat(summary.expectedEndingCash).isEqualTo(2_900_000_000_000_000_000L)
     }
 
     @Test
@@ -69,7 +64,6 @@ class ShiftReconciliationTest {
         val summary = ShiftReconciliation.summarize(
             startingCash = 5_000L,
             cashSales = 10_000L,
-            cashDebtPayments = 2_000L,
             cashRefunds = 1_000L,
             transactionCount = 42,
         )

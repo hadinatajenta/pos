@@ -1,7 +1,6 @@
 package id.umkm.pos.pro.feature.receipt
 
 import com.google.common.truth.Truth.assertThat
-import id.umkm.pos.pro.feature.reports.FakeCustomerRepository
 import id.umkm.pos.pro.feature.reports.FakeProductRepository
 import id.umkm.pos.pro.feature.reports.FakeSettingsRepository
 import id.umkm.pos.pro.feature.reports.FakeTransactionRepository
@@ -27,7 +26,6 @@ class StoredReceiptBuilderTest {
                     transactionsById = mapOf(1L to sampleTransaction()),
                 ),
                 productRepository = FakeProductRepository(),
-                customerRepository = FakeCustomerRepository(),
                 settingsRepository = FakeSettingsRepository(),
                 strings = IdStrings,
             ),
@@ -53,7 +51,6 @@ class StoredReceiptBuilderTest {
                 productRepository = FakeProductRepository(
                     mapOf(10L to sampleProduct(id = 10L, name = "Kopi Susu")),
                 ),
-                customerRepository = FakeCustomerRepository(),
                 settingsRepository = FakeSettingsRepository(),
                 strings = IdStrings,
             ),

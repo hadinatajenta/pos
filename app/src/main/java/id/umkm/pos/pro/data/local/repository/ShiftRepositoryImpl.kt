@@ -10,7 +10,6 @@ import id.umkm.pos.pro.core.model.ShiftCashSummary
 import id.umkm.pos.pro.core.model.ShiftSwitchResult
 import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.data.local.UmkmDatabase
-import id.umkm.pos.pro.data.local.dao.DebtPaymentDao
 import id.umkm.pos.pro.data.local.dao.ReturnDao
 import id.umkm.pos.pro.data.local.dao.ShiftDao
 import id.umkm.pos.pro.data.local.dao.StaffDao
@@ -28,7 +27,6 @@ class ShiftRepositoryImpl(
     private val shiftDao: ShiftDao,
     private val staffDao: StaffDao,
     private val transactionDao: TransactionDao,
-    private val debtPaymentDao: DebtPaymentDao,
     private val returnDao: ReturnDao,
     private val clock: Clock,
 ) : ShiftRepository {
@@ -252,7 +250,6 @@ class ShiftRepositoryImpl(
         return ShiftReconciliation.summarize(
             startingCash = shift.startingCash,
             cashSales = transactionDao.sumCashReceivedBetween(shift.openedAt, safeEnd),
-            cashDebtPayments = debtPaymentDao.sumCashPaymentsBetween(shift.openedAt, safeEnd),
             cashRefunds = returnDao.sumRefundsBetween(shift.openedAt, safeEnd),
             transactionCount = transactionDao.countTransactionsBetween(shift.openedAt, safeEnd),
         )

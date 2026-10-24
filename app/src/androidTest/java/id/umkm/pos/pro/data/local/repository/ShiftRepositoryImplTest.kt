@@ -12,7 +12,6 @@ import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.data.local.UmkmDatabase
-import id.umkm.pos.pro.data.local.entity.DebtPaymentEntity
 import id.umkm.pos.pro.data.local.entity.ReturnEntity
 import id.umkm.pos.pro.data.local.entity.SettingsEntity
 import id.umkm.pos.pro.data.local.entity.StaffEntity
@@ -43,7 +42,6 @@ class ShiftRepositoryImplTest {
             shiftDao = database.shiftDao(),
             staffDao = database.staffDao(),
             transactionDao = database.transactionDao(),
-            debtPaymentDao = database.debtPaymentDao(),
             returnDao = database.returnDao(),
             clock = clock,
         )
@@ -111,20 +109,6 @@ class ShiftRepositoryImplTest {
             staffId = sariId,
         )
         insertTransaction(
-            invoiceNo = "INV-SPLIT",
-            paymentMethod = PaymentMethod.SPLIT,
-            paidAmount = 40_000L,
-            shiftId = opened.id,
-            staffId = sariId,
-        )
-        insertTransaction(
-            invoiceNo = "INV-KASBON",
-            paymentMethod = PaymentMethod.KASBON,
-            paidAmount = 25_000L,
-            shiftId = opened.id,
-            staffId = sariId,
-        )
-        insertTransaction(
             invoiceNo = "INV-QRIS",
             paymentMethod = PaymentMethod.QRIS,
             paidAmount = 10_000L,
@@ -139,32 +123,8 @@ class ShiftRepositoryImplTest {
             staffId = sariId,
         )
 
-        val cashDebtTransaction = insertTransaction(
-            invoiceNo = "INV-DEBT-CASH",
-            paymentMethod = PaymentMethod.KASBON,
-            paidAmount = 12_000L,
-            createdAt = START_MILLIS - 10_000L,
-        )
-        val qrisDebtTransaction = insertTransaction(
-            invoiceNo = "INV-DEBT-QRIS",
-            paymentMethod = PaymentMethod.KASBON,
-            paidAmount = 8_000L,
-            createdAt = START_MILLIS - 10_000L,
-        )
-        insertDebtPayment(
-            transactionId = cashDebtTransaction,
-            paidAt = START_MILLIS + 2_000L,
-            amount = 7_000L,
-            paymentMethod = PaymentMethod.CASH,
-        )
-        insertDebtPayment(
-            transactionId = qrisDebtTransaction,
-            paidAt = START_MILLIS + 2_000L,
-            amount = 9_000L,
-            paymentMethod = PaymentMethod.QRIS,
-        )
         insertReturn(
-            transactionId = cashDebtTransaction,
+            transactionId = 1L,
             createdAt = START_MILLIS + 3_000L,
             refundAmount = 3_000L,
         )
@@ -172,13 +132,13 @@ class ShiftRepositoryImplTest {
         clock.currentMillis = START_MILLIS + 5_000L
         val closed = repository.closeShift(
             shiftId = opened.id,
-            actualEndingCash = 214_000L,
+            actualEndingCash = 142_000L,
         ).successValue()
 
         assertThat(closed.id).isEqualTo(opened.id)
         assertThat(closed.closedAt).isEqualTo(START_MILLIS + 5_000L)
-        assertThat(closed.expectedEndingCash).isEqualTo(214_000L)
-        assertThat(closed.actualEndingCash).isEqualTo(214_000L)
+        assertThat(closed.expectedEndingCash).isEqualTo(142_000L)
+        assertThat(closed.actualEndingCash).isEqualTo(142_000L)
         assertThat(closed.openedByStaffId).isEqualTo(sariId)
         assertThat(closed.closedByStaffId).isEqualTo(sariId)
         assertThat(closed.closedByName).isEqualTo("Sari")
@@ -186,11 +146,10 @@ class ShiftRepositoryImplTest {
 
         val storedSummary = repository.getShiftSummary(opened.id).successValue()
         assertThat(storedSummary.startingCash).isEqualTo(50_000L)
-        assertThat(storedSummary.cashSales).isEqualTo(160_000L)
-        assertThat(storedSummary.cashDebtPayments).isEqualTo(7_000L)
+        assertThat(storedSummary.cashSales).isEqualTo(95_000L)
         assertThat(storedSummary.cashRefunds).isEqualTo(3_000L)
-        assertThat(storedSummary.transactionCount).isEqualTo(5)
-        assertThat(storedSummary.expectedEndingCash).isEqualTo(214_000L)
+        assertThat(storedSummary.transactionCount).isEqualTo(3)
+        assertThat(storedSummary.expectedEndingCash).isEqualTo(142_000L)
 
         val storedClosed = database.shiftDao().getShift(opened.id)
         assertThat(storedClosed?.closedByStaffId).isEqualTo(sariId)
@@ -412,7 +371,6 @@ class ShiftRepositoryImplTest {
             invoiceNo = invoiceNo,
             createdAt = createdAt,
             cashierId = null,
-            customerId = null,
             subtotal = paidAmount,
             discountTotal = 0L,
             invoiceDiscount = 0L,
@@ -424,8 +382,6 @@ class ShiftRepositoryImplTest {
             paymentMethod = paymentMethod,
             paidAmount = paidAmount,
             changeAmount = changeAmount,
-            remainingDebt = 0L,
-            dueDate = null,
             status = TransactionStatus.COMPLETED,
             notes = null,
             cashierName = "Sari",
@@ -433,24 +389,6 @@ class ShiftRepositoryImplTest {
             staffId = staffId,
         ),
     )
-
-    private suspend fun insertDebtPayment(
-        transactionId: Long,
-        paidAt: Long,
-        amount: Long,
-        paymentMethod: PaymentMethod,
-    ) {
-        database.debtPaymentDao().insertDebtPayment(
-            DebtPaymentEntity(
-                transactionId = transactionId,
-                customerId = 1L,
-                paidAt = paidAt,
-                amount = amount,
-                paymentMethod = paymentMethod,
-                note = null,
-            ),
-        )
-    }
 
     private suspend fun insertReturn(
         transactionId: Long,

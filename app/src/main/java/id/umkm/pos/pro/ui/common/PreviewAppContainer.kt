@@ -9,7 +9,6 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.DataBackupService
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PinHasher
 import id.umkm.pos.pro.core.contract.PriceEngine
@@ -51,7 +50,6 @@ internal object PreviewAppContainer : AppContainer {
 
     override val productRepository: ProductRepository get() = previewUnavailable("productRepository")
     override val productImageRepository: ProductImageRepository get() = previewUnavailable("productImageRepository")
-    override val customerRepository: CustomerRepository get() = previewUnavailable("customerRepository")
     override val transactionRepository: TransactionRepository get() = previewUnavailable("transactionRepository")
     override val returnRepository: ReturnRepository get() = previewUnavailable("returnRepository")
     override val shiftRepository: ShiftRepository get() = previewUnavailable("shiftRepository")

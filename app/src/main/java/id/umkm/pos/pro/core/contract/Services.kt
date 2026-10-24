@@ -46,12 +46,19 @@ interface ImportExportService {
 enum class AdPlacement {
     DEBT_LIST,
     STOCK_MANAGEMENT,
+    REPORTS,
     EXCEL_EXPORT,
     CLOUD_BACKUP,
     SHELF_LABEL_PRINT,
 }
 
+enum class RewardedAdOutcome {
+    EARNED,
+    DISMISSED,
+    UNAVAILABLE,
+}
+
 interface AdController {
     fun observeAvailability(placement: AdPlacement): Flow<Boolean>
-    suspend fun showRewarded(placement: AdPlacement): AppResult<Unit>
+    suspend fun showRewarded(placement: AdPlacement): RewardedAdOutcome
 }

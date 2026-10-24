@@ -2,7 +2,6 @@ package id.umkm.pos.pro.domain.pos
 
 import com.google.common.truth.Truth.assertThat
 import id.umkm.pos.pro.core.model.PaymentMethod
-import id.umkm.pos.pro.core.model.TransactionStatus
 import org.junit.Test
 
 class PaymentAllocationTest {
@@ -13,28 +12,22 @@ class PaymentAllocationTest {
 
         assertThat(allocation.paidAmount).isEqualTo(50_000L)
         assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.remainingDebt).isEqualTo(0L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.COMPLETED)
     }
 
     @Test
-    fun cashOverpaymentYieldsChangeAndCompletes() {
+    fun cashOverpaymentYieldsChange() {
         val allocation = allocatePayment(PaymentMethod.CASH, 100_000L, 92_500L)
 
         assertThat(allocation.paidAmount).isEqualTo(100_000L)
         assertThat(allocation.changeAmount).isEqualTo(7_500L)
-        assertThat(allocation.remainingDebt).isEqualTo(0L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.COMPLETED)
     }
 
     @Test
-    fun cashUnderpaymentBecomesPartialDebt() {
+    fun cashUnderpaymentKeepsTheTenderedAmountWithoutChange() {
         val allocation = allocatePayment(PaymentMethod.CASH, 40_000L, 50_000L)
 
         assertThat(allocation.paidAmount).isEqualTo(40_000L)
         assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.remainingDebt).isEqualTo(10_000L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.PARTIAL_DEBT)
     }
 
     @Test
@@ -43,7 +36,6 @@ class PaymentAllocationTest {
 
         assertThat(allocation.paidAmount).isEqualTo(75_000L)
         assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.COMPLETED)
     }
 
     @Test
@@ -52,36 +44,14 @@ class PaymentAllocationTest {
 
         assertThat(allocation.paidAmount).isEqualTo(75_000L)
         assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.remainingDebt).isEqualTo(0L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.COMPLETED)
     }
 
     @Test
-    fun splitPaymentCompletesSale() {
-        val allocation = allocatePayment(PaymentMethod.SPLIT, 75_000L, 75_000L)
+    fun transferOverpaymentClampsPaidAmountToTotal() {
+        val allocation = allocatePayment(PaymentMethod.TRANSFER, 90_000L, 80_000L)
 
-        assertThat(allocation.paidAmount).isEqualTo(75_000L)
+        assertThat(allocation.paidAmount).isEqualTo(80_000L)
         assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.COMPLETED)
-    }
-
-    @Test
-    fun kasbonWithNoPaymentCarriesFullRemainingDebt() {
-        val allocation = allocatePayment(PaymentMethod.KASBON, 0L, 120_000L)
-
-        assertThat(allocation.paidAmount).isEqualTo(0L)
-        assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.remainingDebt).isEqualTo(120_000L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.PARTIAL_DEBT)
-    }
-
-    @Test
-    fun kasbonWithDownPaymentCarriesRemainingDebt() {
-        val allocation = allocatePayment(PaymentMethod.KASBON, 50_000L, 120_000L)
-
-        assertThat(allocation.paidAmount).isEqualTo(50_000L)
-        assertThat(allocation.remainingDebt).isEqualTo(70_000L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.PARTIAL_DEBT)
     }
 
     @Test
@@ -89,8 +59,7 @@ class PaymentAllocationTest {
         val allocation = allocatePayment(PaymentMethod.CASH, -1_000L, 50_000L)
 
         assertThat(allocation.paidAmount).isEqualTo(0L)
-        assertThat(allocation.remainingDebt).isEqualTo(50_000L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.PARTIAL_DEBT)
+        assertThat(allocation.changeAmount).isEqualTo(0L)
     }
 
     @Test
@@ -98,7 +67,5 @@ class PaymentAllocationTest {
         val allocation = allocatePayment(PaymentMethod.CASH, 0L, 0L)
 
         assertThat(allocation.changeAmount).isEqualTo(0L)
-        assertThat(allocation.remainingDebt).isEqualTo(0L)
-        assertThat(allocation.status).isEqualTo(TransactionStatus.COMPLETED)
     }
 }

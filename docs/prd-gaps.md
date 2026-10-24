@@ -1,5 +1,160 @@
 # Implementation status against the PRD
 
+## Quick shift flow fix (2026-10-24)
+
+The new-user shift dead end is fixed. Previously the **Buka shift** action in More only changed the
+destination to Cashier, the cart had no shift action, and tapping **Proses** without a shift showed a
+non-actionable `cashierShiftRequired` message. The flow now works from three places:
+
+1. **Proses without a shift** opens a compact **Mulai Shift** sheet. The active/default cashier is
+   preselected, starting cash is prefilled to **Rp 0** and remains editable, and **Mulai Shift**
+   opens the shift and auto-continues to payment. **Atur detail** opens the full staff/starting-cash
+   form.
+2. **Cart** shows `Shift belum dibuka · Mulai shift` when no shift is open. With an active shift and
+   items in the cart it shows a secondary **Ganti kasir** action that uses the existing empty-cart
+   guard.
+3. **More → Buka shift** navigates to Cashier and opens the same quick sheet over the cart. With an
+   active shift the button remains **Ganti kasir** and navigates to the cart for the guard.
+
+The blocking `activeStaff == null` payment guard was removed. A shift without an active staff now
+falls back to the shift's `cashier_name`, matching the existing checkout fallback. The quick form
+does not change the schema or the shift-close reconciliation rules.
+
+Verified on 2026-10-24 with **707 unit tests (0 failures)**, `assembleDebug`, `assembleRelease`
+(R8 and `lintVitalRelease`), and `assembleDebugAndroidTest` compilation. Manual/device and the
+instrumented suite were not run; the owner will verify manually.
+
+Remaining gaps:
+
+- The first-run guide and its replay entry in More are deferred to Phase 2.
+- With an active shift and an **empty cart**, More → Ganti kasir still navigates to Cashier; the
+  cart switch action is only visible when the cart has items. A shared cart-count source is needed
+  to open the switch sheet directly from More without bypassing the guard.
+- The quick form defaults starting cash to 0. If the owner had opening cash and does not edit it,
+  expected cash at close reflects 0; the hint on the field makes this visible.
+
+## AdMob banner on Reports and rewarded export gate (2026-10-24)
+
+Live AdMob placements are implemented:
+1. A single adaptive anchored banner sits at the bottom of the Reports screen, below the report content
+   and above the navigation bar. It never renders on Cashier, cart, payment, transaction success, or
+   receipt screens. It renders no container while offline, in Compose previews, or when the ad fails
+   or has no fill, so no blank space is reserved. The export toast lifts above a loaded banner.
+2. A rewarded video ad gate for Report export (`AdPlacement.EXCEL_EXPORT`). When exporting from Reports
+   (after PIN unlock and storage permissions), `AdMobAdController` requests a rewarded video. If the
+   user watches to completion, the export succeeds. If the ad is dismissed before earning the reward,
+   export is cancelled with a localized message (`reportsAdRequired`) and no file is written. If the ad
+   fails to load or show (offline, no fill, missing Activity, SDK error), the flow fails open and completes
+   the export so business data remains accessible. Production rewarded unit: `ca-app-pub-5729173430518647/6119412059`
+   (`pookie_rewards`); test unit: `ca-app-pub-3940256099942544/5224354917`. Server-side verification (SSV)
+   and frequency capping are disabled.
+
+The Google Mobile Ads SDK is pinned to **24.0.0**. Versions 24.1.0+ require Kotlin 2.1.0 while this
+project uses 2.0.21, and 25.5.0 raises `minSdk` to 24 while this project targets 23. Debug builds use
+Google's test app ID (`ca-app-pub-3940256099942544~3347511713`), test banner unit (`ca-app-pub-3940256099942544/6300978111`),
+and test rewarded unit (`ca-app-pub-3940256099942544/5224354917`); release builds use the production app ID
+(`ca-app-pub-5729173430518647~5768680380`), banner unit `Pos_Reports_Banner` (`ca-app-pub-5729173430518647/1672900587`),
+and rewarded unit `pookie_rewards` (`ca-app-pub-5729173430518647/6119412059`). A compile-classpath-only force for
+`com.google.guava:listenablefuture:1.0` is required because the Ads SDK's empty-artifact constraint
+otherwise removes the class CameraX needs at compile time; the runtime keeps Guava.
+
+Verified on 2026-10-24 with 694 unit tests (0 failures), `assembleDebug`, `assembleRelease` (R8 and
+`lintVitalRelease`), and a smoke test on an AOSP emulator where a rewarded test ad appeared and
+completing it wrote the export. The release APK measured 6.5 MB. Real-device ad show and the
+instrumented suite were not run. `CurrentActivityProvider` follows resumed/paused/destroyed
+lifecycle so a backgrounded app does not start an ad. See PRD §7.8, §9.1, §15.1 Q7, and §16
+version 1.28.
+
+Remaining gaps:
+
+- The AdMob app is not linked to a public Play Store listing yet. Until it is, the app is treated as
+  unpublished and receives limited ad serving.
+- `app-ads.txt` must be published at the root of the developer website declared in the Play listing
+  before AdMob can verify the app.
+- Real-device ad show was not tested. Production ads must be tested with registered test devices; do
+  not click production ads.
+- Server-side verification (SSV) and frequency capping are currently off.
+- Other rewarded placements (Google Drive cloud backup, bulk shelf-label printing) remain deferred.
+- The Ads SDK merges `com.google.android.gms.permission.AD_ID` and the Privacy Sandbox
+  permissions. Complete the Play Console Data Safety and Advertising ID declarations before release.
+- The User Messaging Platform consent flow for EEA/UK users is not implemented. Add it before
+  serving personalized ads in those regions.
+- A future Ads SDK upgrade needs a toolchain decision: 24.1.0+ requires Kotlin 2.1.0, and 25.5.0
+  raises `minSdk` to 24. Neither change was made in this iteration.
+
+## Centered headers across screens (2026-10-23)
+
+Cashier, Transactions, Products, Reports, and the More hub now share `CenteredScreenHeader`: centered
+title and subtitle, no header action buttons, and a 28 dp gap below. Products keeps its add action as
+a floating bottom-right button at every width. Reports moves Export into the period-control row;
+the custom period chip remains the entry to the date filter. Verified with 682 unit tests,
+`assembleDebug`, and an emulator screenshot of Reports. See PRD §16 version 1.26.
+
+## Transactions header and cards (2026-10-23)
+
+The Transactions header is centered and contains only the title and count/period line; the calendar
+and Add actions were removed. The search bar is borderless white with a soft shadow. Status filters
+live in one white rounded container, and transaction rows are borderless white cards with 12 dp gaps
+and 20 dp padding. Invoice and amount are ExtraBold, while the date and method are muted. The table
+layout is no longer used; the card list is used at all widths. Verified with 682 unit tests,
+`assembleDebug`, and an emulator screenshot. See PRD §16 version 1.25.
+
+## Product drawer motion (2026-10-23)
+
+The Products add/edit drawer now animates on both open and close: a right slide with a fading scrim
+on phones and a right-edge expand/shrink with fade on tablets. The close animation retains the last
+form, and the bottom navigation returns only after the slide finishes. No behavior or data changes.
+Verified with unit tests and `assembleDebug`. See PRD §16 version 1.24.
+
+## Cashier cart and payment flow (2026-10-23)
+
+The cashier checkout is now page-based on phones: catalog, cart, payment, and confirmation. The cart
+uses the shared product card, quantity steppers, swipe-left delete, and a dashed subtotal/total
+separator. Payment supports cash, QRIS, transfer, debit, and credit, with cash and QRIS shown first.
+Cash uses the system numeric keyboard, automatic thousand separators, and quick amounts derived from
+the total. Confirmation is a bottom sheet with a highlighted change card and Confirm & Pay. Receipt
+printing and sharing are unchanged. The cart line editor, discount, and negotiated price were removed
+from the UI. Verified with 682 unit tests, `assembleDebug`, and manual emulator checks. See PRD §16
+version 1.23.
+
+## Cashier search and scan styling (2026-10-23)
+
+The Cashier filter icon button was removed. The search field and barcode scan button now use white
+surfaces with a soft 2 dp shadow. Category filtering remains available from the chip row; the
+in-stock-only filter was only available from the removed menu and is no longer reachable. Product
+cards are unchanged. Verified with unit tests, `assembleDebug`, and an emulator screenshot. See PRD
+§16 version 1.22.
+
+## Cashier header and filter container (2026-10-23)
+
+The Cashier header is now centered with no action buttons, the identity/open-shift pill was removed,
+and the search gap was increased. Category chips live in one white rounded container with a soft
+shadow and horizontal scrolling; inactive chips are transparent and active chips use the brand
+green. Product cards and the search field were not changed. Shift opening remains available from
+More and from the cart action once a cart exists, so an empty cart has no cashier-local open-shift
+control. Verified with unit tests, `assembleDebug`, and an emulator screenshot. See PRD §16 version
+1.21.
+
+## Premium Reports UI (2026-10-23)
+
+The Reports screen was restyled without layout or copy changes: the original one-card totals block
+(Total Sales, Net Profit, Cost of Goods with a divider) and two side-by-side metric cards are kept,
+with borderless white cards, large radii, soft 4–6 dp shadows, an off-white page background, and
+muted Inter labels. Filter chips are pills and export feedback is a floating toast with Open/Share
+actions. The filter sheet and export dialog use the same tokens. Verified with unit tests and
+`assembleDebug`; visual QA is left to the owner. See PRD §16 version 1.20.
+
+## Customer, kasbon, and split-payment removal (2026-10-23)
+
+Customer records, kasbon, partial debt, due dates, and the SPLIT and KASBON payment methods were
+removed at the owner's request. Payment methods are now CASH, QRIS, and TRANSFER with full payment
+only. The `customers` and `debt_payments` tables and the `transactions.customer_id`,
+`remaining_debt`, and `due_date` columns were dropped through the destructive
+`MIGRATION_10_11`; legacy SPLIT/KASBON rows map to CASH and PARTIAL_DEBT maps to COMPLETED. The
+backup table list and demo seed no longer include customers or debt. Verified with 679 unit tests
+(0 failures) and `assembleDebug`; the migration instrumented test did not run because the tablet
+was disconnected. See PRD §16 version 1.19.
+
 ## Products, tablet navigation, and demo data update (2026-10-23)
 
 The Products page was restored to its pre-redesign shell on 2026-10-23: title header with an add

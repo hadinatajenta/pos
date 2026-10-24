@@ -18,7 +18,6 @@ class TransactionDetailLoaderTest {
                 transactionsById = mapOf(1L to sampleTransaction()),
             ),
             productRepository = FakeProductRepository(),
-            customerRepository = FakeCustomerRepository(),
             settingsRepository = FakeSettingsRepository(),
         )
 
@@ -38,7 +37,6 @@ class TransactionDetailLoaderTest {
                 transactionsById = mapOf(1L to sampleTransaction()),
             ),
             productRepository = FakeProductRepository(mapOf(10L to sampleProduct(id = 10L, name = "Kopi Susu"))),
-            customerRepository = FakeCustomerRepository(),
             settingsRepository = FakeSettingsRepository(),
         )
 

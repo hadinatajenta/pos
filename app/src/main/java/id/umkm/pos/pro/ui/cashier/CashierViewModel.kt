@@ -3,7 +3,6 @@ package id.umkm.pos.pro.ui.cashier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.umkm.pos.pro.core.contract.AppResult
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReceiptAlignment
@@ -18,7 +17,6 @@ import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.AppLanguage
 import id.umkm.pos.pro.core.model.CartLine
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricedCartLine
 import id.umkm.pos.pro.core.model.PricingContext
@@ -52,7 +50,6 @@ import id.umkm.pos.pro.feature.receipt.ReceiptShareData
 import id.umkm.pos.pro.feature.receipt.ReceiptShareItem
 import id.umkm.pos.pro.feature.receipt.ReceiptShareText
 import id.umkm.pos.pro.feature.receipt.twoColumnLine
-import id.umkm.pos.pro.ui.common.formatDate
 import id.umkm.pos.pro.ui.common.formatDateTime
 import id.umkm.pos.pro.ui.common.paymentMethodLabel
 import id.umkm.pos.pro.app.SystemClock
@@ -67,7 +64,6 @@ private sealed interface PaidAmountResolution {
 @OptIn(ExperimentalCoroutinesApi::class)
 class CashierViewModel(
     private val productRepository: ProductRepository,
-    private val customerRepository: CustomerRepository,
     private val settingsRepository: SettingsRepository,
     private val priceEngine: PriceEngine,
     private val checkoutUseCase: CheckoutUseCase,
@@ -97,11 +93,11 @@ class CashierViewModel(
     private var currentStrings: PosStrings = IdStrings
     private var nextLineNumber = 1
     private var pendingReceiptDocument: ReceiptDocument? = null
+    private var pendingPaymentAfterShift = false
 
     init {
         observeSettings()
         observeCatalog()
-        observeCustomers()
         observeScanEvents()
         observeActiveShift()
         observeActiveStaff()
@@ -297,20 +293,28 @@ class CashierViewModel(
     fun onOpenPaymentSheet() {
         if (cartDrafts.value.isEmpty()) return
         if (shiftRepository != null && _state.value.activeShift == null) {
-            setMessage(UiText.from { strings -> strings.cashierShiftRequired })
-            return
-        }
-        if (staffRepository != null && _state.value.activeStaff == null) {
-            setMessage(UiText.from { strings -> strings.cashierShiftRequired })
+            _state.update { it.copy(isShiftPromptVisible = true, submitErrorMessage = null) }
             return
         }
         _state.update {
             it.copy(
                 isPaymentSheetVisible = true,
-                isCartSheetVisible = false,
+                isCartSheetVisible = true,
                 paymentDraft = PaymentDraft(),
                 submitErrorMessage = null,
             )
+        }
+    }
+
+    fun onShiftPromptConsumed() {
+        _state.update { it.copy(isShiftPromptVisible = false) }
+    }
+
+    fun onShiftOpenedForPayment() {
+        if (_state.value.activeShift != null) {
+            onOpenPaymentSheet()
+        } else {
+            pendingPaymentAfterShift = true
         }
     }
 
@@ -319,14 +323,9 @@ class CashierViewModel(
     }
 
     fun onPaymentMethodChange(method: PaymentMethod) {
-        val keepsCustomer = method == PaymentMethod.KASBON || method == PaymentMethod.SPLIT
         _state.update { current ->
             current.copy(
-                paymentDraft = PaymentDraft(
-                    method = method,
-                    customerId = if (keepsCustomer) current.paymentDraft.customerId else null,
-                    dueDateMillis = if (keepsCustomer) current.paymentDraft.dueDateMillis else null,
-                ),
+                paymentDraft = PaymentDraft(method = method),
                 submitErrorMessage = null,
             )
         }
@@ -342,77 +341,12 @@ class CashierViewModel(
         }
     }
 
-    fun onOpenCustomerPicker() {
-        _state.update { it.copy(isCustomerPickerVisible = true) }
-    }
-
-    fun onCloseCustomerPicker() {
-        _state.update { it.copy(isCustomerPickerVisible = false) }
-    }
-
-    fun onCustomerSelected(customerId: Long?) {
-        _state.update { current ->
-            current.copy(
-                paymentDraft = current.paymentDraft.copy(customerId = customerId),
-                isCustomerPickerVisible = false,
-                submitErrorMessage = null,
-            )
-        }
-    }
-
-    fun onQuickCreateCustomer(name: String, whatsapp: String) {
-        val trimmedName = name.trim()
-        val trimmedWhatsapp = whatsapp.trim()
-        if (trimmedName.isBlank()) return
-        viewModelScope.launch {
-            val newId = customerRepository.upsertCustomer(
-                Customer(
-                    id = 0L,
-                    name = trimmedName,
-                    whatsappNumber = trimmedWhatsapp.ifBlank { null },
-                    totalDebt = 0L,
-                    notes = null,
-                ),
-            )
-            _state.update { current ->
-                current.copy(
-                    paymentDraft = current.paymentDraft.copy(customerId = newId),
-                    isCustomerPickerVisible = false,
-                    submitErrorMessage = null,
-                    message = UiText.from { strings -> strings.cashierCustomerAdded(trimmedName) },
-                    shouldSuppressMessageSnackbar = false,
-                )
-            }
-        }
-    }
-
-    fun onOpenDueDatePicker() {
-        _state.update { it.copy(isDueDatePickerVisible = true) }
-    }
-
-    fun onCloseDueDatePicker() {
-        _state.update { it.copy(isDueDatePickerVisible = false) }
-    }
-
-    fun onDueDateChange(epochMillis: Long) {
-        _state.update { current ->
-            current.copy(
-                paymentDraft = current.paymentDraft.copy(dueDateMillis = epochMillis),
-                isDueDatePickerVisible = false,
-            )
-        }
-    }
-
     fun onConfirmCharge() {
         val pricedCart = _state.value.pricedCart ?: return
         val drafts = cartDrafts.value
         if (drafts.isEmpty() || _state.value.isSubmitting) return
         if (shiftRepository != null && _state.value.activeShift == null) {
-            _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierShiftRequired }) }
-            return
-        }
-        if (staffRepository != null && _state.value.activeStaff == null) {
-            _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierShiftRequired }) }
+            _state.update { it.copy(isShiftPromptVisible = true, submitErrorMessage = null) }
             return
         }
 
@@ -425,12 +359,6 @@ class CashierViewModel(
 
             is PaidAmountResolution.Resolved -> resolution.paidAmount
         }
-        val remainingAfterPayment = (pricedCart.grandTotal - paidAmount).coerceAtLeast(0L)
-        if (remainingAfterPayment > 0L && draft.customerId == null) {
-            _state.update { it.copy(submitErrorMessage = UiText.from { strings -> strings.cashierRemainingDebtNeedsCustomer }) }
-            return
-        }
-
         val request = CheckoutRequest(
             lines = drafts.map { cartDraft ->
                 CheckoutLine(
@@ -441,10 +369,8 @@ class CashierViewModel(
                     itemDiscount = cartDraft.itemDiscount,
                 )
             },
-            customerId = draft.customerId,
             paymentMethod = draft.method,
             paidAmount = paidAmount,
-            dueDate = if (remainingAfterPayment > 0L) draft.dueDateMillis else null,
             invoiceDiscount = 0L,
             taxRatePercent = pricingContext.taxRatePercent,
             roundingIncrement = pricingContext.roundingIncrement,
@@ -542,14 +468,6 @@ class CashierViewModel(
         }
     }
 
-    private fun observeCustomers() {
-        viewModelScope.launch {
-            customerRepository.observeCustomers(null).collect { customers ->
-                _state.update { it.copy(payableCustomers = customers) }
-            }
-        }
-    }
-
     private fun observeScanEvents() {
         viewModelScope.launch {
             scannerInput.scanEvents.collect { scanEvent -> onScannedCode(scanEvent.code) }
@@ -561,6 +479,10 @@ class CashierViewModel(
         viewModelScope.launch {
             repository.observeActiveShift().collect { shift ->
                 _state.update { current -> current.copy(activeShift = shift) }
+                if (shift != null && pendingPaymentAfterShift) {
+                    pendingPaymentAfterShift = false
+                    onOpenPaymentSheet()
+                }
             }
         }
     }
@@ -744,6 +666,10 @@ class CashierViewModel(
         lineSubtotal = itemSubtotal,
         isNegotiated = isNegotiated,
         isWholesale = isWholesale,
+        categoryName = product.category.orEmpty(),
+        imagePath = product.imagePath,
+        icon = product.icon,
+        stock = product.stockBaseQty,
     )
 
     private fun resolvePaidAmount(draft: PaymentDraft, grandTotal: Long): PaidAmountResolution = when (draft.method) {
@@ -762,18 +688,8 @@ class CashierViewModel(
             }
         }
 
-        PaymentMethod.QRIS, PaymentMethod.TRANSFER -> PaidAmountResolution.Resolved(grandTotal)
-
-        PaymentMethod.SPLIT -> {
-            val tendered = draft.amountReceivedInput.toLongOrNull()
-            if (tendered == null) {
-                PaidAmountResolution.Rejected(UiText.from { strings -> strings.cashierEnterAmountReceived })
-            } else {
-                PaidAmountResolution.Resolved(tendered)
-            }
-        }
-
-        PaymentMethod.KASBON -> PaidAmountResolution.Resolved(draft.amountReceivedInput.toLongOrNull() ?: 0L)
+        PaymentMethod.QRIS, PaymentMethod.TRANSFER, PaymentMethod.DEBIT, PaymentMethod.CREDIT ->
+            PaidAmountResolution.Resolved(grandTotal)
     }
 
     private fun onCheckoutCompleted(result: CheckoutResult) {
@@ -785,7 +701,6 @@ class CashierViewModel(
             grandTotal = result.pricedCart.grandTotal,
             paidAmount = result.allocation.paidAmount,
             changeAmount = result.allocation.changeAmount,
-            remainingDebt = result.allocation.remainingDebt,
             shareText = ReceiptShareText.build(buildReceiptShareData(result), currentStrings),
             paymentMethod = result.allocation.paymentMethod,
             itemCount = result.pricedCart.lines.size,
@@ -842,16 +757,10 @@ class CashierViewModel(
                 twoColumn(currentStrings.transactionsFieldChange, Rupiah.format(result.allocation.changeAmount)),
             )
         }
-        if (result.allocation.remainingDebt > 0L) {
-            lines += ReceiptLine(
-                twoColumn(currentStrings.receiptRemainingDebtShort, Rupiah.format(result.allocation.remainingDebt)),
-            )
-        }
         return ReceiptDocument(storeName = storeName, lines = lines)
     }
 
     private fun buildReceiptShareData(result: CheckoutResult): ReceiptShareData {
-        val state = _state.value
         val pricedCart = result.pricedCart
         return ReceiptShareData(
             storeName = storeName,
@@ -860,7 +769,6 @@ class CashierViewModel(
             cashierName = _state.value.activeStaff?.name
                 ?: _state.value.activeShift?.cashierName
                 ?: fallbackCashierName,
-            customerName = state.selectedCustomerName,
             paymentMethodLabel = paymentMethodLabel(result.allocation.paymentMethod, currentStrings),
             items = pricedCart.lines.map { pricedLine ->
                 ReceiptShareItem(
@@ -879,8 +787,6 @@ class CashierViewModel(
             grandTotal = pricedCart.grandTotal,
             paidAmount = result.allocation.paidAmount,
             changeAmount = result.allocation.changeAmount,
-            remainingDebt = result.allocation.remainingDebt,
-            dueDateLabel = state.paymentDraft.dueDateMillis?.let { millis -> formatDate(millis, currentStrings) },
         )
     }
 

@@ -7,15 +7,13 @@ import id.umkm.pos.pro.core.contract.AdPlacement
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.contract.RewardedAdOutcome
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.AppSettings
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.DailySales
-import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
@@ -44,13 +42,11 @@ internal fun sampleTransaction(
     grandTotal: Long = 20_000L,
     totalHpp: Long = 10_000L,
     netProfit: Long = 5_000L,
-    customerId: Long? = null,
 ): Transaction = Transaction(
     id = id,
     invoiceNo = invoiceNo,
     createdAt = createdAt,
     cashierId = null,
-    customerId = customerId,
     subtotal = subtotal,
     discountTotal = 0L,
     invoiceDiscount = 0L,
@@ -62,8 +58,6 @@ internal fun sampleTransaction(
     paymentMethod = paymentMethod,
     paidAmount = grandTotal,
     changeAmount = 0L,
-    remainingDebt = 0L,
-    dueDate = null,
     status = status,
     notes = null,
 )
@@ -145,30 +139,8 @@ internal class FakeTransactionRepository(
         return itemsByTransaction[transactionId].orEmpty()
     }
 
-    override suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long> =
-        error("recordDebtPayment is not used in report tests")
-
     override suspend fun markReturned(transactionId: Long, returnedItems: List<TransactionItem>): AppResult<Unit> =
         error("markReturned is not used in report tests")
-}
-
-internal class FakeCustomerRepository(
-    private val customers: Map<Long, Customer> = emptyMap(),
-) : CustomerRepository {
-
-    override fun observeCustomers(query: String?): Flow<List<Customer>> =
-        error("observeCustomers is not used in report tests")
-
-    override suspend fun getCustomer(customerId: Long): Customer? = customers[customerId]
-
-    override suspend fun upsertCustomer(customer: Customer): Long =
-        error("upsertCustomer is not used in report tests")
-
-    override suspend fun deleteCustomer(customerId: Long) =
-        error("deleteCustomer is not used in report tests")
-
-    override fun observeDebtPayments(customerId: Long): Flow<List<DebtPayment>> =
-        error("observeDebtPayments is not used in report tests")
 }
 
 internal class FakeSettingsRepository(
@@ -241,7 +213,7 @@ internal class RecordingBinarySink(private val failWrite: Boolean = false) : Bin
 }
 
 internal class RecordingAdController(
-    private val result: AppResult<Unit> = AppResult.Failure(AppError.Network("ads unavailable")),
+    private val outcome: RewardedAdOutcome = RewardedAdOutcome.EARNED,
     private val shouldThrow: Boolean = false,
 ) : AdController {
 
@@ -250,11 +222,11 @@ internal class RecordingAdController(
 
     override fun observeAvailability(placement: AdPlacement): Flow<Boolean> = flowOf(true)
 
-    override suspend fun showRewarded(placement: AdPlacement): AppResult<Unit> {
+    override suspend fun showRewarded(placement: AdPlacement): RewardedAdOutcome {
         requestedPlacement = placement
         callCount++
         if (shouldThrow) throw IllegalStateException("rewarded ad sdk crashed")
-        return result
+        return outcome
     }
 }
 

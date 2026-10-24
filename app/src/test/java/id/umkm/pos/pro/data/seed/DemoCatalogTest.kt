@@ -32,9 +32,6 @@ class DemoCatalogTest {
             assertThat(spec.category.lowercase()).doesNotContain("demo")
             assertThat(spec.sku.lowercase()).doesNotContain("demo")
         }
-        DemoCatalog.customers.forEach { customer ->
-            assertThat(customer.name.lowercase()).doesNotContain("demo")
-        }
     }
 
     @Test
@@ -113,15 +110,6 @@ class DemoCatalogTest {
 
             assertThat(pricedCart.lines.single().unitPrice).isEqualTo(spec.basePrice)
             assertThat(pricedCart.totalHpp).isEqualTo(spec.baseHpp)
-        }
-    }
-
-    @Test
-    fun catalogCustomersHaveNamesAndWhatsappNumbers() {
-        assertThat(DemoCatalog.customers).isNotEmpty()
-        DemoCatalog.customers.forEach { customer ->
-            assertThat(customer.name).isNotEmpty()
-            assertThat(customer.whatsappNumber).startsWith("628")
         }
     }
 

@@ -15,7 +15,6 @@ data class DemoLineSpec(
 enum class DemoSettlement {
     FULL,
     CASH_ROUNDED,
-    PARTIAL_HALF,
 }
 
 data class DemoSaleSpec(
@@ -24,9 +23,7 @@ data class DemoSaleSpec(
     val lines: List<DemoLineSpec>,
     val paymentMethod: PaymentMethod,
     val settlement: DemoSettlement,
-    val customerIndex: Int? = null,
     val invoiceDiscount: Long = 0L,
-    val dueOffsetDays: Int? = null,
 )
 
 object DemoSchedule {
@@ -66,8 +63,6 @@ object DemoSalesPlan {
     const val RETURN_LINE_INDEX: Int = 0
     const val RETURN_QTY: Double = 1.0
 
-    const val KASBON_DUE_OFFSET_DAYS: Int = 14
-
     private const val FIRST_SALE_MINUTE: Int = 540
     private const val MINUTES_BETWEEN_SALES: Int = 75
     private const val NEGOTIATED_UNIT_PRICE: Long = 8_500L
@@ -86,7 +81,6 @@ object DemoSalesPlan {
         PaymentMethod.QRIS,
         PaymentMethod.TRANSFER,
         PaymentMethod.CASH,
-        PaymentMethod.SPLIT,
         PaymentMethod.QRIS,
         PaymentMethod.TRANSFER,
         PaymentMethod.CASH,
@@ -117,10 +111,8 @@ object DemoSalesPlan {
         }
 
         sales[KASBON_SALE_INDEX] = sales[KASBON_SALE_INDEX].copy(
-            paymentMethod = PaymentMethod.KASBON,
-            settlement = DemoSettlement.PARTIAL_HALF,
-            customerIndex = 0,
-            dueOffsetDays = KASBON_DUE_OFFSET_DAYS,
+            paymentMethod = PaymentMethod.CASH,
+            settlement = DemoSettlement.CASH_ROUNDED,
         )
         sales[NEGOTIATED_SALE_INDEX] = sales[NEGOTIATED_SALE_INDEX].copy(
             lines = sales[NEGOTIATED_SALE_INDEX].lines + DemoLineSpec(

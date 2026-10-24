@@ -6,7 +6,6 @@ import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReturnRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
-import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.ReportRange
@@ -72,7 +71,6 @@ class FakeTransactionRepository : TransactionRepository {
     private val itemsByTransaction = LinkedHashMap<Long, List<TransactionItem>>()
     private var nextTransactionId = 1L
     private var nextItemId = 1_000L
-    private var nextPaymentId = 1L
     private var nextInvoiceSequence = 1L
 
     val savedTransactions: List<Transaction> get() = transactions.values.toList()
@@ -100,17 +98,6 @@ class FakeTransactionRepository : TransactionRepository {
     override fun observeTransactions(range: ReportRange): Flow<List<Transaction>> = flowOf(transactions.values.toList())
 
     override suspend fun getItems(transactionId: Long): List<TransactionItem> = itemsByTransaction[transactionId].orEmpty()
-
-    override suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long> {
-        val existing = transactions[payment.transactionId]
-            ?: return AppResult.Failure(AppError.NotFound("transaction ${payment.transactionId} was not found"))
-        val remainingDebt = (existing.remainingDebt - payment.amount).coerceAtLeast(0L)
-        transactions[payment.transactionId] = existing.copy(
-            remainingDebt = remainingDebt,
-            status = if (remainingDebt == 0L) TransactionStatus.COMPLETED else existing.status,
-        )
-        return AppResult.Success(nextPaymentId++)
-    }
 
     override suspend fun markReturned(
         transactionId: Long,

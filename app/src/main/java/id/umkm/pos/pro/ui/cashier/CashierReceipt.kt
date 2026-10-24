@@ -113,12 +113,6 @@ internal fun CashierReceiptSheet(
                         value = Rupiah.format(receipt.changeAmount),
                     )
                 }
-                if (receipt.remainingDebt > 0L) {
-                    ReceiptSummaryLine(
-                        label = strings.cashierRemainingAmount,
-                        value = Rupiah.format(receipt.remainingDebt),
-                    )
-                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -194,15 +188,15 @@ private fun ReceiptHeroStatusCard(receipt: CashierReceipt) {
     } else {
         MaterialTheme.colorScheme.onSecondaryContainer
     }
-    val label = when {
-        receipt.changeAmount > 0L -> strings.cashierChange
-        receipt.remainingDebt > 0L -> strings.cashierRemainingDebt
-        else -> strings.cashierPaymentStatusLabel
+    val label = if (receipt.changeAmount > 0L) {
+        strings.cashierChange
+    } else {
+        strings.cashierPaymentStatusLabel
     }
-    val valueText = when {
-        receipt.changeAmount > 0L -> Rupiah.format(receipt.changeAmount)
-        receipt.remainingDebt > 0L -> Rupiah.format(receipt.remainingDebt)
-        else -> strings.cashierPaidInFull(paymentMethodLabel(receipt.paymentMethod, strings))
+    val valueText = if (receipt.changeAmount > 0L) {
+        Rupiah.format(receipt.changeAmount)
+    } else {
+        strings.cashierPaidInFull(paymentMethodLabel(receipt.paymentMethod, strings))
     }
 
     Surface(

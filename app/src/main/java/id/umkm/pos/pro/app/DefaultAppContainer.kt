@@ -8,7 +8,6 @@ import id.umkm.pos.pro.core.contract.AdController
 import id.umkm.pos.pro.core.contract.AppContainer
 import id.umkm.pos.pro.core.contract.Clock
 import id.umkm.pos.pro.core.contract.DataBackupService
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PinHasher
 import id.umkm.pos.pro.core.contract.PriceEngine
@@ -31,7 +30,6 @@ import id.umkm.pos.pro.data.backup.JsonDataBackupService
 import id.umkm.pos.pro.data.file.DownloadsFileSink
 import id.umkm.pos.pro.data.local.UmkmDatabase
 import id.umkm.pos.pro.data.local.OnboardingPreferences
-import id.umkm.pos.pro.data.local.repository.CustomerRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ProductRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ReportRepositoryImpl
 import id.umkm.pos.pro.data.local.repository.ReturnRepositoryImpl
@@ -52,6 +50,7 @@ import id.umkm.pos.pro.data.local.security.Pbkdf2PinHasher
 import id.umkm.pos.pro.data.local.security.PinHashAlgorithm
 import id.umkm.pos.pro.domain.security.SecurityService
 import id.umkm.pos.pro.hardware.scanner.HardwareScannerInput
+import id.umkm.pos.pro.monetization.admob.AdMobAdController
 import id.umkm.pos.pro.monetization.admob.NoAdsController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +61,7 @@ import kotlinx.coroutines.launch
 class DefaultAppContainer(
     context: Context,
     applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    activityProvider: CurrentActivityProvider = CurrentActivityProvider(),
 ) : AppContainer {
 
     private val applicationContext: Context = context.applicationContext
@@ -74,14 +74,9 @@ class DefaultAppContainer(
 
     override val productImageRepository: ProductImageRepository = ProductImageStore(applicationContext)
 
-    override val customerRepository: CustomerRepository =
-        CustomerRepositoryImpl(database.customerDao(), database.debtPaymentDao())
-
     override val transactionRepository: TransactionRepository = TransactionRepositoryImpl(
         database,
         database.transactionDao(),
-        database.debtPaymentDao(),
-        database.customerDao(),
     )
 
     override val returnRepository: ReturnRepository = ReturnRepositoryImpl(
@@ -102,7 +97,6 @@ class DefaultAppContainer(
         shiftDao = database.shiftDao(),
         staffDao = database.staffDao(),
         transactionDao = database.transactionDao(),
-        debtPaymentDao = database.debtPaymentDao(),
         returnDao = database.returnDao(),
         clock = clock,
     )
@@ -144,7 +138,11 @@ class DefaultAppContainer(
 
     override val scannerPreferences: ScannerPreferences = ScannerPreferenceStore(applicationContext)
 
-    override val adController: AdController = NoAdsController()
+    override val adController: AdController = AdMobAdController(
+        context = applicationContext,
+        activityProvider = activityProvider,
+        rewardedExportUnitId = BuildConfig.ADMOB_REWARDED_EXPORT_UNIT_ID,
+    )
 
     override val onboardingStore: OnboardingStore = OnboardingPreferences(applicationContext)
 
@@ -174,7 +172,6 @@ class DefaultAppContainer(
             DefaultDemoDataSeeder(
                 database = database,
                 productRepository = productRepository,
-                customerRepository = customerRepository,
                 transactionRepository = transactionRepository,
                 returnRepository = returnRepository,
                 priceEngine = priceEngine,

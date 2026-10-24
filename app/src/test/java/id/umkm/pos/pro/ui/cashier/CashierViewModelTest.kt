@@ -1,11 +1,19 @@
 package id.umkm.pos.pro.ui.cashier
 
 import com.google.common.truth.Truth.assertThat
+import id.umkm.pos.pro.core.contract.AppError
+import id.umkm.pos.pro.core.contract.AppResult
+import id.umkm.pos.pro.core.contract.ShiftRepository
+import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.AppLanguage
 import id.umkm.pos.pro.core.model.AppSettings
+import id.umkm.pos.pro.core.model.CashierShift
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.ProductUnit
+import id.umkm.pos.pro.core.model.ShiftCashSummary
+import id.umkm.pos.pro.core.model.ShiftSwitchResult
+import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.domain.pos.DefaultPriceEngine
 import id.umkm.pos.pro.domain.security.PinPolicy
@@ -13,7 +21,6 @@ import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.domain.usecase.FakeClock
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.FakeCatalogRepository
-import id.umkm.pos.pro.ui.FakeCustomerStore
 import id.umkm.pos.pro.ui.FakeReceiptPrinter
 import id.umkm.pos.pro.ui.FakeReceiptRenderer
 import id.umkm.pos.pro.ui.FakeScannerInput
@@ -23,8 +30,10 @@ import id.umkm.pos.pro.ui.MainDispatcherRule
 import id.umkm.pos.pro.ui.common.EnStrings
 import id.umkm.pos.pro.ui.common.IdStrings
 import id.umkm.pos.pro.ui.common.successDataOrNull
-import id.umkm.pos.pro.ui.uiSampleCustomer
+import id.umkm.pos.pro.ui.staff.FakeStaffRepository
 import id.umkm.pos.pro.ui.uiSampleProduct
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -43,7 +52,6 @@ class CashierViewModelTest {
             ),
         )
     }
-    private val customers = FakeCustomerStore()
     private val transactions = FakeTransactionStore()
     private val settings = FakeSettingsRepository()
     private val printer = FakeReceiptPrinter()
@@ -52,15 +60,18 @@ class CashierViewModelTest {
 
     private fun createViewModel(
         settingsRepository: FakeSettingsRepository = settings,
+        shiftRepository: ShiftRepository? = null,
+        staffRepository: StaffRepository? = null,
     ): CashierViewModel = CashierViewModel(
         productRepository = products,
-        customerRepository = customers,
         settingsRepository = settingsRepository,
         priceEngine = DefaultPriceEngine(),
         checkoutUseCase = CheckoutUseCase(products, transactions, DefaultPriceEngine(), clock),
         receiptPrinter = printer,
         receiptRenderer = renderer,
         scannerInput = scanner,
+        shiftRepository = shiftRepository,
+        staffRepository = staffRepository,
     )
 
     @Test
@@ -266,7 +277,6 @@ class CashierViewModelTest {
         assertThat(receipt?.grandTotal).isEqualTo(2_000L)
         assertThat(receipt?.paidAmount).isEqualTo(5_000L)
         assertThat(receipt?.changeAmount).isEqualTo(3_000L)
-        assertThat(receipt?.remainingDebt).isEqualTo(0L)
         assertThat(receipt?.paymentMethod).isEqualTo(PaymentMethod.CASH)
         assertThat(receipt?.itemCount).isEqualTo(1)
         assertThat(state.cartLines).isEmpty()
@@ -306,40 +316,6 @@ class CashierViewModelTest {
         assertThat(shareText).contains("Order details")
         assertThat(shareText).contains(EnStrings.receiptChange(Rupiah.format(3_000L)))
         assertThat(shareText).doesNotContain(IdStrings.receiptItemsTitle)
-    }
-
-    @Test
-    fun kasbonWithoutACustomerIsRejected() = runTest(mainDispatcherRule.testDispatcher) {
-        val viewModel = createViewModel()
-        viewModel.onAddProduct(1L)
-        viewModel.onOpenPaymentSheet()
-
-        viewModel.onPaymentMethodChange(PaymentMethod.KASBON)
-        viewModel.onConfirmCharge()
-
-        assertThat(viewModel.state.value.submitErrorMessage?.resolve(IdStrings))
-            .isEqualTo("Pilih pelanggan untuk sisa tagihan.")
-        assertThat(transactions.savedTransactions()).isEmpty()
-    }
-
-    @Test
-    fun kasbonWithACustomerCreatesPartialDebtWithADueDate() = runTest(mainDispatcherRule.testDispatcher) {
-        customers.setCustomers(listOf(uiSampleCustomer(id = 7L, name = "Pak Budi", totalDebt = 0L)))
-        val viewModel = createViewModel()
-        viewModel.onAddProduct(1L)
-        viewModel.onOpenPaymentSheet()
-        viewModel.onPaymentMethodChange(PaymentMethod.KASBON)
-        viewModel.onCustomerSelected(7L)
-        viewModel.onDueDateChange(50_000L)
-
-        viewModel.onConfirmCharge()
-
-        val state = viewModel.state.value
-        assertThat(state.receipt?.remainingDebt).isEqualTo(2_000L)
-        val saved = transactions.savedTransactions().single()
-        assertThat(saved.customerId).isEqualTo(7L)
-        assertThat(saved.dueDate).isEqualTo(50_000L)
-        assertThat(saved.status).isEqualTo(TransactionStatus.PARTIAL_DEBT)
     }
 
     @Test
@@ -486,26 +462,6 @@ class CashierViewModelTest {
     }
 
     @Test
-    fun onQuickCreateCustomerAddsCustomerSelectsItAndClosesPicker() = runTest(mainDispatcherRule.testDispatcher) {
-        val viewModel = createViewModel()
-        viewModel.onAddProduct(1L)
-        viewModel.onOpenPaymentSheet()
-        viewModel.onPaymentMethodChange(PaymentMethod.KASBON)
-        viewModel.onOpenCustomerPicker()
-
-        viewModel.onQuickCreateCustomer("Budi", "08123456789")
-
-        val state = viewModel.state.value
-        assertThat(state.isCustomerPickerVisible).isFalse()
-        assertThat(state.paymentDraft.customerId).isNotNull()
-        assertThat(state.selectedCustomerName).isEqualTo("Budi")
-        assertThat(state.message?.resolve(IdStrings)).isEqualTo("Pelanggan Budi ditambahkan & dipilih")
-        val addedCustomer = state.payableCustomers.single()
-        assertThat(addedCustomer.name).isEqualTo("Budi")
-        assertThat(addedCustomer.whatsappNumber).isEqualTo("08123456789")
-    }
-
-    @Test
     fun openingAndDismissingTheScanDialogTogglesTheState() = runTest(mainDispatcherRule.testDispatcher) {
         val viewModel = createViewModel()
         assertThat(viewModel.state.value.isScanDialogVisible).isFalse()
@@ -555,5 +511,184 @@ class CashierViewModelTest {
         val state = viewModel.state.value
         assertThat(state.isScanDialogVisible).isFalse()
         assertThat(state.cartLines).hasSize(1)
+    }
+
+    @Test
+    fun noShiftSetsShiftPromptVisibleAndConsumeClearsIt() = runTest(mainDispatcherRule.testDispatcher) {
+        val shiftRepo = FakeCashierShiftRepository(initialShift = null)
+        val viewModel = createViewModel(shiftRepository = shiftRepo)
+        viewModel.onAddProduct(1L)
+        viewModel.onMessageConsumed()
+
+        viewModel.onOpenPaymentSheet()
+
+        assertThat(viewModel.state.value.isShiftPromptVisible).isTrue()
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isFalse()
+        assertThat(viewModel.state.value.message).isNull()
+
+        viewModel.onShiftPromptConsumed()
+        assertThat(viewModel.state.value.isShiftPromptVisible).isFalse()
+    }
+
+    @Test
+    fun noShiftOnConfirmChargeSetsShiftPromptVisible() = runTest(mainDispatcherRule.testDispatcher) {
+        val shiftRepo = FakeCashierShiftRepository(initialShift = null)
+        val viewModel = createViewModel(shiftRepository = shiftRepo)
+        viewModel.onAddProduct(1L)
+
+        viewModel.onConfirmCharge()
+
+        assertThat(viewModel.state.value.isShiftPromptVisible).isTrue()
+        assertThat(viewModel.state.value.submitErrorMessage).isNull()
+    }
+
+    @Test
+    fun afterShiftIsActiveOpenPaymentSheetOpensPayment() = runTest(mainDispatcherRule.testDispatcher) {
+        val shift = CashierShift(
+            id = 1L,
+            cashierName = "Budi",
+            openedAt = 1_000L,
+            closedAt = null,
+            startingCash = 50_000L,
+            expectedEndingCash = null,
+            actualEndingCash = null,
+        )
+        val shiftRepo = FakeCashierShiftRepository(initialShift = shift)
+        val viewModel = createViewModel(shiftRepository = shiftRepo)
+        viewModel.onAddProduct(1L)
+
+        viewModel.onOpenPaymentSheet()
+
+        assertThat(viewModel.state.value.isShiftPromptVisible).isFalse()
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isTrue()
+    }
+
+    @Test
+    fun pendingPaymentAfterShiftAutoContinuesOnceWhenShiftEmits() = runTest(mainDispatcherRule.testDispatcher) {
+        val shiftRepo = FakeCashierShiftRepository(initialShift = null)
+        val viewModel = createViewModel(shiftRepository = shiftRepo)
+        viewModel.onAddProduct(1L)
+
+        // User taps payment without shift -> prompt shown
+        viewModel.onOpenPaymentSheet()
+        assertThat(viewModel.state.value.isShiftPromptVisible).isTrue()
+        viewModel.onShiftPromptConsumed()
+
+        // Shift sheet opened, but shift not yet emitted to repo
+        viewModel.onShiftOpenedForPayment()
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isFalse()
+
+        // Shift repo emits new active shift
+        val newShift = CashierShift(
+            id = 10L,
+            cashierName = "Siti",
+            openedAt = 2_000L,
+            closedAt = null,
+            startingCash = 100_000L,
+            expectedEndingCash = null,
+            actualEndingCash = null,
+        )
+        shiftRepo.activeShiftFlow.value = newShift
+        testScheduler.advanceUntilIdle()
+
+        // Pending payment should now have opened payment sheet automatically
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isTrue()
+
+        // Close payment sheet and emit another shift update; should NOT auto-open again
+        viewModel.onClosePaymentSheet()
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isFalse()
+        shiftRepo.activeShiftFlow.value = newShift.copy(startingCash = 150_000L)
+        testScheduler.advanceUntilIdle()
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isFalse()
+    }
+
+    @Test
+    fun callingOnShiftOpenedForPaymentWhenShiftAlreadyActiveOpensPaymentImmediately() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val shift = CashierShift(
+                id = 1L,
+                cashierName = "Dini",
+                openedAt = 1_000L,
+                closedAt = null,
+                startingCash = 50_000L,
+                expectedEndingCash = null,
+                actualEndingCash = null,
+            )
+            val shiftRepo = FakeCashierShiftRepository(initialShift = shift)
+            val viewModel = createViewModel(shiftRepository = shiftRepo)
+            viewModel.onAddProduct(1L)
+
+            viewModel.onShiftOpenedForPayment()
+
+            assertThat(viewModel.state.value.isPaymentSheetVisible).isTrue()
+        }
+
+    @Test
+    fun shiftWithNoActiveStaffAllowsPaymentAndUsesShiftCashierName() = runTest(mainDispatcherRule.testDispatcher) {
+        val shift = CashierShift(
+            id = 5L,
+            cashierName = "ShiftCashier",
+            openedAt = 1_000L,
+            closedAt = null,
+            startingCash = 50_000L,
+            expectedEndingCash = null,
+            actualEndingCash = null,
+        )
+        val shiftRepo = FakeCashierShiftRepository(initialShift = shift)
+        val staffRepo = FakeStaffRepository(emptyList())
+        val viewModel = createViewModel(shiftRepository = shiftRepo, staffRepository = staffRepo)
+        viewModel.onAddProduct(1L)
+
+        viewModel.onOpenPaymentSheet()
+        assertThat(viewModel.state.value.isPaymentSheetVisible).isTrue()
+
+        viewModel.onAmountReceivedChange("2000")
+        viewModel.onConfirmCharge()
+        testScheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertThat(state.submitErrorMessage).isNull()
+        assertThat(state.receipt).isNotNull()
+        assertThat(transactions.savedTransactions()).hasSize(1)
+        val record = transactions.savedTransactions().single()
+        assertThat(record.cashierName).isEqualTo("ShiftCashier")
+        assertThat(record.shiftId).isEqualTo(5L)
+        assertThat(record.staffId).isNull()
+    }
+
+    private class FakeCashierShiftRepository(
+        initialShift: CashierShift? = null,
+    ) : ShiftRepository {
+        val activeShiftFlow = MutableStateFlow<CashierShift?>(initialShift)
+
+        override fun observeActiveShift(): Flow<CashierShift?> = activeShiftFlow
+
+        override suspend fun getActiveShift(): CashierShift? = activeShiftFlow.value
+
+        override suspend fun getRecentCashierNames(limit: Int): List<String> =
+            listOfNotNull(activeShiftFlow.value?.cashierName)
+
+        override suspend fun getShiftHistory(limit: Int): List<CashierShift> =
+            listOfNotNull(activeShiftFlow.value)
+
+        override suspend fun getShiftSummary(shiftId: Long): AppResult<ShiftCashSummary> =
+            AppResult.Failure(AppError.NotFound("shift not found"))
+
+        override suspend fun openShift(staffId: Long, startingCash: Long): AppResult<CashierShift> =
+            AppResult.Failure(AppError.NotFound("not implemented"))
+
+        override suspend fun closeShift(shiftId: Long, actualEndingCash: Long): AppResult<CashierShift> =
+            AppResult.Failure(AppError.NotFound("not implemented"))
+
+        override suspend fun switchShift(
+            closeShiftId: Long,
+            actualEndingCash: Long,
+            nextStaffId: Long,
+            nextStartingCash: Long,
+        ): AppResult<ShiftSwitchResult> =
+            AppResult.Failure(AppError.NotFound("not implemented"))
+
+        override suspend fun switchOperator(staffId: Long): AppResult<Staff> =
+            AppResult.Failure(AppError.NotFound("not implemented"))
     }
 }

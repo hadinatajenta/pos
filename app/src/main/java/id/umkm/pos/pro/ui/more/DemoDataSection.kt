@@ -315,7 +315,6 @@ private fun seedLoadedMessage(summary: DemoSeedSummary): UiText =
     UiText.from { strings ->
         strings.demoDataLoaded(
             summary.products,
-            summary.customers,
             summary.transactions,
             summary.returns,
         )
@@ -323,5 +322,5 @@ private fun seedLoadedMessage(summary: DemoSeedSummary): UiText =
 
 private fun clearSummaryMessage(summary: DemoClearSummary): UiText =
     UiText.from { strings ->
-        strings.demoDataCleared(summary.products, summary.customers, summary.transactions)
+        strings.demoDataCleared(summary.products, summary.transactions)
     }

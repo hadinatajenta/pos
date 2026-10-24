@@ -73,6 +73,7 @@ import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.PersonAvatar
 import id.umkm.pos.pro.ui.components.PosSectionHeader
 import id.umkm.pos.pro.ui.components.PrimaryActionButton
+import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.security.rememberSecurityGate
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
@@ -88,6 +89,7 @@ const val SHIFT_HANDOVER_TOGGLE_TEST_TAG = "shift-handover-toggle"
 const val SHIFT_OPERATOR_TAB_TEST_TAG = "shift-operator-tab"
 const val SHIFT_CLOSE_TAB_TEST_TAG = "shift-close-tab"
 const val SHIFT_STAFF_ROW_TEST_TAG_PREFIX = "shift-staff-row-"
+const val SHIFT_QUICK_DETAILS_ACTION_TEST_TAG = "shift-quick-details-action"
 
 private const val TABLET_SHEET_HEIGHT_FRACTION = 0.86f
 private const val TABLET_SHEET_MAX_WIDTH_DP = 640
@@ -109,6 +111,7 @@ internal fun SwitchCashierSheet(
 ) {
     val strings = LocalPosStrings.current
     val isOpening = state.activeShift == null
+    val isQuickOpening = isOpening && state.isQuickMode
     var selectedTab by rememberSaveable(state.activeShift?.id) {
         mutableStateOf(ShiftFormTab.OPERATOR)
     }
@@ -117,11 +120,15 @@ internal fun SwitchCashierSheet(
     }
     val otherStaff = state.staffOptions.filter { it.id != state.activeStaff?.id }
     ShiftSheetContainer(
-        title = if (isOpening) strings.shiftOpenTitle else strings.moreShiftTitle,
-        supportingText = if (isOpening) {
-            strings.shiftOpenSupporting
-        } else {
-            strings.shiftCloseSupporting(activeOperatorName(state))
+        title = when {
+            isQuickOpening -> strings.shiftQuickOpenTitle
+            isOpening -> strings.shiftOpenTitle
+            else -> strings.moreShiftTitle
+        },
+        supportingText = when {
+            isQuickOpening -> strings.cashierShiftRequired
+            isOpening -> strings.shiftOpenSupporting
+            else -> strings.shiftCloseSupporting(activeOperatorName(state))
         },
         onDismiss = actions.onDismissForm,
         footer = {
@@ -129,6 +136,7 @@ internal fun SwitchCashierSheet(
                 state = state,
                 actions = actions,
                 isOpening = isOpening,
+                isQuickOpening = isQuickOpening,
                 selectedTab = selectedTab,
                 isHandoverEnabled = isHandoverEnabled,
             )
@@ -142,43 +150,55 @@ internal fun SwitchCashierSheet(
                 .padding(top = PosSpacing.xs, bottom = PosSpacing.md),
             verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
         ) {
-            if (isOpening) {
-                OpenShiftContent(
-                    state = state,
-                    actions = actions,
-                    onManageStaff = onManageStaff,
-                )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
-                    ShiftModeTabs(
-                        selectedTab = selectedTab,
-                        onSelectTab = { tab -> selectedTab = tab },
-                    )
-                    Text(
-                        text = if (selectedTab == ShiftFormTab.OPERATOR) {
-                            strings.shiftOperatorDescription
-                        } else {
-                            strings.shiftCloseDescription
-                        },
-                        style = LocalAppTextStyles.current.supportingLabel,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                when (selectedTab) {
-                    ShiftFormTab.OPERATOR -> OperatorContent(
+            when {
+                isQuickOpening -> {
+                    QuickOpenShiftContent(
                         state = state,
                         actions = actions,
-                        otherStaff = otherStaff,
                         onManageStaff = onManageStaff,
                     )
+                }
 
-                    ShiftFormTab.CLOSE -> CloseShiftContent(
+                isOpening -> {
+                    OpenShiftContent(
                         state = state,
                         actions = actions,
-                        otherStaff = otherStaff,
-                        isHandoverEnabled = isHandoverEnabled,
-                        onHandoverChange = { enabled -> isHandoverEnabled = enabled },
+                        onManageStaff = onManageStaff,
                     )
+                }
+
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
+                        ShiftModeTabs(
+                            selectedTab = selectedTab,
+                            onSelectTab = { tab -> selectedTab = tab },
+                        )
+                        Text(
+                            text = if (selectedTab == ShiftFormTab.OPERATOR) {
+                                strings.shiftOperatorDescription
+                            } else {
+                                strings.shiftCloseDescription
+                            },
+                            style = LocalAppTextStyles.current.supportingLabel,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    when (selectedTab) {
+                        ShiftFormTab.OPERATOR -> OperatorContent(
+                            state = state,
+                            actions = actions,
+                            otherStaff = otherStaff,
+                            onManageStaff = onManageStaff,
+                        )
+
+                        ShiftFormTab.CLOSE -> CloseShiftContent(
+                            state = state,
+                            actions = actions,
+                            otherStaff = otherStaff,
+                            isHandoverEnabled = isHandoverEnabled,
+                            onHandoverChange = { enabled -> isHandoverEnabled = enabled },
+                        )
+                    }
                 }
             }
             ShiftFeedback(state = state)
@@ -369,6 +389,48 @@ private fun ShiftModeTabs(
 }
 
 @Composable
+private fun QuickOpenShiftContent(
+    state: ShiftUiState,
+    actions: ShiftActions,
+    onManageStaff: () -> Unit,
+) {
+    val strings = LocalPosStrings.current
+    if (state.staffOptions.isEmpty()) {
+        StaffEmptyState(
+            title = strings.shiftNoStaffTitle,
+            hint = strings.shiftNoStaffHint,
+            onManageStaff = onManageStaff,
+        )
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+            PosSectionHeader(title = strings.shiftCashierNameLabel)
+            if (state.staffOptions.size > 1) {
+                CashierPicker(
+                    staff = state.staffOptions,
+                    selectedStaffId = state.selectedStaffId,
+                    onSelect = actions.onSelectStaff,
+                    modifier = Modifier.testTag(SHIFT_CASHIER_NAME_FIELD_TEST_TAG),
+                )
+            } else {
+                CurrentCashierRow(
+                    name = state.selectedStaff?.name ?: state.staffOptions.first().name,
+                )
+            }
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
+        PosSectionHeader(title = strings.shiftStartingCashLabel)
+        MoneyField(
+            value = state.startingCashInput,
+            onValueChange = actions.onStartingCashChange,
+            label = strings.shiftStartingCashLabel,
+            supportingText = strings.shiftQuickStartingCashHint,
+            imeAction = ImeAction.Done,
+        )
+    }
+}
+
+@Composable
 private fun OpenShiftContent(
     state: ShiftUiState,
     actions: ShiftActions,
@@ -524,12 +586,6 @@ private fun ShiftSummarySection(
                         label = strings.shiftCashSalesLabel,
                         value = Rupiah.format(summary.cashSales),
                     )
-                    if (summary.cashDebtPayments > 0L) {
-                        ShiftMoneyRow(
-                            label = strings.shiftCashDebtPaymentsLabel,
-                            value = Rupiah.format(summary.cashDebtPayments),
-                        )
-                    }
                     if (summary.cashRefunds > 0L) {
                         ShiftMoneyRow(
                             label = strings.shiftCashRefundsLabel,
@@ -942,10 +998,13 @@ private fun ShiftSheetFooter(
     state: ShiftUiState,
     actions: ShiftActions,
     isOpening: Boolean,
+    isQuickOpening: Boolean,
     selectedTab: ShiftFormTab,
     isHandoverEnabled: Boolean,
 ) {
     when {
+        isQuickOpening -> QuickOpenShiftFooter(state = state, actions = actions)
+
         isOpening -> OpenShiftFooter(state = state, actions = actions)
 
         selectedTab == ShiftFormTab.OPERATOR -> OperatorFooter(state = state, actions = actions)
@@ -954,6 +1013,35 @@ private fun ShiftSheetFooter(
             state = state,
             actions = actions,
             isHandoverEnabled = isHandoverEnabled,
+        )
+    }
+}
+
+@Composable
+private fun QuickOpenShiftFooter(
+    state: ShiftUiState,
+    actions: ShiftActions,
+) {
+    val strings = LocalPosStrings.current
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        PrimaryActionButton(
+            text = strings.shiftQuickOpenSubmit,
+            onClick = actions.onOpenShift,
+            enabled = state.isOpenInputReady,
+            loading = state.isSubmitting,
+            modifier = Modifier.testTag(SHIFT_PRIMARY_ACTION_TEST_TAG),
+        )
+        SecondaryTextAction(
+            text = strings.shiftQuickDetailsAction,
+            onClick = actions.onOpenFullForm,
+            enabled = !state.isSubmitting,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(SHIFT_QUICK_DETAILS_ACTION_TEST_TAG),
         )
     }
 }

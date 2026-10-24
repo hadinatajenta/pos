@@ -5,9 +5,9 @@ import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.Clock
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReportRepository
+import id.umkm.pos.pro.core.contract.RewardedAdOutcome
 import id.umkm.pos.pro.core.contract.SettingsRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.ReportRange
@@ -33,7 +33,6 @@ class ReportsPresenter(
     private val reportRepository: ReportRepository,
     private val transactionRepository: TransactionRepository,
     private val productRepository: ProductRepository,
-    private val customerRepository: CustomerRepository,
     private val settingsRepository: SettingsRepository,
     private val csvExporter: SalesCsvExporter,
     private val xlsxExporter: XlsxReportExporter,
@@ -129,7 +128,6 @@ class ReportsPresenter(
                     transactionId = transactionId,
                     transactionRepository = transactionRepository,
                     productRepository = productRepository,
-                    customerRepository = customerRepository,
                     settingsRepository = settingsRepository,
                 )
                 mutableState.update { current ->
@@ -207,7 +205,11 @@ class ReportsPresenter(
             val currentRange = mutableState.value.range
             mutableState.update { current -> current.copy(exportState = ReportsExportState.Running) }
             try {
-                requestExportRewardedAd(adController)
+                val adOutcome = requestExportRewardedAd(adController)
+                if (adOutcome == RewardedAdOutcome.DISMISSED) {
+                    mutableState.update { current -> current.copy(exportState = ReportsExportState.AdRequired) }
+                    return@launch
+                }
                 val content = ReportContentLoader.load(
                     range = currentRange,
                     reportRepository = reportRepository,
@@ -253,7 +255,6 @@ class ReportsPresenter(
                     transactionId = transactionId,
                     transactionRepository = transactionRepository,
                     productRepository = productRepository,
-                    customerRepository = customerRepository,
                     settingsRepository = settingsRepository,
                     strings = stringsFlow.value,
                 )

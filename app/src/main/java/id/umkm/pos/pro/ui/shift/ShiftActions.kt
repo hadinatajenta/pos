@@ -15,6 +15,7 @@ class ShiftActions(
     val onDismissHistory: () -> Unit,
     val onRetryHistory: () -> Unit,
     val onMessageConsumed: () -> Unit,
+    val onOpenFullForm: () -> Unit = {},
 ) {
     companion object {
         fun from(viewModel: ShiftViewModel): ShiftActions = ShiftActions(
@@ -32,6 +33,7 @@ class ShiftActions(
             onDismissHistory = viewModel::onDismissHistory,
             onRetryHistory = viewModel::onRetryHistory,
             onMessageConsumed = viewModel::onMessageConsumed,
+            onOpenFullForm = viewModel::onOpenFullForm,
         )
     }
 }

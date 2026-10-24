@@ -3,14 +3,11 @@ package id.umkm.pos.pro.data.seed
 import id.umkm.pos.pro.core.contract.AppError
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.contract.Clock
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.PriceEngine
 import id.umkm.pos.pro.core.contract.ProductRepository
 import id.umkm.pos.pro.core.contract.ReturnRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.CartLine
-import id.umkm.pos.pro.core.model.Customer
-import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricingContext
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
@@ -20,7 +17,6 @@ import id.umkm.pos.pro.domain.usecase.CheckoutLine
 import id.umkm.pos.pro.domain.usecase.CheckoutRequest
 import id.umkm.pos.pro.domain.usecase.CheckoutUseCase
 import id.umkm.pos.pro.domain.usecase.ProcessReturnUseCase
-import id.umkm.pos.pro.domain.usecase.RecordDebtPaymentUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +26,6 @@ import java.util.TimeZone
 class DefaultDemoDataSeeder(
     private val database: UmkmDatabase,
     private val productRepository: ProductRepository,
-    private val customerRepository: CustomerRepository,
     private val transactionRepository: TransactionRepository,
     private val returnRepository: ReturnRepository,
     private val priceEngine: PriceEngine,
@@ -67,27 +62,23 @@ class DefaultDemoDataSeeder(
         val sales = DemoSalesPlan.build()
         val netBaseQty = DemoStockPlan.netBaseQtyByProduct(sales)
         val catalog = insertCatalog(netBaseQty)
-        val customerIds = insertCustomers()
         val checkout = CheckoutUseCase(productRepository, transactionRepository, priceEngine, demoClock)
 
         val transactionIds = ArrayList<Long>(sales.size)
         sales.forEachIndexed { index, sale ->
             demoClock.set(DemoSchedule.saleMillis(anchorDayStart, sale))
-            val request = buildCheckoutRequest(sale, catalog, customerIds, anchorDayStart)
+            val request = buildCheckoutRequest(sale, catalog)
             when (val result = checkout(request)) {
                 is AppResult.Success -> transactionIds += result.value.transactionId
                 is AppResult.Failure -> throw DemoSeedFailure("transaction $index: ${result.error.message}")
             }
         }
 
-        val debtPayments = recordPartialDebtPayment(sales, transactionIds, anchorDayStart, demoClock)
         val returns = recordReturn(sales, transactionIds, anchorDayStart, demoClock)
 
         return DemoSeedSummary(
             products = DemoCatalog.products.size,
-            customers = customerIds.size,
             transactions = transactionIds.size,
-            debtPayments = debtPayments,
             returns = returns,
         )
     }
@@ -95,13 +86,10 @@ class DefaultDemoDataSeeder(
     private suspend fun clearMarkedRecords(): DemoClearSummary {
         val transactions = database.transactionDao().deleteTransactionsByNote(DemoMarkers.NOTE) +
             database.transactionDao().deleteTransactionsByNote(DemoMarkers.LEGACY_NOTE)
-        val customers = database.customerDao().deleteCustomersByNote(DemoMarkers.NOTE) +
-            database.customerDao().deleteCustomersByNote(DemoMarkers.LEGACY_NOTE)
         val products = database.productDao().deleteProductsBySkuPattern(DemoMarkers.skuLikePattern()) +
             database.productDao().deleteProductsBySkuPattern(DemoMarkers.legacySkuLikePattern())
         return DemoClearSummary(
             products = products,
-            customers = customers,
             transactions = transactions,
         )
     }
@@ -151,24 +139,9 @@ class DefaultDemoDataSeeder(
         return SeededCatalog(productIds, unitIdsByProduct, productsById, unitsByProduct)
     }
 
-    private suspend fun insertCustomers(): List<Long> =
-        DemoCatalog.customers.map { spec ->
-            customerRepository.upsertCustomer(
-                Customer(
-                    id = 0L,
-                    name = spec.name,
-                    whatsappNumber = spec.whatsappNumber,
-                    totalDebt = 0L,
-                    notes = DemoMarkers.NOTE,
-                ),
-            )
-        }
-
     private fun buildCheckoutRequest(
         sale: DemoSaleSpec,
         catalog: SeededCatalog,
-        customerIds: List<Long>,
-        anchorDayStart: Long,
     ): CheckoutRequest {
         val pricedGrandTotal = priceEngine.priceCart(
             lines = toCartLines(sale, catalog),
@@ -180,7 +153,6 @@ class DefaultDemoDataSeeder(
         val paidAmount = when (sale.settlement) {
             DemoSettlement.FULL -> pricedGrandTotal
             DemoSettlement.CASH_ROUNDED -> roundUpTo(pricedGrandTotal, CASH_ROUNDING_INCREMENT)
-            DemoSettlement.PARTIAL_HALF -> partialPaymentOf(pricedGrandTotal)
         }
 
         return CheckoutRequest(
@@ -193,10 +165,8 @@ class DefaultDemoDataSeeder(
                     itemDiscount = line.itemDiscount,
                 )
             },
-            customerId = sale.customerIndex?.let { customerIndex -> customerIds[customerIndex] },
             paymentMethod = sale.paymentMethod,
             paidAmount = paidAmount,
-            dueDate = sale.dueOffsetDays?.let { offset -> anchorDayStart + offset * DemoSchedule.MILLIS_PER_DAY },
             invoiceDiscount = sale.invoiceDiscount,
             taxRatePercent = 0,
             roundingIncrement = 0L,
@@ -218,29 +188,6 @@ class DefaultDemoDataSeeder(
                 itemDiscount = line.itemDiscount,
             )
         }
-
-    private suspend fun recordPartialDebtPayment(
-        sales: List<DemoSaleSpec>,
-        transactionIds: List<Long>,
-        anchorDayStart: Long,
-        demoClock: DemoClock,
-    ): Int {
-        val transactionId = transactionIds.getOrNull(DemoSalesPlan.KASBON_SALE_INDEX) ?: return 0
-        val transaction = transactionRepository.getTransaction(transactionId) ?: return 0
-        if (transaction.remainingDebt <= 0L) return 0
-        val amount = partialPaymentOf(transaction.remainingDebt)
-        if (amount <= 0L) return 0
-
-        demoClock.set(
-            DemoSchedule.saleMillis(anchorDayStart, sales[DemoSalesPlan.KASBON_SALE_INDEX]) +
-                KASBON_PAYMENT_DELAY_DAYS * DemoSchedule.MILLIS_PER_DAY,
-        )
-        val useCase = RecordDebtPaymentUseCase(transactionRepository, demoClock)
-        return when (val result = useCase(transactionId, amount, PaymentMethod.CASH, DemoMarkers.NOTE)) {
-            is AppResult.Success -> 1
-            is AppResult.Failure -> throw DemoSeedFailure("debt payment: ${result.error.message}")
-        }
-    }
 
     private suspend fun recordReturn(
         sales: List<DemoSaleSpec>,
@@ -270,12 +217,6 @@ class DefaultDemoDataSeeder(
         }
     }
 
-    private fun partialPaymentOf(total: Long): Long {
-        val half = total / 2
-        val rounded = (half / PARTIAL_PAYMENT_INCREMENT) * PARTIAL_PAYMENT_INCREMENT
-        return rounded.coerceAtLeast(PARTIAL_PAYMENT_INCREMENT).coerceAtMost(total)
-    }
-
     private fun roundUpTo(amount: Long, increment: Long): Long =
         if (amount <= 0L) 0L else ((amount + increment - 1) / increment) * increment
 
@@ -298,8 +239,6 @@ class DefaultDemoDataSeeder(
 
     private companion object {
         const val CASH_ROUNDING_INCREMENT = 5_000L
-        const val PARTIAL_PAYMENT_INCREMENT = 500L
-        const val KASBON_PAYMENT_DELAY_DAYS = 3
         const val LOAD_FAILURE_MESSAGE = "failed to load demo data"
         const val CLEAR_FAILURE_MESSAGE = "failed to clear demo data"
     }

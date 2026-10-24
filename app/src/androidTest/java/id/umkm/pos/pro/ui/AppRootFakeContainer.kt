@@ -9,7 +9,6 @@ import id.umkm.pos.pro.core.contract.BackupArtifact
 import id.umkm.pos.pro.core.contract.BackupImportSummary
 import id.umkm.pos.pro.core.contract.DataBackupService
 import id.umkm.pos.pro.core.contract.Clock
-import id.umkm.pos.pro.core.contract.CustomerRepository
 import id.umkm.pos.pro.core.contract.OnboardingStore
 import id.umkm.pos.pro.core.contract.PinHasher
 import id.umkm.pos.pro.core.contract.PriceEngine
@@ -34,9 +33,7 @@ import id.umkm.pos.pro.core.contract.StaffRepository
 import id.umkm.pos.pro.core.contract.TransactionRepository
 import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.DailySales
-import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.ReportRange
@@ -67,7 +64,6 @@ import kotlinx.coroutines.flow.map
 internal object AppRootFakeContainer : AppContainer {
 
     private val products = MutableStateFlow<List<Product>>(emptyList())
-    private val customers = MutableStateFlow<List<Customer>>(emptyList())
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
     private val settings = MutableStateFlow(
         AppSettings(
@@ -113,19 +109,6 @@ internal object AppRootFakeContainer : AppContainer {
         override suspend fun deleteImage(imagePath: String?) = Unit
     }
 
-    override val customerRepository: CustomerRepository = object : CustomerRepository {
-        override fun observeCustomers(query: String?): Flow<List<Customer>> = customers
-
-        override suspend fun getCustomer(customerId: Long): Customer? =
-            customers.value.firstOrNull { it.id == customerId }
-
-        override suspend fun upsertCustomer(customer: Customer): Long = customer.id
-
-        override suspend fun deleteCustomer(customerId: Long) = Unit
-
-        override fun observeDebtPayments(customerId: Long): Flow<List<DebtPayment>> = flowOf(emptyList())
-    }
-
     override val transactionRepository: TransactionRepository = object : TransactionRepository {
         override suspend fun saveTransaction(
             transaction: Transaction,
@@ -139,8 +122,6 @@ internal object AppRootFakeContainer : AppContainer {
         override fun observeTransactions(range: ReportRange): Flow<List<Transaction>> = transactions
 
         override suspend fun getItems(transactionId: Long): List<TransactionItem> = emptyList()
-
-        override suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long> = AppResult.Success(0L)
 
         override suspend fun markReturned(
             transactionId: Long,
@@ -250,7 +231,6 @@ internal object AppRootFakeContainer : AppContainer {
                 ShiftCashSummary(
                     startingCash = shift.startingCash,
                     cashSales = 0L,
-                    cashDebtPayments = 0L,
                     cashRefunds = 0L,
                     transactionCount = 0,
                 ),

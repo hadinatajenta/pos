@@ -41,6 +41,7 @@ import id.umkm.pos.pro.ui.components.AutoSizeNumberText
 import id.umkm.pos.pro.ui.components.IconBadge
 import id.umkm.pos.pro.ui.components.SecondaryTextAction
 import id.umkm.pos.pro.ui.components.hub.StoreIdentityMark
+import id.umkm.pos.pro.ui.shift.LocalShiftLauncher
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosShapes
@@ -330,12 +331,18 @@ private fun HeroActions(
     onOpenHistory: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
+    val shiftLauncher = LocalShiftLauncher.current
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
         verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
     ) {
         OutlinedButton(
-            onClick = onShiftAction,
+            onClick = {
+                onShiftAction()
+                if (activeShift == null) {
+                    shiftLauncher.openQuickShift()
+                }
+            },
             shape = PosShapes.medium,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
             border = BorderStroke(

@@ -1,75 +1,144 @@
 package id.umkm.pos.pro.ui.cashier
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import id.umkm.pos.pro.core.model.ProductUnit
+import androidx.compose.ui.unit.sp
+import id.umkm.pos.pro.R
+import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.feature.reports.Rupiah
 import id.umkm.pos.pro.ui.common.EmptyState
 import id.umkm.pos.pro.ui.common.LocalPosStrings
-import id.umkm.pos.pro.ui.common.PosStrings
-import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.formatQuantity
 import id.umkm.pos.pro.ui.components.AutoSizeNumberText
-import id.umkm.pos.pro.ui.components.PosCard
-import id.umkm.pos.pro.ui.components.PosSectionHeader
-import id.umkm.pos.pro.ui.components.PrimaryActionButton
 import id.umkm.pos.pro.ui.components.SecondaryTextAction
-import id.umkm.pos.pro.ui.security.rememberSecurityGate
+import id.umkm.pos.pro.ui.products.ProductCard
+import id.umkm.pos.pro.ui.products.ProductCardView
+import id.umkm.pos.pro.ui.products.ProductPalette
+import id.umkm.pos.pro.ui.products.ProductRadii
+import id.umkm.pos.pro.ui.products.categoryColorKey
 import id.umkm.pos.pro.ui.theme.LocalAppTextStyles
-import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
 import id.umkm.pos.pro.ui.theme.PosColors
+import id.umkm.pos.pro.ui.theme.PosFontFamily
 import id.umkm.pos.pro.ui.theme.PosShapes
 import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
-import androidx.compose.ui.res.painterResource
-import id.umkm.pos.pro.R
+import kotlin.math.roundToInt
 
-private const val SHEET_HEIGHT_FRACTION = 0.9f
 private const val FLOATING_CART_BAR_ELEVATION = 6
+
+private val CART_LINE_GAP = 12.dp
+private val CART_LINE_SHAPE = RoundedCornerShape(18.dp)
+private val CART_LINE_SHADOW = 4.dp
+private val CART_LINE_PADDING = 16.dp
+private val CART_PAGE_HORIZONTAL_PADDING = 20.dp
+private val STEPPER_SIZE = 40.dp
+private val STEPPER_ICON_SIZE = 18.dp
+private val STEPPER_QUANTITY_MIN_WIDTH = 32.dp
+private val SUMMARY_SHAPE = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+private val SUMMARY_PADDING = 20.dp
+private val SUMMARY_SHADOW = 8.dp
+private val SUMMARY_BUTTON_MIN_HEIGHT = 52.dp
 private val TRAILING_VALUE_MAX_WIDTH = 176.dp
 private val TOTAL_VALUE_MAX_WIDTH = 208.dp
+private val ProductPriceTextStyle = TextStyle(
+    fontFamily = PosFontFamily,
+    fontSize = 15.sp,
+    lineHeight = 19.sp,
+    fontWeight = FontWeight.ExtraBold,
+    fontFeatureSettings = "tnum",
+)
+
+@Composable
+internal fun CashierCartPage(
+    state: CashierUiState,
+    actions: CashierActions,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = LocalPosStrings.current
+    Column(modifier = modifier.fillMaxSize()) {
+        CashierPageHeader(title = strings.cashierCartTitle, onBack = onBack)
+        if (state.cartLines.isEmpty()) {
+            EmptyState(
+                iconRes = R.drawable.ic_shopping_cart,
+                title = strings.cashierEmptyCartTitle,
+                supportingText = strings.cashierEmptyCartMsg,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            CartLineList(
+                lines = state.cartLines,
+                actions = actions,
+                contentPadding = PaddingValues(
+                    start = CART_PAGE_HORIZONTAL_PADDING,
+                    end = CART_PAGE_HORIZONTAL_PADDING,
+                    top = PosSpacing.sm,
+                    bottom = PosSpacing.lg,
+                ),
+                modifier = Modifier.weight(1f),
+            )
+            state.pricedCart?.let { pricedCart ->
+                CartSummary(
+                    pricedCart = pricedCart,
+                    isShiftActive = state.activeShift != null,
+                    onOpenQuickShift = { actions.onOpenQuickShift {} },
+                    onOpenShift = { actions.onOpenShift(state.lineCount) { actions.onClearCart() } },
+                    onProcess = actions.onOpenPaymentSheet,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 internal fun CashierCartPane(
@@ -77,14 +146,58 @@ internal fun CashierCartPane(
     actions: CashierActions,
     modifier: Modifier = Modifier,
 ) {
+    val strings = LocalPosStrings.current
     Column(modifier = modifier.fillMaxSize()) {
-        CartHeader(
-            lineCount = state.lineCount,
-            totalQuantity = state.totalQuantity,
-            onClearCart = actions.onClearCart,
-            modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        )
-        CartContents(state = state, actions = actions, modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = strings.cashierCartTitle,
+                style = LocalAppTextStyles.current.sectionHeading,
+                color = ProductPalette.Ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (state.lineCount > 0) {
+                SecondaryTextAction(
+                    text = strings.cashierClearCart,
+                    onClick = actions.onClearCart,
+                )
+            }
+        }
+        if (state.cartLines.isEmpty()) {
+            EmptyState(
+                iconRes = R.drawable.ic_shopping_cart,
+                title = strings.cashierEmptyCartTitle,
+                supportingText = strings.cashierEmptyCartMsg,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            CartLineList(
+                lines = state.cartLines,
+                actions = actions,
+                contentPadding = PaddingValues(
+                    start = PosSpacing.md,
+                    end = PosSpacing.md,
+                    top = PosSpacing.sm,
+                    bottom = PosSpacing.lg,
+                ),
+                modifier = Modifier.weight(1f),
+            )
+            state.pricedCart?.let { pricedCart ->
+                CartSummary(
+                    pricedCart = pricedCart,
+                    isShiftActive = state.activeShift != null,
+                    onOpenQuickShift = { actions.onOpenQuickShift {} },
+                    onOpenShift = { actions.onOpenShift(state.lineCount) { actions.onClearCart() } },
+                    onProcess = actions.onOpenPaymentSheet,
+                )
+            }
+        }
     }
 }
 
@@ -116,7 +229,7 @@ internal fun CashierCartBar(
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
             ) {
                 Text(
                     text = strings.cashierItemCountLine(
@@ -134,15 +247,8 @@ internal fun CashierCartBar(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            val hasActiveShift = state.activeShift != null
             FilledTonalButton(
-                onClick = {
-                    if (hasActiveShift) {
-                        actions.onOpenPaymentSheet()
-                    } else {
-                        actions.onOpenShift(state.lineCount, actions.onClearCart)
-                    }
-                },
+                onClick = actions.onOpenCartSheet,
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = Color.White,
                     contentColor = PosColors.ForestGreen,
@@ -150,7 +256,7 @@ internal fun CashierCartBar(
                 contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
             ) {
                 Text(
-                    text = if (hasActiveShift) strings.cashierPay else strings.cashierShiftOpenAction,
+                    text = strings.cashierOpenCart,
                     style = LocalAppTextStyles.current.buttonLabel,
                     maxLines = 1,
                 )
@@ -159,107 +265,21 @@ internal fun CashierCartBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CashierCartSheet(
-    state: CashierUiState,
+private fun CartLineList(
+    lines: List<CashierCartLine>,
     actions: CashierActions,
-) {
-    val configuration = LocalConfiguration.current
-    val maxSheetHeight = (configuration.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
-    ModalBottomSheet(
-        onDismissRequest = actions.onCloseCartSheet,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxSheetHeight)) {
-            CartHeader(
-                lineCount = state.lineCount,
-                totalQuantity = state.totalQuantity,
-                onClearCart = actions.onClearCart,
-                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-            )
-            CartContents(state = state, actions = actions, modifier = Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun CartHeader(
-    lineCount: Int,
-    totalQuantity: Double,
-    onClearCart: (() -> Unit)? = null,
+    contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
-    val strings = LocalPosStrings.current
-    Row(
+    LazyColumn(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        contentPadding = contentPadding,
+        verticalArrangement = Arrangement.spacedBy(CART_LINE_GAP),
     ) {
-        PosSectionHeader(
-            title = strings.cashierCartTitle,
-            supportingText = cartItemSummary(lineCount = lineCount, totalQuantity = totalQuantity, strings = strings),
-            modifier = Modifier.weight(1f),
-        )
-        if (lineCount > 0 && onClearCart != null) {
-            SecondaryTextAction(
-                text = strings.cashierClearCart,
-                onClick = onClearCart,
-            )
+        items(items = lines, key = { line -> line.lineId }) { line ->
+            CartLineCard(line = line, actions = actions)
         }
-    }
-}
-
-@Composable
-private fun CartContents(
-    state: CashierUiState,
-    actions: CashierActions,
-    modifier: Modifier = Modifier,
-) {
-    val strings = LocalPosStrings.current
-    Column(modifier = modifier.fillMaxWidth()) {
-        if (state.cartLines.isEmpty()) {
-            EmptyState(
-                iconRes = R.drawable.ic_shopping_cart,
-                title = strings.cashierEmptyCartTitle,
-                supportingText = strings.cashierEmptyCartMsg,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            ) {
-                items(items = state.cartLines, key = { line -> line.lineId }) { line ->
-                    CartLineCard(line = line, actions = actions)
-                }
-            }
-        }
-        HorizontalDivider()
-        CartTotals(state = state)
-        val hasActiveShift = state.activeShift != null
-        if (!hasActiveShift) {
-            Text(
-                text = strings.cashierShiftRequired,
-                style = LocalAppTextStyles.current.supportingLabel,
-                color = LocalPosSemanticPalette.current.warningText,
-                modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
-            )
-        }
-        PrimaryActionButton(
-            text = if (hasActiveShift) strings.cashierPay else strings.cashierShiftOpenAction,
-            onClick = {
-                if (hasActiveShift) {
-                    actions.onOpenPaymentSheet()
-                } else {
-                    actions.onOpenShift(state.lineCount, actions.onClearCart)
-                }
-            },
-            enabled = state.cartLines.isNotEmpty(),
-            loading = state.isSubmitting,
-            modifier = Modifier.padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        )
     }
 }
 
@@ -269,70 +289,234 @@ private fun CartLineCard(
     actions: CashierActions,
 ) {
     val strings = LocalPosStrings.current
-    PosCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
+    val revealWidth = 72.dp
+    val revealWidthPx = with(LocalDensity.current) { revealWidth.toPx() }
+    var dragOffset by remember(line.lineId) { mutableFloatStateOf(0f) }
+    var isDragging by remember(line.lineId) { mutableStateOf(false) }
+    val settledOffset by animateFloatAsState(
+        targetValue = dragOffset,
+        animationSpec = tween(durationMillis = 180),
+        label = "cartLineSwipe",
+    )
+    val displayedOffset = if (isDragging) dragOffset else settledOffset
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    onClickLabel = strings.cashierEditLineOptions(line.productName),
-                    onClick = { actions.onOpenLineEditor(line.lineId) },
-                ),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+                .fillMaxSize()
+                .clip(ProductRadii.card)
+                .background(ProductPalette.OutContainer),
+            contentAlignment = Alignment.CenterEnd,
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+            Box(
+                modifier = Modifier
+                    .padding(end = 6.dp)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(ProductPalette.Surface)
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = strings.cashierRemoveLine(line.productName),
+                        onClick = { actions.onRemoveLine(line.lineId) },
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = line.productName,
-                    style = LocalAppTextStyles.current.body,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "${Rupiah.format(line.unitPrice)} / ${line.unitLabel}",
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                LinePriceNote(line = line)
-            }
-            AutoSizeNumberText(
-                text = Rupiah.format(line.lineSubtotal),
-                style = LocalAppTextStyles.current.financialValue,
-                modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        ) {
-            IconButton(onClick = { actions.onDecreaseQuantity(line.lineId) }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_minus),
-                    contentDescription = strings.cashierDecreaseLineQuantity(line.productName),
-                )
-            }
-            Text(
-                text = formatQuantity(line.quantity),
-                style = LocalAppTextStyles.current.financialValue,
-            )
-            IconButton(onClick = { actions.onIncreaseQuantity(line.lineId) }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_plus),
-                    contentDescription = strings.cashierIncreaseLineQuantity(line.productName),
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            SecondaryTextAction(
-                text = strings.cashierUnitAndNegotiation,
-                onClick = { actions.onOpenLineEditor(line.lineId) },
-            )
-            IconButton(onClick = { actions.onRemoveLine(line.lineId) }) {
                 Icon(
                     painter = painterResource(R.drawable.ic_trash),
                     contentDescription = strings.cashierRemoveLine(line.productName),
+                    tint = ProductPalette.OutText,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        ProductCard(
+            card = ProductCardView(
+                id = line.productId,
+                name = line.productName,
+                categoryName = line.categoryName,
+                categoryColorKey = categoryColorKey(line.categoryName),
+                priceFormatted = Rupiah.format(line.unitPrice),
+                stock = line.stock,
+                iconOrImageUrl = line.imagePath ?: line.icon,
+                imagePath = line.imagePath,
+                icon = line.icon,
+                isActive = true,
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(displayedOffset.roundToInt(), 0) }
+                .pointerInput(line.lineId) {
+                    detectHorizontalDragGestures(
+                        onDragStart = {
+                            isDragging = true
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            dragOffset = (dragOffset + dragAmount).coerceIn(-revealWidthPx, 0f)
+                        },
+                        onDragEnd = {
+                            isDragging = false
+                            dragOffset = if (dragOffset <= -revealWidthPx / 2f) -revealWidthPx else 0f
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            dragOffset = 0f
+                        },
+                    )
+                },
+            metaLabel = "${strings.cashierSubtotal}: ${Rupiah.format(line.lineSubtotal)}",
+            trailingContent = {
+                QuantityStepper(
+                    quantity = line.quantity,
+                    productName = line.productName,
+                    onDecrease = { actions.onDecreaseQuantity(line.lineId) },
+                    onIncrease = { actions.onIncreaseQuantity(line.lineId) },
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun QuantityStepper(
+    quantity: Double,
+    productName: String,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+) {
+    val strings = LocalPosStrings.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+    ) {
+        StepperButton(
+            iconRes = R.drawable.ic_minus,
+            contentDescription = strings.cashierDecreaseLineQuantity(productName),
+            onClick = onDecrease,
+        )
+        Text(
+            text = formatQuantity(quantity),
+            style = LocalAppTextStyles.current.financialValue,
+            color = ProductPalette.Ink,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = STEPPER_QUANTITY_MIN_WIDTH),
+        )
+        StepperButton(
+            iconRes = R.drawable.ic_plus,
+            contentDescription = strings.cashierIncreaseLineQuantity(productName),
+            onClick = onIncrease,
+        )
+    }
+}
+
+@Composable
+private fun StepperButton(
+    iconRes: Int,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(STEPPER_SIZE)
+            .clip(CircleShape)
+            .background(ProductPalette.Background)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = contentDescription,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            tint = ProductPalette.Ink,
+            modifier = Modifier.size(STEPPER_ICON_SIZE),
+        )
+    }
+}
+
+@Composable
+private fun CartSummary(
+    pricedCart: PricedCart,
+    isShiftActive: Boolean,
+    onOpenQuickShift: () -> Unit,
+    onOpenShift: () -> Unit,
+    onProcess: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = LocalPosStrings.current
+    Surface(
+        color = ProductPalette.Surface,
+        contentColor = ProductPalette.Ink,
+        shape = SUMMARY_SHAPE,
+        shadowElevation = SUMMARY_SHADOW,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(SUMMARY_PADDING),
+            verticalArrangement = Arrangement.spacedBy(PosSpacing.sm),
+        ) {
+            SummaryRow(
+                label = strings.cashierSubtotal,
+                value = Rupiah.format(pricedCart.subtotal),
+                isEmphasized = false,
+            )
+            CashierDashedDivider()
+            if (!isShiftActive) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = strings.cashierShiftNotOpen,
+                        style = LocalAppTextStyles.current.supportingLabel,
+                        color = ProductPalette.MutedText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    SecondaryTextAction(
+                        text = strings.shiftQuickOpenSubmit,
+                        onClick = onOpenQuickShift,
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    SecondaryTextAction(
+                        text = strings.cashierShiftSwitchAction,
+                        onClick = onOpenShift,
+                    )
+                }
+            }
+            SummaryRow(
+                label = strings.cashierTotal,
+                value = Rupiah.format(pricedCart.grandTotal),
+                isEmphasized = true,
+            )
+            Button(
+                onClick = onProcess,
+                shape = ProductRadii.button,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PosColors.ForestGreen,
+                    contentColor = Color.White,
+                ),
+                contentPadding = PaddingValues(vertical = PosSpacing.sm),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = SUMMARY_BUTTON_MIN_HEIGHT),
+            ) {
+                Text(
+                    text = strings.cashierProcess,
+                    style = LocalAppTextStyles.current.buttonLabel,
+                    maxLines = 1,
                 )
             }
         }
@@ -340,61 +524,11 @@ private fun CartLineCard(
 }
 
 @Composable
-private fun LinePriceNote(line: CashierCartLine) {
-    val strings = LocalPosStrings.current
-    val note = when {
-        line.itemDiscount > 0L -> strings.cashierLineDiscount(Rupiah.format(line.itemDiscount))
-        line.isNegotiated -> strings.cashierLineNegotiatedBadge
-        line.isWholesale -> strings.cashierLineWholesaleBadge
-        else -> null
-    } ?: return
-    Text(
-        text = note,
-        style = LocalAppTextStyles.current.supportingLabel,
-        color = MaterialTheme.colorScheme.primary,
-    )
-}
-
-@Composable
-private fun CartTotals(state: CashierUiState) {
-    val pricedCart = state.pricedCart ?: return
-    val strings = LocalPosStrings.current
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = PosSpacing.md, vertical = PosSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
-    ) {
-        TotalLine(
-            label = strings.cashierItemLabel,
-            value = strings.cashierItemQuantityLine(formatQuantity(state.totalQuantity), state.lineCount),
-        )
-        TotalLine(label = strings.cashierSubtotal, value = Rupiah.format(pricedCart.subtotal))
-        if (pricedCart.invoiceDiscount > 0L) {
-            TotalLine(label = strings.cashierDiscount, value = "-${Rupiah.format(pricedCart.invoiceDiscount)}")
-        }
-        if (pricedCart.taxTotal > 0L) {
-            TotalLine(label = strings.cashierTax, value = Rupiah.format(pricedCart.taxTotal))
-        }
-        if (pricedCart.rounding != 0L) {
-            TotalLine(label = strings.cashierRounding, value = Rupiah.format(pricedCart.rounding))
-        }
-        HorizontalDivider(modifier = Modifier.padding(vertical = PosSpacing.xs))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(text = strings.cashierTotal, style = LocalAppTextStyles.current.sectionHeading)
-            AutoSizeNumberText(
-                text = Rupiah.format(pricedCart.grandTotal),
-                style = LocalAppTextStyles.current.financialValueLarge,
-                modifier = Modifier.widthIn(max = TOTAL_VALUE_MAX_WIDTH),
-            )
-        }
-    }
-}
-
-@Composable
-private fun TotalLine(label: String, value: String) {
+private fun SummaryRow(
+    label: String,
+    value: String,
+    isEmphasized: Boolean,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -402,138 +536,25 @@ private fun TotalLine(label: String, value: String) {
     ) {
         Text(
             text = label,
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = if (isEmphasized) {
+                LocalAppTextStyles.current.sectionHeading
+            } else {
+                LocalAppTextStyles.current.supportingLabel
+            },
+            color = if (isEmphasized) ProductPalette.Ink else ProductPalette.MutedText,
+            maxLines = 1,
         )
         AutoSizeNumberText(
             text = value,
-            style = LocalAppTextStyles.current.body,
-            modifier = Modifier.widthIn(max = TRAILING_VALUE_MAX_WIDTH),
+            style = if (isEmphasized) {
+                LocalAppTextStyles.current.financialValueLarge
+            } else {
+                LocalAppTextStyles.current.financialValue
+            },
+            modifier = Modifier.widthIn(
+                max = if (isEmphasized) TOTAL_VALUE_MAX_WIDTH else TRAILING_VALUE_MAX_WIDTH,
+            ),
+            color = ProductPalette.Ink,
         )
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun CashierLineEditorSheet(
-    editor: CartLineEditorState,
-    actions: CashierActions,
-) {
-    val strings = LocalPosStrings.current
-    val gate = rememberSecurityGate()
-    val applyLineEditor: () -> Unit = {
-        val pinRequest = resolveLineEditorPinRequest(gate.policy(), editor.pricing)
-        if (pinRequest == null) {
-            actions.onApplyLineEditor()
-        } else {
-            gate.request(pinRequest.action, pinRequest.label(strings)) {
-                actions.onApplyLineEditor()
-            }
-        }
-    }
-    ModalBottomSheet(
-        onDismissRequest = actions.onCloseLineEditor,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(horizontal = PosSpacing.md)
-                .padding(bottom = PosSpacing.xl),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.md),
-        ) {
-            PosSectionHeader(title = strings.cashierLineItemOptions, supportingText = editor.productName)
-            PosCard(modifier = Modifier.fillMaxWidth()) {
-                if (editor.unitOptions.isNotEmpty()) {
-                    UnitSelector(
-                        options = editor.unitOptions,
-                        selectedUnitId = editor.selectedUnitId,
-                        onSelect = actions.onLineEditorUnitChange,
-                    )
-                }
-                OutlinedTextField(
-                    value = editor.negotiatedUnitPriceInput,
-                    onValueChange = actions.onLineEditorPriceChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(strings.cashierNegotiatedPrice) },
-                    supportingText = { Text(strings.cashierNegotiatedPriceHint) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-                OutlinedTextField(
-                    value = editor.itemDiscountInput,
-                    onValueChange = actions.onLineEditorDiscountChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(strings.cashierItemDiscount) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-            }
-            val validationMessage = editor.validationMessage?.asTextOrNull()
-            if (validationMessage != null) {
-                Text(
-                    text = validationMessage,
-                    style = LocalAppTextStyles.current.supportingLabel,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
-                OutlinedButton(
-                    onClick = actions.onCloseLineEditor,
-                    modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
-                ) {
-                    Text(text = strings.actionCancel)
-                }
-                Button(
-                    onClick = applyLineEditor,
-                    modifier = Modifier.weight(1f).heightIn(min = PosSizes.touchTarget),
-                ) {
-                    Text(text = strings.cashierApply, style = LocalAppTextStyles.current.buttonLabel)
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun UnitSelector(
-    options: List<ProductUnit>,
-    selectedUnitId: Long?,
-    onSelect: (Long?) -> Unit,
-) {
-    val strings = LocalPosStrings.current
-    Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.xs)) {
-        Text(
-            text = strings.cashierUnit,
-            style = LocalAppTextStyles.current.supportingLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(PosSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
-        ) {
-            FilterChip(
-                selected = selectedUnitId == null,
-                onClick = { onSelect(null) },
-                label = { Text(strings.cashierBaseUnit) },
-            )
-            options.forEach { unit ->
-                FilterChip(
-                    selected = selectedUnitId == unit.id,
-                    onClick = { onSelect(unit.id) },
-                    label = { Text(unit.variantName) },
-                )
-            }
-        }
-    }
-}
-
-private fun cartItemSummary(lineCount: Int, totalQuantity: Double, strings: PosStrings): String =
-    if (lineCount == 0) {
-        strings.cashierCartEmptyLine
-    } else {
-        strings.cashierItemQuantityLine(formatQuantity(totalQuantity), lineCount)
-    }

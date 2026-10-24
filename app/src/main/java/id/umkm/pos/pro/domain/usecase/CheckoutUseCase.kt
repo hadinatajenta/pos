@@ -14,6 +14,7 @@ import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.Transaction
 import id.umkm.pos.pro.core.model.TransactionItem
+import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.domain.pos.PaymentAllocation
 import id.umkm.pos.pro.domain.pos.allocatePayment
 
@@ -27,10 +28,8 @@ data class CheckoutLine(
 
 data class CheckoutRequest(
     val lines: List<CheckoutLine>,
-    val customerId: Long?,
     val paymentMethod: PaymentMethod,
     val paidAmount: Long,
-    val dueDate: Long?,
     val invoiceDiscount: Long,
     val taxRatePercent: Int,
     val roundingIncrement: Long,
@@ -94,6 +93,9 @@ class CheckoutUseCase(
         )
 
         val allocation = allocatePayment(request.paymentMethod, request.paidAmount, pricedCart.grandTotal)
+        if (request.paymentMethod == PaymentMethod.CASH && request.paidAmount < pricedCart.grandTotal) {
+            return AppResult.Failure(AppError.Validation("cash payment is less than the total"))
+        }
         val createdAt = clock.nowMillis()
         val invoiceNo = transactionRepository.nextInvoiceNumber(createdAt)
         val itemDiscountTotal = pricedCart.lines.sumOf { it.line.itemDiscount }
@@ -103,7 +105,6 @@ class CheckoutUseCase(
             invoiceNo = invoiceNo,
             createdAt = createdAt,
             cashierId = null,
-            customerId = request.customerId,
             subtotal = pricedCart.subtotal,
             discountTotal = itemDiscountTotal + pricedCart.invoiceDiscount,
             invoiceDiscount = pricedCart.invoiceDiscount,
@@ -115,9 +116,7 @@ class CheckoutUseCase(
             paymentMethod = request.paymentMethod,
             paidAmount = allocation.paidAmount,
             changeAmount = allocation.changeAmount,
-            remainingDebt = allocation.remainingDebt,
-            dueDate = if (allocation.remainingDebt > 0L) request.dueDate else null,
-            status = allocation.status,
+            status = TransactionStatus.COMPLETED,
             notes = request.notes,
             cashierName = request.cashierName?.trim()?.ifEmpty { null },
             shiftId = request.shiftId,

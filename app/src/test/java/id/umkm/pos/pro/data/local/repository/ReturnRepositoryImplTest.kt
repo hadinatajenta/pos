@@ -9,8 +9,6 @@ import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.model.ReturnRecord
 import id.umkm.pos.pro.core.model.TransactionStatus
 import id.umkm.pos.pro.data.local.UmkmDatabase
-import id.umkm.pos.pro.data.local.dao.CustomerDao
-import id.umkm.pos.pro.data.local.dao.DebtPaymentDao
 import id.umkm.pos.pro.data.local.dao.InvoiceCounterDao
 import id.umkm.pos.pro.data.local.dao.ProductDao
 import id.umkm.pos.pro.data.local.dao.ReportDao
@@ -71,11 +69,7 @@ private class FakeUmkmDatabase : UmkmDatabase() {
 
     override fun productDao(): ProductDao = error("fake database must not expose daos")
 
-    override fun customerDao(): CustomerDao = error("fake database must not expose daos")
-
     override fun transactionDao(): TransactionDao = error("fake database must not expose daos")
-
-    override fun debtPaymentDao(): DebtPaymentDao = error("fake database must not expose daos")
 
     override fun shiftDao(): ShiftDao = error("fake database must not expose daos")
 
@@ -128,10 +122,6 @@ private class FakeTransactionDao : TransactionDao() {
     override suspend fun countTransactionsBetween(startMillis: Long, endMillis: Long): Int = unused()
 
     override suspend fun updateStatus(transactionId: Long, status: TransactionStatus) {
-        unused()
-    }
-
-    override suspend fun updateDebtState(transactionId: Long, remainingDebt: Long, status: TransactionStatus) {
         unused()
     }
 

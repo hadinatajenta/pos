@@ -33,7 +33,11 @@ class ShiftViewModel(
         observeStaff()
     }
 
-    fun onOpenShiftForm() {
+    fun onQuickOpenShiftForm() {
+        onOpenShiftForm(quick = true)
+    }
+
+    fun onOpenShiftForm(quick: Boolean = false) {
         viewModelScope.launch {
             val activeShift = try {
                 shiftRepository.getActiveShift()
@@ -43,6 +47,7 @@ class ShiftViewModel(
                 _state.update {
                     it.copy(
                         mode = ShiftSheetMode.SHIFT_FORM,
+                        isQuickMode = quick,
                         submitErrorMessage = AppError.Storage(error.message ?: "").toUiText(),
                     )
                 }
@@ -76,9 +81,12 @@ class ShiftViewModel(
                 null
             }
             val activeStaffOptions = staffOptions.filter(Staff::isActive)
+            val effectiveQuick = quick && activeShift == null
             _state.update { current ->
                 current.copy(
                     mode = ShiftSheetMode.SHIFT_FORM,
+                    isQuickMode = effectiveQuick,
+                    lastOpenedShiftId = null,
                     staffOptions = activeStaffOptions,
                     activeStaff = activeStaff,
                     selectedStaffId = if (activeShift == null) {
@@ -87,7 +95,7 @@ class ShiftViewModel(
                         null
                     },
                     selectedNextStaffId = null,
-                    startingCashInput = "",
+                    startingCashInput = if (effectiveQuick) "0" else "",
                     actualEndingCashInput = "",
                     nextStartingCashInput = "",
                     isVarianceAcknowledged = false,
@@ -98,10 +106,22 @@ class ShiftViewModel(
         }
     }
 
+    fun onOpenFullForm() {
+        _state.update { current ->
+            current.copy(
+                isQuickMode = false,
+                startingCashInput = if (current.startingCashInput == "0") "" else current.startingCashInput,
+                validationMessage = null,
+                submitErrorMessage = null,
+            )
+        }
+    }
+
     fun onDismissForm() {
         _state.update {
             it.copy(
                 mode = ShiftSheetMode.HIDDEN,
+                isQuickMode = false,
                 validationMessage = null,
                 submitErrorMessage = null,
                 isVarianceAcknowledged = false,
@@ -178,6 +198,8 @@ class ShiftViewModel(
                             activeShift = result.value,
                             summary = null,
                             isSubmitting = false,
+                            isQuickMode = false,
+                            lastOpenedShiftId = result.value.id,
                             selectedStaffId = null,
                             selectedNextStaffId = null,
                             startingCashInput = "",
@@ -320,6 +342,10 @@ class ShiftViewModel(
 
     fun onMessageConsumed() {
         _state.update { it.copy(message = null) }
+    }
+
+    fun onOpenedShiftConsumed() {
+        _state.update { it.copy(lastOpenedShiftId = null) }
     }
 
     private fun observeActiveShift() {

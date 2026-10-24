@@ -1,19 +1,10 @@
 package id.umkm.pos.pro.core.model
 
-data class Customer(
-    val id: Long,
-    val name: String,
-    val whatsappNumber: String?,
-    val totalDebt: Long,
-    val notes: String?,
-)
-
 data class Transaction(
     val id: Long,
     val invoiceNo: String,
     val createdAt: Long,
     val cashierId: Long?,
-    val customerId: Long?,
     val subtotal: Long,
     val discountTotal: Long,
     val invoiceDiscount: Long,
@@ -25,8 +16,6 @@ data class Transaction(
     val paymentMethod: PaymentMethod,
     val paidAmount: Long,
     val changeAmount: Long,
-    val remainingDebt: Long,
-    val dueDate: Long?,
     val status: TransactionStatus,
     val notes: String?,
     val cashierName: String? = null,
@@ -51,16 +40,6 @@ data class TransactionItem(
     val unitLabelSnapshot: String? = null,
 )
 
-data class DebtPayment(
-    val id: Long,
-    val transactionId: Long,
-    val customerId: Long,
-    val paidAt: Long,
-    val amount: Long,
-    val paymentMethod: PaymentMethod,
-    val note: String?,
-)
-
 data class CashierShift(
     val id: Long,
     val cashierName: String,
@@ -77,12 +56,11 @@ data class CashierShift(
 data class ShiftCashSummary(
     val startingCash: Long,
     val cashSales: Long,
-    val cashDebtPayments: Long,
     val cashRefunds: Long,
     val transactionCount: Int,
 ) {
     val expectedEndingCash: Long
-        get() = startingCash + cashSales + cashDebtPayments - cashRefunds
+        get() = startingCash + cashSales - cashRefunds
 }
 
 data class ShiftSwitchResult(

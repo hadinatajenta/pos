@@ -40,7 +40,6 @@ abstract class TransactionDao {
         "SELECT COALESCE(SUM(" +
             "CASE " +
             "WHEN payment_method = 'CASH' THEN paid_amount - change_amount " +
-            "WHEN payment_method IN ('SPLIT', 'KASBON') THEN paid_amount " +
             "ELSE 0 " +
             "END), 0) FROM transactions " +
             "WHERE created_at BETWEEN :startMillis AND :endMillis",
@@ -52,9 +51,6 @@ abstract class TransactionDao {
 
     @Query("UPDATE transactions SET status = :status WHERE id = :transactionId")
     abstract suspend fun updateStatus(transactionId: Long, status: TransactionStatus)
-
-    @Query("UPDATE transactions SET remaining_debt = :remainingDebt, status = :status WHERE id = :transactionId")
-    abstract suspend fun updateDebtState(transactionId: Long, remainingDebt: Long, status: TransactionStatus)
 
     @Query("DELETE FROM transactions WHERE notes = :note")
     abstract suspend fun deleteTransactionsByNote(note: String): Int

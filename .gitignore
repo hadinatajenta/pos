@@ -17,3 +17,4 @@
 *.commandcode
 docs/*
 /anti-slop
+.opencode/

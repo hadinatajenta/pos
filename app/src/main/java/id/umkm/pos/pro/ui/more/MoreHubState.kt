@@ -15,7 +15,6 @@ object MoreHubTestTags {
     const val SHIFT_ACTION = "more_shift_action"
     const val HISTORY_ACTION = "more_history_action"
     const val SETTINGS_ROW = "more_settings_row"
-    const val CUSTOMERS_ROW = "more_customers_row"
     const val DEBUG_SECTION = "more_debug_section"
     const val EMPTY_DETAIL = "more_empty_detail"
 }

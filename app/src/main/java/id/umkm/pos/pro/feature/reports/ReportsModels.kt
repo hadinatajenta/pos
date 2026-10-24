@@ -36,14 +36,12 @@ fun ReportsRangePreset.pickerLabel(strings: PosStrings): String = when (this) {
 enum class TransactionStatusFilter(
     val statuses: Set<TransactionStatus>,
 ) {
-    COMPLETED(setOf(TransactionStatus.COMPLETED, TransactionStatus.PARTIAL_DEBT)),
-    KASBON(setOf(TransactionStatus.PARTIAL_DEBT)),
+    COMPLETED(setOf(TransactionStatus.COMPLETED)),
     REFUND(setOf(TransactionStatus.RETURNED)),
 }
 
 fun TransactionStatusFilter.label(strings: PosStrings): String = when (this) {
     TransactionStatusFilter.COMPLETED -> strings.reportsStatusFilterCompleted
-    TransactionStatusFilter.KASBON -> strings.reportsStatusFilterKasbon
     TransactionStatusFilter.REFUND -> strings.reportsStatusFilterRefund
 }
 
@@ -72,7 +70,6 @@ data class TransactionDetailLine(
 
 data class TransactionDetail(
     val transaction: Transaction,
-    val customerName: String?,
     val cashierName: String?,
     val lines: List<TransactionDetailLine>,
 )
@@ -105,6 +102,8 @@ sealed interface ReportsExportState {
     data class Failed(val error: AppError) : ReportsExportState
 
     data object PermissionDenied : ReportsExportState
+
+    data object AdRequired : ReportsExportState
 }
 
 data class ReportsUiState(

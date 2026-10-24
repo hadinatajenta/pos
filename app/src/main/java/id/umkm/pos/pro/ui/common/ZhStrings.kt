@@ -12,6 +12,8 @@ object ZhStrings : PosStrings {
 
     override val actionSave = "保存"
     override val actionCancel = "取消"
+    override val actionNo = "否"
+    override val actionYes = "是"
     override val actionClose = "关闭"
     override val actionOpen = "打开"
     override val actionShare = "分享"
@@ -101,12 +103,17 @@ object ZhStrings : PosStrings {
     override val cashierEmptyCartMsg = "点击商品即可添加到本次销售。"
     override val cashierClearCart = "清空"
     override val cashierPay = "结账"
+    override val cashierProcess = "继续"
+    override val cashierPayNow = "立即支付"
+    override val cashierTotalDue = "应付总额"
+    override val cashierInsufficientCash = "现金不足"
     override val cashierTotal = "总计"
     override val cashierSubtotal = "小计"
     override val cashierDiscount = "整单优惠"
     override val cashierTax = "税费"
     override val cashierRounding = "尾数舍入"
     override val cashierAmountReceived = "实收金额"
+    override val cashierEnterAmountOption = "输入金额"
     override val cashierExactMoney = "正好 (不找零)"
     override val cashierQuickNominal = "快捷面额"
     override val cashierQuickNominalOptions = "面额选择"
@@ -158,6 +165,12 @@ object ZhStrings : PosStrings {
     override val cashierLoadingProducts = "正在加载商品"
     override val cashierPaymentTitle = "收款"
     override val cashierConfirmPayment = "确认收款"
+    override val cashierConfirmPaymentQuestion = "确认付款？"
+    override val cashierConfirmSheetTitle = "确认付款"
+    override val cashierCashReceived = "实收现金"
+    override val cashierConfirmAndPay = "确认并支付"
+    override val cashierPaymentMoreOptions = "更多选项"
+    override val cashierPaymentHideOptions = "收起选项"
     override val cashierPaymentMethodLabel = "收款方式"
     override val cashierAmountPaidNow = "本次实收"
     override val cashierDepositReceived = "预收订金"
@@ -202,6 +215,10 @@ object ZhStrings : PosStrings {
     override val cashierShiftRequired = "收款前请先开班。"
     override val shiftOpenTitle = "开班"
     override val shiftOpenSupporting = "选择收银员并填写备用金。"
+    override val shiftQuickOpenTitle = "开班"
+    override val shiftQuickOpenSubmit = "开班"
+    override val shiftQuickStartingCashHint = "如果不记录备用金，请填 0。"
+    override val shiftQuickDetailsAction = "详细设置"
     override val shiftCloseTitle = "交班"
     override val shiftCloseSupporting = { cashierName: String -> "当前收银员：$cashierName" }
     override val shiftOperatorDescription = "钱箱和备用金不变，仅更换收银员。"
@@ -317,6 +334,8 @@ object ZhStrings : PosStrings {
     override val paymentCash = "现金"
     override val paymentQris = "QRIS扫码"
     override val paymentTransfer = "银行转账"
+    override val paymentDebit = "借记卡"
+    override val paymentCredit = "信用卡"
     override val paymentSplit = "分次付款"
     override val paymentKasbon = "客户赊账"
     override val paymentSplitShort = "分次"
@@ -615,6 +634,7 @@ object ZhStrings : PosStrings {
     }
     override val reportsExportDialogTitle = "导出报表"
     override val reportsExportAdHint = { folder: String -> "观看一段短视频广告后，文件将保存到 $folder。" }
+    override val reportsAdRequired = "请看完广告后再导出文件。"
     override val reportsExportFormat = "格式"
     override val reportsExportConfirm = "观看并导出"
     override val reportsRangeCustomHint = "选择日期"
@@ -762,12 +782,12 @@ object ZhStrings : PosStrings {
     override val demoDataLoad = "载入演示数据"
     override val demoDataClear = "清除演示数据"
     override val demoDataClearConfirmTitle = "清除演示数据？"
-    override val demoDataClearConfirmMsg = "带有 DEMO 标记的交易、客户与商品将被删除，店铺真实数据不受影响。"
-    override val demoDataLoaded = { products: Int, customers: Int, transactions: Int, returns: Int ->
-        "已载入：$products 件商品、$customers 位客户、$transactions 笔交易、$returns 笔退货"
+    override val demoDataClearConfirmMsg = "演示数据中的交易与商品将被删除，店铺真实数据不受影响。"
+    override val demoDataLoaded = { products: Int, transactions: Int, returns: Int ->
+        "已载入：$products 件商品、$transactions 笔交易、$returns 笔退货"
     }
-    override val demoDataCleared = { products: Int, customers: Int, transactions: Int ->
-        "已删除：$products 件商品、$customers 位客户、$transactions 笔交易"
+    override val demoDataCleared = { products: Int, transactions: Int ->
+        "已删除：$products 件商品、$transactions 笔交易"
     }
     override val demoDataFailed = { detail: String -> "失败：$detail" }
 

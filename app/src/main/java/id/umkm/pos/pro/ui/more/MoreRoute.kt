@@ -32,16 +32,14 @@ import id.umkm.pos.pro.R
 import id.umkm.pos.pro.core.contract.AppResult
 import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.Staff
 import id.umkm.pos.pro.ui.LocalAppContainer
+import id.umkm.pos.pro.ui.common.CenteredScreenHeader
 import id.umkm.pos.pro.ui.common.LocalPosStrings
-import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.StatusChip
 import id.umkm.pos.pro.ui.components.hub.HubGroup
 import id.umkm.pos.pro.ui.components.hub.HubRow
 import id.umkm.pos.pro.ui.components.hub.HubSectionLabel
-import id.umkm.pos.pro.ui.customers.CustomersRoute
 import id.umkm.pos.pro.ui.settings.SettingsRoute
 import id.umkm.pos.pro.ui.shift.LocalShiftLauncher
 import id.umkm.pos.pro.ui.theme.LocalPosSemanticPalette
@@ -50,7 +48,7 @@ import id.umkm.pos.pro.ui.theme.PosSizes
 import id.umkm.pos.pro.ui.theme.PosSpacing
 import kotlinx.coroutines.CancellationException
 
-private enum class MoreDestination { SETTINGS, CUSTOMERS }
+private enum class MoreDestination { SETTINGS }
 
 @Composable
 fun MoreRoute(
@@ -61,7 +59,6 @@ fun MoreRoute(
 ) {
     val container = LocalAppContainer.current
     val settings by container.settingsRepository.observeSettings().collectAsState(initial = null)
-    val customers by container.customerRepository.observeCustomers(null).collectAsState(initial = emptyList())
     val activeShift by remember(container) {
         container.shiftRepository.observeActiveShift()
     }.collectAsState(initial = null)
@@ -103,7 +100,6 @@ fun MoreRoute(
             Row(modifier = Modifier.fillMaxSize()) {
                 MoreHubColumn(
                     settings = settings,
-                    customers = customers,
                     activeShift = activeShift,
                     activeStaff = activeStaff,
                     expectedCash = expectedCashState,
@@ -126,11 +122,6 @@ fun MoreRoute(
                 ) {
                     when (activeDetail) {
                         null -> MoreEmptyDetail()
-                        MoreDestination.CUSTOMERS -> CustomersRoute(
-                            onBack = null,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-
                         MoreDestination.SETTINGS -> SettingsRoute(
                             onBack = null,
                             openStaffDirectory = openStaffDirectory,
@@ -142,13 +133,6 @@ fun MoreRoute(
             }
         } else {
             when (activeDetail) {
-                MoreDestination.CUSTOMERS -> MoreDetailScreen(onBack = onBackToMenu) {
-                    CustomersRoute(
-                        onBack = onBackToMenu,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-
                 MoreDestination.SETTINGS -> MoreDetailScreen(onBack = onBackToMenu) {
                     SettingsRoute(
                         onBack = onBackToMenu,
@@ -160,7 +144,6 @@ fun MoreRoute(
 
                 null -> MoreHubColumn(
                     settings = settings,
-                    customers = customers,
                     activeShift = activeShift,
                     activeStaff = activeStaff,
                     expectedCash = expectedCashState,
@@ -187,7 +170,6 @@ private fun MoreDetailScreen(
 @Composable
 private fun MoreHubColumn(
     settings: AppSettings?,
-    customers: List<Customer>,
     activeShift: CashierShift?,
     activeStaff: Staff?,
     expectedCash: ExpectedCashState,
@@ -200,7 +182,7 @@ private fun MoreHubColumn(
     val strings = LocalPosStrings.current
 
     Column(modifier = modifier) {
-        ScreenHeader(title = strings.navMore, supportingText = strings.moreHeaderSupporting)
+        CenteredScreenHeader(title = strings.navMore, supportingText = strings.moreHeaderSupporting)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -224,7 +206,6 @@ private fun MoreHubColumn(
                 onRetryExpectedCash = onRetryExpectedCash,
             )
             MoreManageSection(
-                customers = customers,
                 selectedDestination = selectedDestination,
                 onSelectDestination = onSelectDestination,
             )
@@ -271,18 +252,10 @@ private fun MoreHero(
 
 @Composable
 private fun MoreManageSection(
-    customers: List<Customer>,
     selectedDestination: MoreDestination?,
     onSelectDestination: (MoreDestination) -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    val palette = LocalPosSemanticPalette.current
-    val unpaidCount = customers.count { it.totalDebt > 0L }
-    val customersDescription = if (customers.isEmpty()) {
-        strings.moreCustomersEmptyDescription
-    } else {
-        strings.moreCustomersDescription
-    }
 
     Column(verticalArrangement = Arrangement.spacedBy(PosSpacing.sm)) {
         HubSectionLabel(text = strings.moreSectionManage)
@@ -294,28 +267,6 @@ private fun MoreManageSection(
                 onClick = { onSelectDestination(MoreDestination.SETTINGS) },
                 isSelected = selectedDestination == MoreDestination.SETTINGS,
                 modifier = Modifier.testTag(MoreHubTestTags.SETTINGS_ROW),
-            )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(horizontal = PosSpacing.md),
-            )
-            HubRow(
-                title = strings.moreHubCustomers,
-                description = customersDescription,
-                iconRes = R.drawable.ic_users,
-                onClick = { onSelectDestination(MoreDestination.CUSTOMERS) },
-                isSelected = selectedDestination == MoreDestination.CUSTOMERS,
-                modifier = Modifier.testTag(MoreHubTestTags.CUSTOMERS_ROW),
-                badge = {
-                    if (unpaidCount > 0) {
-                        StatusChip(
-                            iconRes = R.drawable.ic_clock,
-                            label = strings.moreKasbonCount(unpaidCount),
-                            containerColor = palette.warningContainer,
-                            contentColor = palette.warning,
-                        )
-                    }
-                },
             )
         }
     }

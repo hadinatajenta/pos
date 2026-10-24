@@ -47,6 +47,8 @@ data class ShiftUiState(
     val validationMessage: UiText? = null,
     val submitErrorMessage: UiText? = null,
     val message: UiText? = null,
+    val isQuickMode: Boolean = false,
+    val lastOpenedShiftId: Long? = null,
 ) {
     val expectedEndingCash: Long? get() = summary?.expectedEndingCash
 

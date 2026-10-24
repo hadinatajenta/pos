@@ -4,15 +4,12 @@ import id.umkm.pos.pro.core.contract.AppResult
 
 data class DemoSeedSummary(
     val products: Int,
-    val customers: Int,
     val transactions: Int,
-    val debtPayments: Int,
     val returns: Int,
 )
 
 data class DemoClearSummary(
     val products: Int,
-    val customers: Int,
     val transactions: Int,
 )
 

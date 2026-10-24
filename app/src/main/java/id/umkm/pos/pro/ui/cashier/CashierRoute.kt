@@ -1,6 +1,15 @@
 package id.umkm.pos.pro.ui.cashier
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +43,12 @@ import id.umkm.pos.pro.ui.theme.PosSpacing
 import id.umkm.pos.pro.ui.theme.UmkmPosTheme
 import androidx.compose.runtime.getValue
 
+private enum class CashierStage {
+    CATALOG,
+    CART,
+    PAYMENT,
+}
+
 @Composable
 fun CashierRoute(
     onShareReceipt: (String) -> Unit,
@@ -45,7 +60,6 @@ fun CashierRoute(
             initializer {
                 CashierViewModel(
                     productRepository = container.productRepository,
-                    customerRepository = container.customerRepository,
                     settingsRepository = container.settingsRepository,
                     priceEngine = container.priceEngine,
                     checkoutUseCase = CheckoutUseCase(
@@ -91,21 +105,89 @@ internal fun CashierScreen(
         }
         actions.onMessageConsumed()
     }
+    LaunchedEffect(state.isShiftPromptVisible) {
+        if (state.isShiftPromptVisible) {
+            actions.onShiftPromptConsumed()
+            if (state.activeShift != null) {
+                actions.onShiftOpenedForPayment()
+            } else {
+                actions.onOpenQuickShift {
+                    actions.onShiftOpenedForPayment()
+                }
+            }
+        }
+    }
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val isTwoPane = maxWidth >= PosBreakpoints.twoPane
-        if (isTwoPane) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                CashierCatalogPane(
-                    state = state,
-                    actions = actions,
-                    modifier = Modifier.weight(PosPaneWeights.catalog),
-                )
-                VerticalDivider()
-                CashierCartPane(
-                    state = state,
-                    actions = actions,
-                    modifier = Modifier.weight(PosPaneWeights.cart),
-                )
+        val showPayment = state.isPaymentSheetVisible
+        val showCart = !isTwoPane && !showPayment && state.isCartSheetVisible
+        val stage = when {
+            showPayment -> CashierStage.PAYMENT
+            showCart -> CashierStage.CART
+            else -> CashierStage.CATALOG
+        }
+        BackHandler(enabled = showPayment) { actions.onClosePaymentSheet() }
+        BackHandler(enabled = showCart) { actions.onCloseCartSheet() }
+        LaunchedEffect(state.lineCount, state.isPaymentSheetVisible, state.isCartSheetVisible) {
+            if (state.lineCount > 0) return@LaunchedEffect
+            if (state.isPaymentSheetVisible) actions.onClosePaymentSheet()
+            if (state.isCartSheetVisible) actions.onCloseCartSheet()
+        }
+        Box(modifier = Modifier.fillMaxSize()) {
+            AnimatedContent(
+                targetState = stage,
+                transitionSpec = {
+                    val isForward = targetState.ordinal > initialState.ordinal
+                    if (isForward) {
+                        (slideInHorizontally(animationSpec = tween(240)) { width -> width } + fadeIn(tween(200))) togetherWith
+                            (slideOutHorizontally(animationSpec = tween(220)) { width -> -width / 4 } + fadeOut(tween(160)))
+                    } else {
+                        (slideInHorizontally(animationSpec = tween(240)) { width -> -width } + fadeIn(tween(200))) togetherWith
+                            (slideOutHorizontally(animationSpec = tween(220)) { width -> width / 4 } + fadeOut(tween(160)))
+                    }
+                },
+                label = "cashierCheckoutStage",
+            ) { currentStage ->
+                when (currentStage) {
+                    CashierStage.PAYMENT -> CashierPaymentPage(
+                        state = state,
+                        actions = actions,
+                        onBack = actions.onClosePaymentSheet,
+                    )
+
+                    CashierStage.CART -> CashierCartPage(
+                        state = state,
+                        actions = actions,
+                        onBack = actions.onCloseCartSheet,
+                    )
+
+                    CashierStage.CATALOG -> {
+                        if (isTwoPane) {
+                            Row(modifier = Modifier.fillMaxSize()) {
+                                CashierCatalogPane(
+                                    state = state,
+                                    actions = actions,
+                                    modifier = Modifier.weight(PosPaneWeights.catalog),
+                                )
+                                VerticalDivider()
+                                CashierCartPane(
+                                    state = state,
+                                    actions = actions,
+                                    modifier = Modifier.weight(PosPaneWeights.cart),
+                                )
+                            }
+                        } else {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                CashierCatalogPane(
+                                    state = state,
+                                    actions = actions,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                CashierCartBar(state = state, actions = actions)
+                            }
+                        }
+                    }
+                }
             }
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -113,31 +195,7 @@ internal fun CashierScreen(
                     .align(Alignment.BottomCenter)
                     .padding(PosSpacing.md),
             )
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                CashierCatalogPane(
-                    state = state,
-                    actions = actions,
-                    modifier = Modifier.weight(1f),
-                )
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier.padding(horizontal = PosSpacing.md),
-                )
-                CashierCartBar(state = state, actions = actions)
-            }
         }
-        state.cartLineEditor?.let { editor ->
-            CashierLineEditorSheet(editor = editor, actions = actions)
-        }
-        if (state.isCartSheetVisible) {
-            CashierCartSheet(state = state, actions = actions)
-        }
-        if (state.isPaymentSheetVisible) {
-            CashierPaymentSheet(state = state, actions = actions)
-        }
-        CashierCustomerPicker(state = state, actions = actions)
-        CashierDueDatePicker(state = state, actions = actions)
         state.receipt?.let { receipt ->
             CashierReceiptSheet(
                 receipt = receipt,
@@ -177,6 +235,10 @@ private fun previewCartLine(product: Product, quantity: Double): CashierCartLine
     lineSubtotal = product.basePrice * quantity.toLong(),
     isNegotiated = false,
     isWholesale = false,
+    categoryName = product.category.orEmpty(),
+    imagePath = product.imagePath,
+    icon = product.icon,
+    stock = product.stockBaseQty,
 )
 
 private fun previewPricedCart(grandTotal: Long): PricedCart = PricedCart(
@@ -245,12 +307,6 @@ private fun previewCashierActions(): CashierActions = CashierActions(
     onClosePaymentSheet = {},
     onPaymentMethodChange = {},
     onAmountReceivedChange = {},
-    onOpenCustomerPicker = {},
-    onCloseCustomerPicker = {},
-    onCustomerSelected = {},
-    onOpenDueDatePicker = {},
-    onCloseDueDatePicker = {},
-    onDueDateChange = {},
     onConfirmCharge = {},
     onPrintReceipt = {},
     onNewSale = {},

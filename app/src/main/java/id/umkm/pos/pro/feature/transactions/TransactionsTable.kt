@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +51,7 @@ import java.util.TimeZone
 private val TABLE_NUMBER_WIDTH = 40.dp
 private val TABLE_ACTION_WIDTH = 48.dp
 private val COMPACT_VALUE_MAX_WIDTH = 168.dp
+private val COMPACT_CARD_SHAPE = RoundedCornerShape(20.dp)
 private val TABLE_MONEY_TEXT_STYLE = PosTextStyles.financialValue.copy(fontSize = 15.sp, lineHeight = 20.sp)
 private const val TABLE_ID_WEIGHT = 1.6f
 private const val TABLE_DATE_WEIGHT = 1.4f
@@ -221,8 +225,8 @@ internal fun TransactionsCompactList(
     var sheetTransaction by remember { mutableStateOf<Transaction?>(null) }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = PosSpacing.md, vertical = PosSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(PosSpacing.xs),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(items = transactions, key = { transaction -> transaction.id }) { transaction ->
             TransactionCompactRow(
@@ -250,26 +254,37 @@ private fun TransactionCompactRow(
     onOpenMenu: () -> Unit,
 ) {
     val strings = LocalPosStrings.current
-    PosCard(
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = COMPACT_CARD_SHAPE,
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 4.dp,
+                shape = COMPACT_CARD_SHAPE,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.05f),
+                spotColor = Color.Black.copy(alpha = 0.05f),
+            )
             .clickable { actions.onOpenDetail(transaction.id) },
-        contentPadding = PosSpacing.sm,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = PosSpacing.xs),
+                .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(PosSpacing.xxs),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
                     text = transaction.invoiceNo,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 15.sp,
+                    lineHeight = 19.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -285,7 +300,11 @@ private fun TransactionCompactRow(
             Spacer(modifier = Modifier.width(PosSpacing.sm))
             AutoSizeNumberText(
                 text = Rupiah.format(transaction.grandTotal),
-                style = TABLE_MONEY_TEXT_STYLE,
+                style = TABLE_MONEY_TEXT_STYLE.copy(
+                    fontSize = 16.sp,
+                    lineHeight = 21.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                ),
                 modifier = Modifier.widthIn(max = COMPACT_VALUE_MAX_WIDTH),
             )
             TransactionActionsButton(

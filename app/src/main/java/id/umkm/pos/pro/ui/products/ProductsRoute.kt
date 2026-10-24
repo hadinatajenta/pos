@@ -2,8 +2,13 @@ package id.umkm.pos.pro.ui.products
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -35,7 +40,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,10 +59,9 @@ import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.CriticalAction
 import id.umkm.pos.pro.ui.LocalAppContainer
 import id.umkm.pos.pro.ui.LocalFullScreenContent
-import id.umkm.pos.pro.ui.common.HeaderActionButton
+import id.umkm.pos.pro.ui.common.CenteredScreenHeader
 import id.umkm.pos.pro.ui.common.LocalPosStrings
 import id.umkm.pos.pro.ui.common.OfflineNotice
-import id.umkm.pos.pro.ui.common.ScreenHeader
 import id.umkm.pos.pro.ui.common.asTextOrNull
 import id.umkm.pos.pro.ui.common.successDataOrNull
 import id.umkm.pos.pro.ui.security.rememberSecurityGate
@@ -114,8 +120,15 @@ internal fun ProductsScreen(
     val setFullScreenContent = LocalFullScreenContent.current
     val form = state.form
     val isFormOpen = form != null
-    DisposableEffect(isFormOpen) {
-        setFullScreenContent(isFormOpen)
+    LaunchedEffect(isFormOpen) {
+        if (isFormOpen) {
+            setFullScreenContent(true)
+        } else {
+            kotlinx.coroutines.delay(230)
+            setFullScreenContent(false)
+        }
+    }
+    DisposableEffect(Unit) {
         onDispose { setFullScreenContent(false) }
     }
     BackHandler(enabled = isFormOpen) { actions.onRequestDismissForm() }
@@ -126,6 +139,10 @@ internal fun ProductsScreen(
         actions.onMessageConsumed()
     }
     val categorySuggestions = state.catalog.successDataOrNull()?.categories.orEmpty()
+    var drawerForm by remember { mutableStateOf<ProductFormState?>(null) }
+    LaunchedEffect(form) {
+        if (form != null) drawerForm = form
+    }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
@@ -147,20 +164,35 @@ internal fun ProductsScreen(
                     isCompact = isCompact,
                     modifier = Modifier.weight(1f),
                 )
-                if (!isCompact && form != null) {
-                    TabletFormPanel(
-                        form = form,
-                        isSaving = state.isSaving,
-                        categorySuggestions = categorySuggestions,
-                        actions = actions,
-                        width = tabletFormWidth,
-                    )
+                if (!isCompact && drawerForm != null) {
+                    AnimatedVisibility(
+                        visible = form != null,
+                        enter = fadeIn(animationSpec = tween(180)) +
+                            expandHorizontally(
+                                expandFrom = Alignment.End,
+                                animationSpec = tween(240),
+                            ),
+                        exit = fadeOut(animationSpec = tween(150)) +
+                            shrinkHorizontally(
+                                shrinkTowards = Alignment.End,
+                                animationSpec = tween(220),
+                            ),
+                    ) {
+                        TabletFormPanel(
+                            form = drawerForm!!,
+                            isSaving = state.isSaving,
+                            categorySuggestions = categorySuggestions,
+                            actions = actions,
+                            width = tabletFormWidth,
+                        )
+                    }
                 }
             }
         }
-        if (isCompact && form != null) {
+        if (isCompact && drawerForm != null) {
             CompactFormDrawer(
-                form = form,
+                form = drawerForm!!,
+                isVisible = form != null,
                 isSaving = state.isSaving,
                 categorySuggestions = categorySuggestions,
                 actions = actions,
@@ -194,20 +226,10 @@ private fun ProductsCatalogPage(
     val strings = LocalPosStrings.current
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            ScreenHeader(
+            CenteredScreenHeader(
                 title = strings.productsTitle,
                 supportingText = state.catalog.successDataOrNull()?.let { catalog ->
                     strings.productsRegisteredCount(catalog.stats.totalCount)
-                },
-                actions = {
-                    if (!isCompact) {
-                        HeaderActionButton(
-                            text = strings.productsAdd,
-                            iconRes = R.drawable.ic_plus,
-                            contentDescription = strings.productsAddAction,
-                            onClick = actions.onOpenCreateForm,
-                        )
-                    }
                 },
             )
             ProductsSearchBar(
@@ -226,7 +248,7 @@ private fun ProductsCatalogPage(
                 modifier = Modifier.weight(1f),
             )
         }
-        if (isCompact && !state.isCatalogTrulyEmpty()) {
+        if (!state.isCatalogTrulyEmpty()) {
             ProductsAddAction(
                 onClick = actions.onOpenCreateForm,
                 modifier = Modifier
@@ -315,26 +337,41 @@ private fun TabletFormPanel(
 @Composable
 private fun CompactFormDrawer(
     form: ProductFormState,
+    isVisible: Boolean,
     isSaving: Boolean,
     categorySuggestions: List<String>,
     actions: ProductsActions,
-    ) {
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         val scrimInteractionSource = remember { MutableInteractionSource() }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.32f))
-                .clickable(
-                    interactionSource = scrimInteractionSource,
-                    indication = null,
-                    onClickLabel = LocalPosStrings.current.actionCancel,
-                    onClick = actions.onRequestDismissForm,
-                ),
-        )
         AnimatedVisibility(
-            visible = true,
-            enter = slideInHorizontally(initialOffsetX = { fullWidth -> fullWidth }) + fadeIn(),
+            visible = isVisible,
+            enter = fadeIn(animationSpec = tween(180)),
+            exit = fadeOut(animationSpec = tween(180)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.32f))
+                    .clickable(
+                        enabled = isVisible,
+                        interactionSource = scrimInteractionSource,
+                        indication = null,
+                        onClickLabel = LocalPosStrings.current.actionCancel,
+                        onClick = actions.onRequestDismissForm,
+                    ),
+            )
+        }
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInHorizontally(
+                animationSpec = tween(260),
+                initialOffsetX = { fullWidth -> fullWidth },
+            ) + fadeIn(animationSpec = tween(200)),
+            exit = slideOutHorizontally(
+                animationSpec = tween(220),
+                targetOffsetX = { fullWidth -> fullWidth },
+            ) + fadeOut(animationSpec = tween(160)),
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
             androidx.compose.runtime.key(form.formInstanceId) {

@@ -2,7 +2,6 @@ package id.umkm.pos.pro.ui.cashier
 
 import id.umkm.pos.pro.core.contract.UiState
 import id.umkm.pos.pro.core.model.CashierShift
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.PaymentMethod
 import id.umkm.pos.pro.core.model.PricedCart
 import id.umkm.pos.pro.core.model.Product
@@ -44,6 +43,10 @@ data class CashierCartLine(
     val lineSubtotal: Long,
     val isNegotiated: Boolean,
     val isWholesale: Boolean,
+    val categoryName: String,
+    val imagePath: String? = null,
+    val icon: String? = null,
+    val stock: Double = 0.0,
 )
 
 internal data class CartLineDraft(
@@ -58,8 +61,6 @@ internal data class CartLineDraft(
 data class PaymentDraft(
     val method: PaymentMethod = PaymentMethod.CASH,
     val amountReceivedInput: String = "",
-    val customerId: Long? = null,
-    val dueDateMillis: Long? = null,
 )
 
 data class CartLineEditorPricing(
@@ -92,7 +93,6 @@ data class CashierReceipt(
     val grandTotal: Long,
     val paidAmount: Long,
     val changeAmount: Long,
-    val remainingDebt: Long,
     val shareText: String,
     val paymentMethod: PaymentMethod = PaymentMethod.CASH,
     val itemCount: Int = 0,
@@ -109,9 +109,6 @@ data class CashierUiState(
     val cartLineEditor: CartLineEditorState? = null,
     val isPaymentSheetVisible: Boolean = false,
     val paymentDraft: PaymentDraft = PaymentDraft(),
-    val payableCustomers: List<Customer> = emptyList(),
-    val isCustomerPickerVisible: Boolean = false,
-    val isDueDatePickerVisible: Boolean = false,
     val isScanDialogVisible: Boolean = false,
     val isSubmitting: Boolean = false,
     val submitErrorMessage: UiText? = null,
@@ -123,13 +120,11 @@ data class CashierUiState(
     val qrisPayload: String? = null,
     val activeShift: CashierShift? = null,
     val activeStaff: Staff? = null,
+    val isShiftPromptVisible: Boolean = false,
 ) {
     val lineCount: Int get() = cartLines.size
 
     val totalQuantity: Double get() = cartLines.sumOf { it.quantity }
 
     val grandTotal: Long get() = pricedCart?.grandTotal ?: 0L
-
-    val selectedCustomerName: String?
-        get() = payableCustomers.firstOrNull { it.id == paymentDraft.customerId }?.name
 }

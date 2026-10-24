@@ -52,25 +52,14 @@ class DemoSalesPlanTest {
     }
 
     @Test
-    fun multiplePaymentMethodsAreUsedIncludingOneKasbon() {
+    fun everySaleUsesASupportedPaymentMethod() {
         val methods = sales.map { it.paymentMethod }.toSet()
 
-        assertThat(methods).contains(PaymentMethod.CASH)
-        assertThat(methods).contains(PaymentMethod.QRIS)
-        assertThat(methods).contains(PaymentMethod.TRANSFER)
-        assertThat(methods).contains(PaymentMethod.SPLIT)
-        assertThat(methods).contains(PaymentMethod.KASBON)
-        assertThat(sales.count { it.paymentMethod == PaymentMethod.KASBON }).isEqualTo(1)
-    }
-
-    @Test
-    fun kasbonSaleRequiresCustomerAndPartialSettlement() {
-        val kasbon = sales[DemoSalesPlan.KASBON_SALE_INDEX]
-
-        assertThat(kasbon.paymentMethod).isEqualTo(PaymentMethod.KASBON)
-        assertThat(kasbon.settlement).isEqualTo(DemoSettlement.PARTIAL_HALF)
-        assertThat(kasbon.customerIndex).isNotNull()
-        assertThat(kasbon.dueOffsetDays).isNotNull()
+        assertThat(methods).containsExactly(
+            PaymentMethod.CASH,
+            PaymentMethod.QRIS,
+            PaymentMethod.TRANSFER,
+        )
     }
 
     @Test
@@ -81,8 +70,7 @@ class DemoSalesPlanTest {
         cashSales.forEach { sale ->
             assertThat(sale.settlement).isEqualTo(DemoSettlement.CASH_ROUNDED)
         }
-        sales.filter { it.paymentMethod != PaymentMethod.CASH &&
-            it.settlement != DemoSettlement.PARTIAL_HALF }
+        sales.filter { it.paymentMethod != PaymentMethod.CASH }
             .forEach { sale -> assertThat(sale.settlement).isEqualTo(DemoSettlement.FULL) }
     }
 

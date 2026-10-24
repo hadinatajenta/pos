@@ -8,8 +8,6 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import id.umkm.pos.pro.data.local.converter.RoomConverters
-import id.umkm.pos.pro.data.local.dao.CustomerDao
-import id.umkm.pos.pro.data.local.dao.DebtPaymentDao
 import id.umkm.pos.pro.data.local.dao.InvoiceCounterDao
 import id.umkm.pos.pro.data.local.dao.ProductDao
 import id.umkm.pos.pro.data.local.dao.ReportDao
@@ -21,8 +19,6 @@ import id.umkm.pos.pro.data.local.dao.ShiftDao
 import id.umkm.pos.pro.data.local.dao.StaffDao
 import id.umkm.pos.pro.data.local.dao.TransactionDao
 import id.umkm.pos.pro.data.local.entity.CashierShiftEntity
-import id.umkm.pos.pro.data.local.entity.CustomerEntity
-import id.umkm.pos.pro.data.local.entity.DebtPaymentEntity
 import id.umkm.pos.pro.data.local.entity.InvoiceCounterEntity
 import id.umkm.pos.pro.data.local.entity.ProductEntity
 import id.umkm.pos.pro.data.local.entity.ProductUnitEntity
@@ -39,10 +35,8 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
     entities = [
         ProductEntity::class,
         ProductUnitEntity::class,
-        CustomerEntity::class,
         TransactionEntity::class,
         TransactionItemEntity::class,
-        DebtPaymentEntity::class,
         CashierShiftEntity::class,
         SecurityStoreEntity::class,
         SecurityAuditEntity::class,
@@ -52,7 +46,7 @@ import id.umkm.pos.pro.data.local.entity.TransactionItemEntity
         ReturnLineEntity::class,
         InvoiceCounterEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 @TypeConverters(RoomConverters::class)
@@ -60,11 +54,7 @@ abstract class UmkmDatabase : RoomDatabase() {
 
     abstract fun productDao(): ProductDao
 
-    abstract fun customerDao(): CustomerDao
-
     abstract fun transactionDao(): TransactionDao
-
-    abstract fun debtPaymentDao(): DebtPaymentDao
 
     abstract fun shiftDao(): ShiftDao
 
@@ -215,6 +205,122 @@ abstract class UmkmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_10_11: Migration = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `transactions_new` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`invoice_no` TEXT NOT NULL, " +
+                        "`created_at` INTEGER NOT NULL, " +
+                        "`cashier_id` INTEGER, " +
+                        "`subtotal` INTEGER NOT NULL, " +
+                        "`discount_total` INTEGER NOT NULL, " +
+                        "`invoice_discount` INTEGER NOT NULL, " +
+                        "`tax_total` INTEGER NOT NULL, " +
+                        "`rounding` INTEGER NOT NULL, " +
+                        "`grand_total` INTEGER NOT NULL, " +
+                        "`total_hpp` INTEGER NOT NULL, " +
+                        "`net_profit` INTEGER NOT NULL, " +
+                        "`payment_method` TEXT NOT NULL, " +
+                        "`paid_amount` INTEGER NOT NULL, " +
+                        "`change_amount` INTEGER NOT NULL, " +
+                        "`status` TEXT NOT NULL, " +
+                        "`notes` TEXT, " +
+                        "`cashier_name` TEXT, " +
+                        "`shift_id` INTEGER, " +
+                        "`staff_id` INTEGER)",
+                )
+                db.execSQL(
+                    "INSERT INTO `transactions_new` (" +
+                        "`id`, `invoice_no`, `created_at`, `cashier_id`, `subtotal`, " +
+                        "`discount_total`, `invoice_discount`, `tax_total`, `rounding`, " +
+                        "`grand_total`, `total_hpp`, `net_profit`, `payment_method`, " +
+                        "`paid_amount`, `change_amount`, `status`, `notes`, `cashier_name`, " +
+                        "`shift_id`, `staff_id`) " +
+                        "SELECT `id`, `invoice_no`, `created_at`, `cashier_id`, `subtotal`, " +
+                        "`discount_total`, `invoice_discount`, `tax_total`, `rounding`, " +
+                        "`grand_total`, `total_hpp`, `net_profit`, " +
+                        "CASE WHEN `payment_method` IN ('SPLIT', 'KASBON') THEN 'CASH' " +
+                        "ELSE `payment_method` END, " +
+                        "`paid_amount`, `change_amount`, " +
+                        "CASE WHEN `status` = 'PARTIAL_DEBT' THEN 'COMPLETED' ELSE `status` END, " +
+                        "`notes`, `cashier_name`, `shift_id`, `staff_id` " +
+                        "FROM `transactions`",
+                )
+                db.execSQL("DROP TABLE IF EXISTS `transaction_items_backup`")
+                db.execSQL("CREATE TABLE `transaction_items_backup` AS SELECT * FROM `transaction_items`")
+                db.execSQL("DROP TABLE `transaction_items`")
+                db.execSQL("DROP TABLE IF EXISTS `debt_payments`")
+                db.execSQL("DROP TABLE `transactions`")
+                db.execSQL("ALTER TABLE `transactions_new` RENAME TO `transactions`")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `transaction_items` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`transaction_id` INTEGER NOT NULL, " +
+                        "`product_id` INTEGER NOT NULL, " +
+                        "`variant_name` TEXT, " +
+                        "`qty` REAL NOT NULL, " +
+                        "`unit_hpp` INTEGER NOT NULL, " +
+                        "`applied_unit_price` INTEGER NOT NULL, " +
+                        "`is_nego_price` INTEGER NOT NULL, " +
+                        "`is_wholesale_applied` INTEGER NOT NULL, " +
+                        "`item_discount` INTEGER NOT NULL, " +
+                        "`subtotal` INTEGER NOT NULL, " +
+                        "`conversion_factor` REAL, " +
+                        "`product_name_snapshot` TEXT, " +
+                        "`unit_label_snapshot` TEXT, " +
+                        "FOREIGN KEY(`transaction_id`) REFERENCES `transactions`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                db.execSQL(
+                    "INSERT INTO `transaction_items` (" +
+                        "`id`, `transaction_id`, `product_id`, `variant_name`, `qty`, " +
+                        "`unit_hpp`, `applied_unit_price`, `is_nego_price`, " +
+                        "`is_wholesale_applied`, `item_discount`, `subtotal`, " +
+                        "`conversion_factor`, `product_name_snapshot`, `unit_label_snapshot`) " +
+                        "SELECT `id`, `transaction_id`, `product_id`, `variant_name`, `qty`, " +
+                        "`unit_hpp`, `applied_unit_price`, `is_nego_price`, " +
+                        "`is_wholesale_applied`, `item_discount`, `subtotal`, " +
+                        "`conversion_factor`, `product_name_snapshot`, `unit_label_snapshot` " +
+                        "FROM `transaction_items_backup`",
+                )
+                db.execSQL("DROP TABLE `transaction_items_backup`")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_transactions_invoice_no` " +
+                        "ON `transactions` (`invoice_no`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_created_at` " +
+                        "ON `transactions` (`created_at`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_cashier_id` " +
+                        "ON `transactions` (`cashier_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_shift_id` " +
+                        "ON `transactions` (`shift_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_staff_id` " +
+                        "ON `transactions` (`staff_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transactions_payment_method` " +
+                        "ON `transactions` (`payment_method`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transaction_items_transaction_id` " +
+                        "ON `transaction_items` (`transaction_id`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transaction_items_product_id` " +
+                        "ON `transaction_items` (`product_id`)",
+                )
+                db.execSQL("DROP TABLE IF EXISTS `customers`")
+            }
+        }
+
         fun build(context: Context): UmkmDatabase =
             Room.databaseBuilder(context.applicationContext, UmkmDatabase::class.java, DATABASE_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -228,6 +334,7 @@ abstract class UmkmDatabase : RoomDatabase() {
                     MIGRATION_7_8,
                     MIGRATION_8_9,
                     MIGRATION_9_10,
+                    MIGRATION_10_11,
                 )
                 .addCallback(SingletonRowsCallback)
                 .build()

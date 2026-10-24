@@ -26,12 +26,6 @@ class CashierActions(
     val onClosePaymentSheet: () -> Unit,
     val onPaymentMethodChange: (PaymentMethod) -> Unit,
     val onAmountReceivedChange: (String) -> Unit,
-    val onOpenCustomerPicker: () -> Unit,
-    val onCloseCustomerPicker: () -> Unit,
-    val onCustomerSelected: (Long?) -> Unit,
-    val onOpenDueDatePicker: () -> Unit,
-    val onCloseDueDatePicker: () -> Unit,
-    val onDueDateChange: (Long) -> Unit,
     val onConfirmCharge: () -> Unit,
     val onPrintReceipt: () -> Unit,
     val onNewSale: () -> Unit,
@@ -40,8 +34,10 @@ class CashierActions(
     val onDismissScanDialog: () -> Unit = {},
     val onScannedCode: (String) -> Unit = {},
     val onClearCart: () -> Unit = {},
-    val onQuickCreateCustomer: (name: String, whatsapp: String) -> Unit = { _, _ -> },
     val onOpenShift: (cartItemCount: Int, onClearCart: () -> Unit) -> Unit = { _, _ -> },
+    val onOpenQuickShift: (onOpened: () -> Unit) -> Unit = {},
+    val onShiftOpenedForPayment: () -> Unit = {},
+    val onShiftPromptConsumed: () -> Unit = {},
 ) {
     companion object {
         fun from(
@@ -69,12 +65,6 @@ class CashierActions(
             onClosePaymentSheet = viewModel::onClosePaymentSheet,
             onPaymentMethodChange = viewModel::onPaymentMethodChange,
             onAmountReceivedChange = viewModel::onAmountReceivedChange,
-            onOpenCustomerPicker = viewModel::onOpenCustomerPicker,
-            onCloseCustomerPicker = viewModel::onCloseCustomerPicker,
-            onCustomerSelected = viewModel::onCustomerSelected,
-            onOpenDueDatePicker = viewModel::onOpenDueDatePicker,
-            onCloseDueDatePicker = viewModel::onCloseDueDatePicker,
-            onDueDateChange = viewModel::onDueDateChange,
             onConfirmCharge = viewModel::onConfirmCharge,
             onPrintReceipt = viewModel::onPrintReceipt,
             onNewSale = viewModel::onNewSale,
@@ -83,8 +73,10 @@ class CashierActions(
             onDismissScanDialog = viewModel::onDismissScanDialog,
             onScannedCode = viewModel::onScannedCode,
             onClearCart = viewModel::onClearCart,
-            onQuickCreateCustomer = viewModel::onQuickCreateCustomer,
             onOpenShift = shiftLauncher::openShift,
+            onOpenQuickShift = shiftLauncher::openQuickShift,
+            onShiftOpenedForPayment = viewModel::onShiftOpenedForPayment,
+            onShiftPromptConsumed = viewModel::onShiftPromptConsumed,
         )
     }
 }

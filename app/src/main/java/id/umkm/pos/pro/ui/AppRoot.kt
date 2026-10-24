@@ -156,7 +156,6 @@ fun AppRoot(modifier: Modifier = Modifier) {
                 reportRepository = container.reportRepository,
                 transactionRepository = container.transactionRepository,
                 productRepository = container.productRepository,
-                customerRepository = container.customerRepository,
                 settingsRepository = container.settingsRepository,
                 csvExporter = SalesCsvExporter(container.reportRepository, downloadsSink),
                 xlsxExporter = XlsxReportExporter(downloadsSink),

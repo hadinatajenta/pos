@@ -2,9 +2,7 @@ package id.umkm.pos.pro.core.contract
 
 import id.umkm.pos.pro.core.model.AppSettings
 import id.umkm.pos.pro.core.model.CashierShift
-import id.umkm.pos.pro.core.model.Customer
 import id.umkm.pos.pro.core.model.DailySales
-import id.umkm.pos.pro.core.model.DebtPayment
 import id.umkm.pos.pro.core.model.Product
 import id.umkm.pos.pro.core.model.ProductUnit
 import id.umkm.pos.pro.core.model.ReportRange
@@ -45,21 +43,12 @@ interface ProductRepository {
     suspend fun deleteUnit(unitId: Long)
 }
 
-interface CustomerRepository {
-    fun observeCustomers(query: String?): Flow<List<Customer>>
-    suspend fun getCustomer(customerId: Long): Customer?
-    suspend fun upsertCustomer(customer: Customer): Long
-    suspend fun deleteCustomer(customerId: Long)
-    fun observeDebtPayments(customerId: Long): Flow<List<DebtPayment>>
-}
-
 interface TransactionRepository {
     suspend fun saveTransaction(transaction: Transaction, items: List<TransactionItem>): AppResult<Long>
     suspend fun nextInvoiceNumber(createdAtMillis: Long): String
     suspend fun getTransaction(transactionId: Long): Transaction?
     fun observeTransactions(range: ReportRange): Flow<List<Transaction>>
     suspend fun getItems(transactionId: Long): List<TransactionItem>
-    suspend fun recordDebtPayment(payment: DebtPayment): AppResult<Long>
     suspend fun markReturned(transactionId: Long, returnedItems: List<TransactionItem>): AppResult<Unit>
 }
 

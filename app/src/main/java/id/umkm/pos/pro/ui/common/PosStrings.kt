@@ -16,6 +16,8 @@ interface PosStrings {
     // Common actions
     val actionSave: String
     val actionCancel: String
+    val actionNo: String
+    val actionYes: String
     val actionClose: String
     val actionOpen: String
     val actionShare: String
@@ -107,12 +109,17 @@ interface PosStrings {
     val cashierEmptyCartMsg: String
     val cashierClearCart: String
     val cashierPay: String
+    val cashierProcess: String
+    val cashierPayNow: String
+    val cashierTotalDue: String
+    val cashierInsufficientCash: String
     val cashierTotal: String
     val cashierSubtotal: String
     val cashierDiscount: String
     val cashierTax: String
     val cashierRounding: String
     val cashierAmountReceived: String
+    val cashierEnterAmountOption: String
     val cashierExactMoney: String
     val cashierQuickNominal: String
     val cashierQuickNominalOptions: String
@@ -164,6 +171,12 @@ interface PosStrings {
     val cashierLoadingProducts: String
     val cashierPaymentTitle: String
     val cashierConfirmPayment: String
+    val cashierConfirmPaymentQuestion: String
+    val cashierConfirmSheetTitle: String
+    val cashierCashReceived: String
+    val cashierConfirmAndPay: String
+    val cashierPaymentMoreOptions: String
+    val cashierPaymentHideOptions: String
     val cashierPaymentMethodLabel: String
     val cashierAmountPaidNow: String
     val cashierDepositReceived: String
@@ -205,6 +218,10 @@ interface PosStrings {
     val cashierShiftRequired: String
     val shiftOpenTitle: String
     val shiftOpenSupporting: String
+    val shiftQuickOpenTitle: String
+    val shiftQuickOpenSubmit: String
+    val shiftQuickStartingCashHint: String
+    val shiftQuickDetailsAction: String
     val shiftCloseTitle: String
     val shiftCloseSupporting: (String) -> String
     val shiftOperatorDescription: String
@@ -317,6 +334,8 @@ interface PosStrings {
     val paymentCash: String
     val paymentQris: String
     val paymentTransfer: String
+    val paymentDebit: String
+    val paymentCredit: String
     val paymentSplit: String
     val paymentKasbon: String
     val paymentSplitShort: String
@@ -616,6 +635,7 @@ interface PosStrings {
     val reportsPermissionNeeded: (String) -> String
     val reportsExportDialogTitle: String
     val reportsExportAdHint: (String) -> String
+    val reportsAdRequired: String
     val reportsExportFormat: String
     val reportsExportConfirm: String
     val reportsRangeCustomHint: String
@@ -767,8 +787,8 @@ interface PosStrings {
     val demoDataClear: String
     val demoDataClearConfirmTitle: String
     val demoDataClearConfirmMsg: String
-    val demoDataLoaded: (Int, Int, Int, Int) -> String
-    val demoDataCleared: (Int, Int, Int) -> String
+    val demoDataLoaded: (Int, Int, Int) -> String
+    val demoDataCleared: (Int, Int) -> String
     val demoDataFailed: (String) -> String
 
     // Welcome

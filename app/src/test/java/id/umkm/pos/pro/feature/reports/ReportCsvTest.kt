@@ -26,7 +26,7 @@ class ReportCsvTest {
         assertThat(lines[0]).isEqualTo(ReportCsv.TRANSACTION_COLUMNS.joinToString(","))
         assertThat(lines[1]).isEqualTo(
             "INV-1,2024-01-15 00:00:00,CASH,COMPLETED," +
-                "15000,0,0,0,0,20000,10000,5000,20000,0,0",
+                "15000,0,0,0,0,20000,10000,5000,20000,0",
         )
         assertThat(lines[2]).isEmpty()
     }

@@ -11,20 +11,16 @@ class ReceiptShareTextTest {
     private fun receiptData(
         storeName: String = "Toko Demo",
         cashierName: String? = "Pemilik",
-        customerName: String? = null,
         invoiceDiscount: Long = 0L,
         taxTotal: Long = 0L,
         rounding: Long = 0L,
         changeAmount: Long = 0L,
-        remainingDebt: Long = 0L,
-        dueDateLabel: String? = null,
         itemDiscount: Long = 0L,
     ): ReceiptShareData = ReceiptShareData(
         storeName = storeName,
         invoiceNo = "INV-20261017-0001",
         createdAtLabel = "17 Okt 2026, 14.05",
         cashierName = cashierName,
-        customerName = customerName,
         paymentMethodLabel = "Tunai",
         items = listOf(
             ReceiptShareItem(
@@ -42,8 +38,6 @@ class ReceiptShareTextTest {
         grandTotal = 20_000L,
         paidAmount = 25_000L,
         changeAmount = changeAmount,
-        remainingDebt = remainingDebt,
-        dueDateLabel = dueDateLabel,
     )
 
     @Test
@@ -75,23 +69,6 @@ class ReceiptShareTextTest {
     }
 
     @Test
-    fun kasbonSaleShowsRemainingDebtAndDueDate() {
-        val text = ReceiptShareText.build(
-            receiptData(
-                customerName = "Eren",
-                remainingDebt = 7_500L,
-                dueDateLabel = "24 Okt 2026",
-            ),
-            IdStrings,
-        )
-
-        assertThat(text).contains("Pelanggan : Eren")
-        assertThat(text).contains("Sisa utang : Rp 7.500")
-        assertThat(text).contains("Jatuh tempo : 24 Okt 2026")
-        assertThat(text).doesNotContain("Kembalian")
-    }
-
-    @Test
     fun discountTaxAndRoundingAppearOnlyWhenApplied() {
         val withoutExtras = ReceiptShareText.build(receiptData(), IdStrings)
         assertThat(withoutExtras).doesNotContain("Diskon item")
@@ -116,13 +93,12 @@ class ReceiptShareTextTest {
     @Test
     fun fallsBackToTheAppNameAndSkipsBlankOptionalFields() {
         val text = ReceiptShareText.build(
-            receiptData(storeName = "", cashierName = null, customerName = null),
+            receiptData(storeName = "", cashierName = null),
             IdStrings,
         )
 
         assertThat(text).contains("*Pookie POS*")
         assertThat(text).doesNotContain("Kasir :")
-        assertThat(text).doesNotContain("Pelanggan :")
     }
 
     @Test

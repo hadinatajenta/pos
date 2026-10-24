@@ -139,7 +139,6 @@ class ReportsPresenterReturnTest {
         reportRepository = repository,
         transactionRepository = FakeTransactionRepository(),
         productRepository = FakeProductRepository(),
-        customerRepository = FakeCustomerRepository(),
         settingsRepository = FakeSettingsRepository(),
         csvExporter = SalesCsvExporter(repository, RecordingCsvSink(), utc),
         xlsxExporter = XlsxReportExporter(RecordingBinarySink(), utc),
